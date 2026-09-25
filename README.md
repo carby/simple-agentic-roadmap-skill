@@ -74,7 +74,7 @@ use Claude Code's skill directories.
 **Option A: global (every repo on your machine)**
 
 ```bash
-git clone <this-repo> ~/.claude/skills/roadmap
+git clone https://github.com/carby/simple-agentic-roadmap-skill.git ~/.claude/skills/roadmap
 
 # then, from the root of each repo that should have a roadmap:
 python ~/.claude/skills/roadmap/scripts/roadmap.py init
@@ -84,7 +84,7 @@ python ~/.claude/skills/roadmap/scripts/roadmap.py init
 
 ```bash
 # from the root of the repo:
-git clone <this-repo> .claude/skills/roadmap      # or add it as a git submodule
+git clone https://github.com/carby/simple-agentic-roadmap-skill.git .claude/skills/roadmap      # or add it as a git submodule
 python .claude/skills/roadmap/scripts/roadmap.py init
 ```
 
@@ -140,10 +140,10 @@ GitHub Actions, using this repo's action. It runs your vendored
 `tools/roadmap.py`, or falls back to the copy bundled with the action:
 
 ```yaml
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0                       # only needed for `base`
-      - uses: OWNER/roadmap-skill@v1
+      - uses: carby/simple-agentic-roadmap-skill@v1
         with:
           dir: roadmap
           base: origin/${{ github.base_ref }}  # PRs only: holds archive/ append-only
