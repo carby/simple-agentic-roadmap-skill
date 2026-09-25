@@ -3,6 +3,7 @@ name = "roadmap-skill"
 version = "0.1.0"
 description = "A Now/Next/Later roadmap skill for agents, checked in CI"
 requires-python = ">=3.11"
+authors = [{ name = "Tommy Derngren", email = "tommy.derngren@hiq.se" }]
 # scripts/roadmap.py is stdlib-only and must stay that way: it gets vendored.
 dependencies = []
 

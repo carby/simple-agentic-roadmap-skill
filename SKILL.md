@@ -1,6 +1,8 @@
 ---
 name: roadmap
 description: Keep a Now/Next/Later project roadmap as one Markdown file per item, with closed items archived and indexed in done.md, and every rule checked in CI. Use when the user asks what to work on next, wants to file, reprioritise or close a roadmap item, proposes a cleanup or refactor (check done.md first: it may already have been declined), or wants to set up a roadmap in a repo.
+metadata:
+  author: Tommy Derngren <tommy.derngren@hiq.se>
 ---
 
 # Roadmap

@@ -16,7 +16,8 @@ AGENT_DOCS = [REPO / "SKILL.md", REPO / "references/conventions.md", REPO / "ass
 def frontmatter(text: str) -> dict:
     match = re.match(r"\A---\n(.*?)\n---\n", text, re.DOTALL)
     assert match, "SKILL.md must open with ---fenced frontmatter"
-    return dict(line.split(": ", 1) for line in match.group(1).splitlines())
+    top_level = [line for line in match.group(1).splitlines() if ": " in line and not line.startswith(" ")]
+    return dict(line.split(": ", 1) for line in top_level)
 
 
 def test_skill_frontmatter_names_and_describes_the_skill() -> None:
