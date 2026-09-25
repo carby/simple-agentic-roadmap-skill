@@ -1,0 +1,20 @@
+[project]
+name = "roadmap-skill"
+version = "0.1.0"
+description = "A Now/Next/Later roadmap skill for agents, checked in CI"
+requires-python = ">=3.11"
+# scripts/roadmap.py is stdlib-only and must stay that way: it gets vendored.
+dependencies = []
+
+[dependency-groups]
+dev = ["pytest>=8", "ruff>=0.6"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

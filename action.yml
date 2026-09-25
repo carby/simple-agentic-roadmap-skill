@@ -1,0 +1,39 @@
+name: Roadmap check
+description: Validate a Now/Next/Later roadmap kept by the roadmap skill.
+branding:
+  icon: map
+  color: blue
+
+inputs:
+  dir:
+    description: The roadmap directory.
+    default: roadmap
+  script:
+    description: The repo's vendored roadmap.py. If it is missing, the copy bundled with this action is used.
+    default: tools/roadmap.py
+  base:
+    description: A git ref to hold archive/ append-only against, e.g. origin/main. Needs actions/checkout with fetch-depth 0.
+    default: ""
+  python-version:
+    description: Python to run it with (3.11 or newer).
+    default: "3.12"
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+    - shell: bash
+      env:
+        ROADMAP_DIR: ${{ inputs.dir }}
+        ROADMAP_SCRIPT: ${{ inputs.script }}
+        ROADMAP_BASE: ${{ inputs.base }}
+        BUNDLED: ${{ github.action_path }}/scripts/roadmap.py
+      run: |
+        script="$ROADMAP_SCRIPT"
+        if [ ! -f "$script" ]; then
+          echo "::notice::$script not found; using the roadmap.py bundled with this action"
+          script="$BUNDLED"
+        fi
+        python "$script" check --dir "$ROADMAP_DIR" ${ROADMAP_BASE:+--base "$ROADMAP_BASE"}
