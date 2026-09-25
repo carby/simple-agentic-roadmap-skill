@@ -60,3 +60,10 @@ def test_the_template_config_parses_with_its_examples_uncommented() -> None:
 
 def test_the_dogfood_roadmap_is_clean() -> None:
     assert roadmap.check(roadmap.open_roadmap(REPO / "roadmap")) == []
+
+
+def test_the_script_and_pyproject_agree_on_the_version() -> None:
+    """`roadmap.py --version` is how a repo tells which release it vendored."""
+    pyproject = tomllib.loads((REPO / "pyproject.toml").read_text())
+
+    assert pyproject["project"]["version"] == roadmap.__version__

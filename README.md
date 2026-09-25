@@ -260,6 +260,33 @@ The tests fail until all four are done.
 
 The script must stay stdlib-only. It gets vendored into other repos.
 
+**Releasing.** Releases use two kinds of tag:
+- a fixed `vX.Y.Z` tag for each release, which never moves
+- a floating major tag, `v1`, which always points at the newest 1.x release
+
+The README tells users `uses: carby/simple-agentic-roadmap-skill@v1`, so every
+compatible release moves `v1` forward.
+
+```bash
+# 1. Bump the version in both places (a test fails if they differ):
+#    __version__ in scripts/roadmap.py, and version in pyproject.toml
+uv lock && uv run pytest && git commit -am "chore: release 1.0.1"
+
+# 2. Tag the release and move the major tag onto it
+git tag v1.0.1
+git tag -f v1 v1.0.1
+git push github master v1.0.1
+git push -f github v1                  # force: v1 already exists on the remote
+```
+
+Bump the major version, e.g. to `v2.0.0` with a new `v2` tag, for any change
+that breaks existing users:
+- renaming or removing a command
+- changing the frontmatter schema
+- turning something `check` accepted into an error
+
+Leave `v1` on the last 1.x release.
+
 ## License
 
 [MIT](LICENSE) © 2026 Tommy Derngren
