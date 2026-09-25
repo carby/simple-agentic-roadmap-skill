@@ -17,15 +17,20 @@ def section(title: str) -> str:
     return match.group(1)
 
 
-def test_client_and_developer_testing_are_separate_sections() -> None:
+def test_client_checks_are_in_the_readme_and_developer_tests_in_contributing() -> None:
+    contributing = (REPO / "CONTRIBUTING.md").read_text()
+
     assert "roadmap.py check" in section("Checking your roadmap")
-    assert "uv run pytest" in section("Developing: running this repo's tests")
+    assert "uv run pytest" in contributing and "uv run pytest" not in README
+    assert "CONTRIBUTING.md" in section("Contributing")
 
 
-def test_every_command_the_readme_names_exists() -> None:
-    named = set(re.findall(r"roadmap\.py (?:--dir \S+ )?([a-z]+)", README))
+def test_every_command_the_readme_and_contributing_name_exists() -> None:
+    for name in ("README.md", "CONTRIBUTING.md"):
+        named = set(re.findall(r"roadmap\.py (?:--dir \S+ )?([a-z]+)", (REPO / name).read_text()))
 
-    assert named <= COMMANDS, f"README.md names {named - COMMANDS}"
+        assert named, f"{name} names no commands; the regex is out of date"
+        assert named <= COMMANDS, f"{name} names {named - COMMANDS}"
 
 
 def test_every_action_input_the_readme_uses_exists() -> None:
