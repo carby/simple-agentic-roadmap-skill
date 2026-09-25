@@ -259,3 +259,7 @@ The tests fail until all four are done.
   with `--base`.
 
 The script must stay stdlib-only. It gets vendored into other repos.
+
+## License
+
+[MIT](LICENSE) © 2026 Tommy Derngren

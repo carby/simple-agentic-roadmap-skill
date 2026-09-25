@@ -16,7 +16,9 @@ roadmap/done.md carries a generated index of the archive. `check` fails when:
 - (given --base) an archived entry lost a line.
 
 Run `python roadmap.py --help` for the commands. This file is vendored from
-the roadmap skill, and `--version` says which release it came from."""
+the roadmap skill, and `--version` says which release it came from.
+
+Copyright (c) 2026 Tommy Derngren. MIT License."""
 
 from __future__ import annotations
 
