@@ -9,9 +9,10 @@ Closed items, whether shipped or measured and declined, move to
 [`archive/`](archive/). [`done.md`](done.md) is their one-line-per-item index.
 **Search `done.md` before proposing work.** It answers "has this been tried?"
 
-**Guiding principle:** *(Replace this with the one or two sentences that decide
-arguments on this project: what is a defect here, and what is merely a
-difference.)*
+**Guiding principle:** Stay KISS: plain Markdown in three buckets, with a
+checker that stops the roadmap silently drifting out of date. A rule the
+checker should enforce but doesn't is a defect; a missing feature such as
+dependencies, hierarchy or dates is just a difference.
 
 ## The buckets
 
