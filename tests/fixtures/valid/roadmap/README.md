@@ -19,11 +19,11 @@ difference.)*
 |---|---|---|
 | **Now** | The top priority, the way a planned sprint is. It is *not* "being worked on right now". | no `blocked_on` |
 | **Next** | Ready, and queued to follow once Now is done. | no `blocked_on` |
-| **Later** | Blocked on a *decision*, not on effort. Size or lack of scoping doesn't put an item here. Being **undecided** does. | `blocked_on` required |
+| **Later** | Blocked on a *decision*, not on effort. Size or lack of scoping doesn't put an item here. Being **undecided** does. | `blocked_on`, or a `depends_on` item in Later |
 
 `rank` orders items within a bucket, most valuable first, and is unique within
-its bucket. When an item depends on another, the one it depends on goes first:
-either in an earlier bucket or higher in the same one. People decide the
+its bucket. When an item depends on another, list it in `depends_on`, and
+`check` holds it first: either in an earlier bucket or higher in the same one. People decide the
 bucket. An agent may suggest one, but it asks before filing.
 
 The roadmap doesn't track who is working on what, because that would take a
@@ -41,7 +41,7 @@ work is done. **Close it in the same branch as the code**, so it moves to
 
 ### Next (1)
 
-1. [Split app.py](items/split-app.md) — filed 2026-08-02
+1. [Split app.py](items/split-app.md) — filed 2026-08-02<br>  **Depends on:** [Cache auth tokens](items/cache-tokens.md), [Drop the legacy login](archive/drop-legacy-login.md) (shipped)
 
 ### Later (1)
 
@@ -53,7 +53,7 @@ work is done. **Close it in the same branch as the code**, so it moves to
 
 ```bash
 python scripts/roadmap.py new <id> --title "..." --bucket now   # file an item
-python scripts/roadmap.py move <id> --bucket now                # reprioritise (lands at the bottom of the bucket)
+python scripts/roadmap.py move <id> --bucket now                # reprioritise (lands above its dependents, else at the bottom)
 python scripts/roadmap.py close <id> --outcome shipped --as <change-or-pr>   # in the same branch as the code
 python scripts/roadmap.py index                                 # regenerate this index and done.md
 python scripts/roadmap.py check                                 # what CI runs
@@ -63,6 +63,7 @@ python scripts/roadmap.py check                                 # what CI runs
 It checks that:
 - every item's frontmatter is well-formed TOML carrying only known fields
 - each bucket's entry criterion actually holds
+- every dependency exists, wasn't declined, and comes first
 - every `refs` entry and every relative link resolves in the tree
 - this index and `done.md` match what the generator renders
 
@@ -100,7 +101,8 @@ rank = 1                # unique within the bucket, most valuable first
 filed = 2026-09-06      # a bare TOML date, not a string
 updated = 2026-09-06    # optional; when the item was last re-argued
 gate = "..."            # optional; the bar the work has to clear
-blocked_on = "..."      # required for `later`, forbidden elsewhere
+blocked_on = "..."      # required for `later` (unless a dependency is), forbidden elsewhere
+depends_on = ["other"]  # optional; ids that must come first (keep it above [refs])
 
 [refs]                  # optional; each entry is checked to exist
 files = ["src/app.py"]  # other kinds are declared in roadmap.toml

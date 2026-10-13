@@ -87,3 +87,22 @@ def test_splice_accepts_an_older_marker_wording() -> None:
 def test_splice_refuses_a_file_without_markers() -> None:
     with pytest.raises(roadmap.UsageError, match="markers not found"):
         roadmap.splice("# Roadmap\n", roadmap.INDEX_BEGIN, roadmap.INDEX_END, "NEW", Path("README.md"))
+
+
+def test_index_names_dependencies_open_closed_and_unknown(tmp_path: Path) -> None:
+    rm = make_roadmap(
+        tmp_path,
+        {
+            "items/a.md": item_text(open_meta(id="a", title="A")),
+            "items/b.md": item_text(open_meta(id="b", title="B", rank=2, gate="fast", depends_on=["a", "old", "gone"])),
+            "archive/old.md": item_text(closed_meta(id="old", title="Old")),
+        },
+    )
+    items, archived, _ = roadmap.load(rm)
+
+    block = roadmap.render_index(items, archived)
+
+    assert (
+        "2. [B](items/b.md) — filed 2026-09-06<br>  **Gate:** fast"
+        "<br>  **Depends on:** [A](items/a.md), [Old](archive/old.md) (shipped), gone"
+    ) in block

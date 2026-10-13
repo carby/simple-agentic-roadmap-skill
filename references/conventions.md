@@ -6,7 +6,7 @@
   conflict. It also means an item can be linked, moved and checked on its own.
 - **Frontmatter carries what a reader would otherwise have to infer.** That
   includes the bucket, the rank, what gates the item, what it is blocked on,
-  and which files and specs it touches. The prose is the argument, and no
+  which items must come first, and which files and specs it touches. The prose is the argument, and no
   schema touches it.
 - **Generated indexes** make README.md and done.md cheap to read and impossible
   to let drift. `check` fails when they differ from what the files render.
@@ -21,7 +21,7 @@
 |---|---|---|
 | `now` | the top priority, the way a planned sprint is. *Not* "in progress". | no `blocked_on` |
 | `next` | ready, and queued to follow once Now is done | no `blocked_on` |
-| `later` | blocked on a decision nobody has made yet | `blocked_on` required |
+| `later` | blocked on a decision nobody has made yet | `blocked_on`, or a dependency that is itself in `later` |
 
 An item that is big or unscoped is not `later` for that reason. Only being
 **undecided** puts it there.
@@ -31,6 +31,15 @@ roadmap, where it sits and when it leaves. An agent that spots something
 worth tracking pitches it (title, the problem and why it matters, a suggested
 bucket) and files it only after a yes. The same goes for moving and closing
 items.
+
+**Dependencies decide the order.** `depends_on` lists the items that must
+come first. `check` holds each one ahead of the item: in an earlier bucket, or
+higher in the same one. Ranks are unique, so that also rules out cycles. A
+shipped dependency is satisfied. A declined one fails `check` until the item is
+re-argued, either by dropping the dependency or re-scoping the item, and
+`close --outcome declined` refuses while other items still depend on it. A
+`later` item that depends on another `later` item waits on that item's
+decision, so it may leave out `blocked_on`.
 
 **People decide the bucket.** When filing an item, suggest a bucket and ask
 before filing. Base the suggestion on dependency order: an item goes no
@@ -47,9 +56,15 @@ would be a commit. An item stays in its bucket until the work is done, and is
 `done.md` when that code merges. A declined item can be closed in its own
 commit.
 
-`move <id> --bucket <b>` reprioritises an item, placing it at the bottom of the
-target bucket. Adjust `rank` by hand to place it higher. Moving out of
-`later` drops `blocked_on`, so record what was decided in the item's prose.
+`move <id> --bucket <b>` reprioritises an item. It lands just above the first
+item in the target bucket that depends on it, and that item and everything
+below it shift down a rank. If nothing there depends on it, it lands at the
+bottom. Adjust `rank` by hand to place it higher. `new`, `move` and `close`
+refuse, and write nothing, when the result would break `bucket` or `depends`:
+for example a move that leaves a dependency behind its dependent, or a close
+that takes away the `later` item another `later` item was waiting on. Moving
+out of `later` drops `blocked_on`, so record what was decided in the item's
+prose.
 
 ## Frontmatter
 
@@ -64,7 +79,8 @@ rank = 1                          # positive, unique within the bucket, most val
 filed = 2026-09-06                # a bare TOML date, not a string
 updated = 2026-09-06              # optional: when the item was last re-argued
 gate = "..."                      # optional: the bar the work has to clear
-blocked_on = "..."                # required for later, forbidden elsewhere
+blocked_on = "..."                # required for later (unless depends_on names a later item), forbidden elsewhere
+depends_on = ["other-item"]       # optional: ids that must come first; above [refs], or TOML files it under refs
 
 [refs]                            # optional: every entry must resolve
 files = ["src/app.py"]            # built in: paths relative to the repo root
@@ -73,8 +89,8 @@ specs = ["auth"]                  # any kind declared in roadmap.toml
 ```
 
 Archived item (`archive/<id>.md`). `close` produces this shape: the queue
-fields (`bucket`, `rank`, `blocked_on`) are removed, and these are
-added:
+fields (`bucket`, `rank`, `blocked_on`) are removed, `depends_on` stays as
+history, and these are added:
 
 ```toml
 closed = 2026-09-20
@@ -100,8 +116,9 @@ Every problem `check` reports ends in one of these tags.
 | `config` | roadmap.toml parses and each ref kind is a template containing `{}` | fix the TOML |
 | `frontmatter` | the file starts with `+++`-fenced TOML that parses | add or repair the fence; quote strings |
 | `schema` | required fields present, none unknown, id = filename = kebab slug; archived items carry no queue fields | rename the file or the id; remove the stray field |
-| `bucket` | bucket is `now`, `next` or `later`; `later` ⇔ `blocked_on` | add `blocked_on`, or `move` the item out of `later` |
+| `bucket` | bucket is `now`, `next` or `later`; `later` ⇔ `blocked_on`, or a dependency in `later` | add `blocked_on`, or `move` the item out of `later` |
 | `rank` | positive integer, unique within the bucket | renumber |
+| `depends` | `depends_on` is a list of ids naming open or shipped items, each ahead of the item: in an earlier bucket, or higher in the same one | reorder or `move` the items; drop a declined or missing dependency and re-argue the item |
 | `dates` | bare TOML dates (`2026-09-06`, not `"2026-09-06"`); none earlier than `filed` | unquote the date |
 | `body` | the prose says something (HTML comments don't count) | write the argument |
 | `refs` | every ref on an open item resolves | update the ref after a rename, or drop it |

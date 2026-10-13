@@ -12,6 +12,7 @@ roadmap/README.md carries a generated index of the open items, and
 roadmap/done.md carries a generated index of the archive. `check` fails when:
 - either index has drifted from the item files,
 - an item breaks its bucket's entry criterion,
+- a dependency is missing, was declined, or doesn't come first,
 - a ref or a relative link points at nothing, or
 - (given --base) an archived entry lost a line.
 
@@ -44,9 +45,9 @@ BUCKET_TITLES = {"now": "Now", "next": "Next", "later": "Later"}
 OUTCOMES = ("shipped", "declined")
 
 OPEN_REQUIRED = frozenset({"id", "title", "bucket", "rank", "filed"})
-OPEN_OPTIONAL = frozenset({"updated", "gate", "blocked_on", "refs"})
+OPEN_OPTIONAL = frozenset({"updated", "gate", "blocked_on", "depends_on", "refs"})
 CLOSED_REQUIRED = frozenset({"id", "title", "filed", "closed", "outcome"})
-CLOSED_OPTIONAL = frozenset({"updated", "gate", "refs", "shipped_as"})
+CLOSED_OPTIONAL = frozenset({"updated", "gate", "depends_on", "refs", "shipped_as"})
 QUEUE_FIELDS = frozenset({"bucket", "rank", "blocked_on"})
 DATE_FIELDS = ("filed", "updated", "closed")
 STRING_FIELDS = ("title", "gate", "blocked_on", "shipped_as")
@@ -66,8 +67,9 @@ RULES = {
     "config": "roadmap.toml parses and declares each ref kind as a path template containing {}",
     "frontmatter": "the file opens with +++-fenced frontmatter that parses as TOML",
     "schema": "required fields present, none unknown, id is a kebab-case slug matching the filename",
-    "bucket": "bucket is now, next or later; later <=> blocked_on",
+    "bucket": "bucket is now, next or later; later <=> blocked_on, or a dependency that is in later",
     "rank": "rank is a positive integer, unique within its bucket",
+    "depends": "depends_on names open or shipped items, each one ahead of the item in bucket and rank order",
     "dates": "dates are bare TOML dates, and none predates `filed`",
     "body": "the prose body says something (HTML comments don't count)",
     "refs": "every ref on an open item resolves in the tree",
@@ -198,11 +200,12 @@ def open_roadmap(directory: Path | str) -> Roadmap:
     return Roadmap(dir=directory, root=Path(os.path.normpath(directory / root)), ref_kinds=kinds)
 
 
-def parse(path: Path, archived: bool = False) -> Item:
-    """Split one item file into its metadata and its prose. Raises
+def parse(path: Path, archived: bool = False, text: str | None = None) -> Item:
+    """Split one item file into its metadata and its prose. Given `text`, parse
+    that as the file's contents instead of reading it. Raises
     FrontmatterError, with the path in the message, on anything tomllib or the
     fence rejects."""
-    match = _FRONTMATTER.match(path.read_text())
+    match = _FRONTMATTER.match(path.read_text() if text is None else text)
     if match is None:
         raise FrontmatterError(path, "no +++-fenced TOML frontmatter at the top of the file")
     try:
@@ -242,13 +245,15 @@ def validate(rm: Roadmap, items: list[Item], archived: list[Item]) -> list[Probl
     An empty list is a clean roadmap. Problems are collected rather than
     raised, so one run reports all of them instead of just the first."""
     problems: list[Problem] = []
+    by_id = _by_id(items + archived)
     for item in items + archived:
         problems += _schema_problems(item)
         problems += _date_problems(item)
         problems += _body_problems(item)
         problems += _ref_problems(item, rm)
+        problems += _depends_problems(item, by_id)
     for item in items:
-        problems += _bucket_problems(item)
+        problems += _bucket_problems(item, by_id)
         problems += _rank_problems(item)
     return problems + _collision_problems(items) + _id_problems(items + archived) + link_problems(rm, items)
 
@@ -297,10 +302,11 @@ def _schema_problems(item: Item) -> list[Problem]:
     return [Problem(item.path, "schema", message) for message in problems]
 
 
-def _bucket_problems(item: Item) -> list[Problem]:
+def _bucket_problems(item: Item, by_id: dict[str, Item]) -> list[Problem]:
     """The one entry criterion a field can carry. Later is for the undecided,
     so a later item names the decision it is waiting on, and naming one
-    anywhere else contradicts the bucket. Now and Next differ only in
+    anywhere else contradicts the bucket. Depending on a later item counts as
+    naming it: the item waits on that item's decision. Now and Next differ only in
     priority. Now is the top of the list, like a planned sprint. Neither one
     tracks who is working on what: an item leaves the roadmap when it is
     closed in the same merge as its code."""
@@ -311,11 +317,71 @@ def _bucket_problems(item: Item) -> list[Problem]:
 
     problems = []
     blocked = item.meta.get("blocked_on")
-    if item.bucket == "later" and not blocked:
-        problems.append("a 'later' item must name what it is blocked_on")
+    if item.bucket == "later" and not blocked and not _waits_on_later(item, by_id):
+        problems.append("a 'later' item must name what it is blocked_on, or depend on another 'later' item")
     if item.bucket != "later" and blocked:
         problems.append(f"blocked_on belongs to a 'later' item; this one is {item.bucket!r}")
     return [Problem(item.path, "bucket", message) for message in problems]
+
+
+def _by_id(everything: list[Item]) -> dict[str, Item]:
+    """Items by id. Where an id is taken twice, the first wins; `ids` reports the rest."""
+    by_id: dict[str, Item] = {}
+    for item in everything:
+        by_id.setdefault(item.id, item)
+    return by_id
+
+
+def _depends_on(item: Item) -> list[str]:
+    """The ids an item depends on, or none if the field is malformed, which
+    `depends` reports."""
+    deps = item.meta.get("depends_on", [])
+    return deps if isinstance(deps, list) and all(isinstance(d, str) for d in deps) else []
+
+
+def _position(item: Item) -> tuple[int, int] | None:
+    """Where an item sits in the queue, or None if its bucket or rank is
+    invalid, which `bucket` and `rank` report."""
+    if item.archived or item.bucket not in BUCKETS or item.rank <= 0:
+        return None
+    return BUCKETS.index(item.bucket), item.rank
+
+
+def _waits_on_later(item: Item, by_id: dict[str, Item]) -> bool:
+    return any((dep := by_id.get(d)) and not dep.archived and dep.bucket == "later" for d in _depends_on(item))
+
+
+def _depends_problems(item: Item, by_id: dict[str, Item]) -> list[Problem]:
+    """An item's dependencies come first: in an earlier bucket, or higher in
+    its own. Ranks are unique, so this also rules out cycles. A shipped
+    dependency is satisfied. A declined one means the item has to be re-argued.
+    An archived item keeps its depends_on as history, so only its type is
+    checked."""
+    if "depends_on" not in item.meta:
+        return []
+    deps = item.meta["depends_on"]
+    if not (isinstance(deps, list) and all(isinstance(d, str) and d.strip() for d in deps)):
+        return [Problem(item.path, "depends", 'depends_on must be a list of item ids, e.g. ["other-item"]')]
+    if item.archived:
+        return []
+
+    problems = []
+    if len(set(deps)) != len(deps):
+        problems.append("depends_on names an item more than once")
+    for dep_id in dict.fromkeys(deps):
+        dep = by_id.get(dep_id)
+        if dep_id == item.id:
+            problems.append("depends on itself")
+        elif dep is None:
+            problems.append(f"depends on {dep_id!r}, which is not an open or archived item")
+        elif dep.archived and dep.meta.get("outcome") == "declined":
+            problems.append(f"depends on {dep_id!r}, which was declined; drop the dependency or re-scope this item")
+        elif (mine := _position(item)) and (theirs := _position(dep)) and theirs >= mine:
+            problems.append(
+                f"depends on {dep_id!r} ({dep.bucket!r}, rank {dep.rank}), which must come first:"
+                f" in an earlier bucket, or higher in {item.bucket!r}"
+            )
+    return [Problem(item.path, "depends", message) for message in problems]
 
 
 def _rank_problems(item: Item) -> list[Problem]:
@@ -503,9 +569,11 @@ def retarget_links(text: str, before: Path, after: Path, moves: dict[Path, Path]
 # --- generated files --------------------------------------------------------
 
 
-def render_index(items: list[Item]) -> str:
+def render_index(items: list[Item], archived: list[Item] | tuple[Item, ...] = ()) -> str:
     """The README's index block, between its markers. There is one line per item, and
-    every one is read back out of the item files."""
+    every one is read back out of the item files. `archived` is only consulted
+    to name the closed items that open ones depend on."""
+    by_id = _by_id([*items, *archived])
     lines = [INDEX_BEGIN, ""]
     for bucket in BUCKETS:
         in_bucket = [i for i in items if i.bucket == bucket]
@@ -515,19 +583,33 @@ def render_index(items: list[Item]) -> str:
             continue
         for item in in_bucket:
             lines.append(
-                f"{item.rank}. [{item.title}](items/{item.path.name}) — filed {item.meta.get('filed')}{_note(item)}"
+                f"{item.rank}. [{item.title}](items/{item.path.name})"
+                f" — filed {item.meta.get('filed')}{_note(item, by_id)}"
             )
         lines.append("")
     lines.append(INDEX_END)
     return "\n".join(lines)
 
 
-def _note(item: Item) -> str:
+def _note(item: Item, by_id: dict[str, Item]) -> str:
+    note = ""
     if blocked := item.meta.get("blocked_on"):
-        return f"<br>  **Blocked on:** {blocked}"
-    if gate := item.meta.get("gate"):
-        return f"<br>  **Gate:** {gate}"
-    return ""
+        note = f"<br>  **Blocked on:** {blocked}"
+    elif gate := item.meta.get("gate"):
+        note = f"<br>  **Gate:** {gate}"
+    if deps := _depends_on(item):
+        note += f"<br>  **Depends on:** {', '.join(_dependency(d, by_id) for d in deps)}"
+    return note
+
+
+def _dependency(dep_id: str, by_id: dict[str, Item]) -> str:
+    """One dependency in the index. The index is rendered before anything is
+    validated, so an id that names nothing is shown as it is, unlinked."""
+    if (dep := by_id.get(dep_id)) is None:
+        return dep_id
+    if dep.archived:
+        return f"[{dep.title}](archive/{dep.path.name}) ({dep.meta.get('outcome')})"
+    return f"[{dep.title}](items/{dep.path.name})"
 
 
 def render_done(archived: list[Item]) -> str:
@@ -573,7 +655,7 @@ def splice(text: str, begin: str, end: str, block: str, path: Path) -> str:
 
 def _generated_targets(rm: Roadmap, items: list[Item], archived: list[Item]) -> list[tuple[Path, str, str, str]]:
     return [
-        (rm.readme, INDEX_BEGIN, INDEX_END, render_index(items)),
+        (rm.readme, INDEX_BEGIN, INDEX_END, render_index(items, archived)),
         (rm.done, DONE_BEGIN, DONE_END, render_done(archived)),
     ]
 
@@ -664,6 +746,8 @@ def _toml(value: object) -> str:
         return str(value)
     if isinstance(value, str):
         return json.dumps(value, ensure_ascii=False)
+    if isinstance(value, list):
+        return f"[{', '.join(_toml(v) for v in value)}]"
     raise TypeError(f"no TOML rendering for {value!r}")
 
 
@@ -726,6 +810,28 @@ def _next_rank(rm: Roadmap, bucket: str) -> int:
     return 1 + max((i.rank for i in items if i.bucket == bucket), default=0)
 
 
+def _refuse_if_breaking(rm: Roadmap, changes: dict[Path, Item | None], doing: str) -> None:
+    """Refuse a command whose result would fail `bucket` or `depends`. `changes`
+    maps each path the command touches to its item afterwards, or to None for
+    a file it removes. Only problems the roadmap doesn't already have count,
+    so a command never has to fix what it didn't break."""
+    items, archived, _ = load(rm)
+    after = [i for i in items + archived if i.path not in changes] + [i for i in changes.values() if i]
+
+    def problems(everything: list[Item]) -> list[Problem]:
+        by_id = _by_id(everything)
+        found = []
+        for item in everything:
+            found += _depends_problems(item, by_id)
+            if not item.archived:
+                found += _bucket_problems(item, by_id)
+        return found
+
+    before = set(problems(items + archived))
+    if new := [p for p in problems(after) if p not in before]:
+        raise UsageError(f"{doing} would break the roadmap:\n" + "\n".join(f"  {p}" for p in new))
+
+
 def _report(problems: list[Problem]) -> int:
     if problems:
         print(f"{len(problems)} roadmap problem(s):", file=sys.stderr)
@@ -757,8 +863,16 @@ def cmd_new(rm: Roadmap, args: argparse.Namespace) -> int:
     for existing in (rm.items_dir / f"{args.id}.md", rm.archive_dir / f"{args.id}.md"):
         if existing.exists():
             raise UsageError(f"{existing} already exists; ids are never reused")
-    if (args.bucket == "later") != bool(args.blocked_on):
-        raise UsageError("--blocked-on is required for a 'later' item and forbidden for any other")
+    if (
+        args.blocked_on
+        and args.bucket != "later"
+        or args.bucket == "later"
+        and not (args.blocked_on or args.depends_on)
+    ):
+        raise UsageError(
+            "--blocked-on is required for a 'later' item that depends on no other 'later' item,"
+            " and forbidden for any other"
+        )
 
     today = _today(args)
     meta: dict = {"id": args.id, "title": args.title, "bucket": args.bucket, "rank": _next_rank(rm, args.bucket)}
@@ -767,6 +881,8 @@ def cmd_new(rm: Roadmap, args: argparse.Namespace) -> int:
         meta["gate"] = args.gate
     if args.blocked_on:
         meta["blocked_on"] = args.blocked_on
+    if args.depends_on:
+        meta["depends_on"] = args.depends_on
     refs: dict[str, list[str]] = {}
     for ref in args.ref:
         kind, sep, value = ref.partition(":")
@@ -778,10 +894,12 @@ def cmd_new(rm: Roadmap, args: argparse.Namespace) -> int:
     if refs:
         lines += ["", "[refs]", *(f"{k} = [{', '.join(_toml(v) for v in vs)}]" for k, vs in refs.items())]
     lines += ["+++", "", args.body or PLACEHOLDER, ""]
+    path = rm.items_dir / f"{args.id}.md"
+    text = "\n".join(lines)
+    _refuse_if_breaking(rm, {path: parse(path, text=text)}, f"filing {args.id}")
 
     rm.items_dir.mkdir(parents=True, exist_ok=True)
-    path = rm.items_dir / f"{args.id}.md"
-    path.write_text("\n".join(lines))
+    path.write_text(text)
     write_generated(rm)
     print(f"Created {path} in {args.bucket!r} at rank {meta['rank']}.")
     if not args.body:
@@ -793,15 +911,42 @@ def cmd_move(rm: Roadmap, args: argparse.Namespace) -> int:
     item = _open_item(rm, args.id)
     if item.bucket == args.bucket:
         raise UsageError(f"{item.path} is already in {args.bucket!r}")
-    if (args.bucket == "later") != bool(args.blocked_on):
-        raise UsageError("--blocked-on is required when moving to 'later' and forbidden otherwise")
-    assign: dict = {"bucket": args.bucket, "rank": _next_rank(rm, args.bucket)}
+    items, archived, _ = load(rm)
+    if (
+        args.blocked_on
+        and args.bucket != "later"
+        or (args.bucket == "later" and not args.blocked_on and not _waits_on_later(item, _by_id(items + archived)))
+    ):
+        raise UsageError(
+            "--blocked-on is required when moving to 'later' an item that depends on no other 'later' item,"
+            " and forbidden otherwise"
+        )
+
+    # An item lands just above the first item in the bucket that depends on
+    # it, pushing that one and everything below it down a rank. Otherwise it
+    # lands at the bottom.
+    in_bucket = [i for i in items if i.bucket == args.bucket and i.rank > 0]
+    dependents = [i for i in in_bucket if item.id in _depends_on(i)]
+    if dependents:
+        rank = min(i.rank for i in dependents)
+        shifted = [i for i in in_bucket if i.rank >= rank]
+    else:
+        rank, shifted = 1 + max((i.rank for i in in_bucket), default=0), []
+
+    assign: dict = {"bucket": args.bucket, "rank": rank}
     if args.blocked_on:
         assign["blocked_on"] = args.blocked_on
-    remove = frozenset({"blocked_on"}) if item.bucket == "later" else frozenset()
-    item.path.write_text(edit_frontmatter(item.path, remove=remove, assign=assign))
+    remove = frozenset({"blocked_on"}) & frozenset(item.meta)
+    texts = {item.path: edit_frontmatter(item.path, remove=remove, assign=assign)}
+    texts |= {i.path: edit_frontmatter(i.path, assign={"rank": i.rank + 1}) for i in shifted}
+    _refuse_if_breaking(rm, {path: parse(path, text=text) for path, text in texts.items()}, f"moving {args.id}")
+
+    for path, text in texts.items():
+        path.write_text(text)
     write_generated(rm)
-    print(f"Moved {item.path} to {args.bucket!r} at rank {assign['rank']}.")
+    print(f"Moved {item.path} to {args.bucket!r} at rank {rank}.")
+    if shifted:
+        print(f"Shifted {', '.join(i.id for i in shifted)} down a rank, below it.")
     if remove:
         print("It was blocked on a decision; record in its prose what was decided.")
     return 0
@@ -819,6 +964,8 @@ def cmd_close(rm: Roadmap, args: argparse.Namespace) -> int:
     moves = {item.path: target}
     text = edit_frontmatter(item.path, remove=QUEUE_FIELDS, assign=assign)
     text = retarget_links(text, item.path.parent, target.parent, moves)
+    closed = parse(target, archived=True, text=text)
+    _refuse_if_breaking(rm, {item.path: None, target: closed}, f"closing {args.id} as {args.outcome}")
 
     # Links into the moved file from open items and the README follow it.
     # Archived entries are never edited, and they are exempt from the link check.
@@ -901,16 +1048,25 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("id", help="kebab-case slug; becomes items/<id>.md")
     p.add_argument("--title", required=True)
     p.add_argument("--bucket", required=True, choices=BUCKETS)
-    p.add_argument("--blocked-on", help="the undecided question (required for 'later')")
+    p.add_argument(
+        "--blocked-on", help="the undecided question (required for 'later', unless it depends on a 'later' item)"
+    )
     p.add_argument("--gate", help="the bar the work has to clear")
+    p.add_argument(
+        "--depends-on", action="append", default=[], metavar="ID", help="repeatable; an item that comes first"
+    )
     p.add_argument("--ref", action="append", default=[], metavar="KIND:VALUE", help="repeatable, e.g. files:src/app.py")
     p.add_argument("--body", help="the prose; a placeholder that fails `check` otherwise")
     p.set_defaults(run=cmd_new)
 
-    p = sub.add_parser("move", parents=[common], help="move an item to another bucket, at the bottom of it")
+    p = sub.add_parser(
+        "move", parents=[common], help="move an item to another bucket: above its dependents there, else at the bottom"
+    )
     p.add_argument("id")
     p.add_argument("--bucket", required=True, choices=BUCKETS)
-    p.add_argument("--blocked-on", help="the undecided question (required when moving to 'later')")
+    p.add_argument(
+        "--blocked-on", help="the undecided question (required for 'later', unless it depends on a 'later' item)"
+    )
     p.set_defaults(run=cmd_move)
 
     p = sub.add_parser("close", parents=[common, dated], help="archive an item that shipped or was declined")

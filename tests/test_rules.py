@@ -78,6 +78,80 @@ CASES = [
         "rank 1 is already taken in 'now'",
         {"items/sample.md": item_text(open_meta()), "items/other.md": item_text(open_meta(id="other"))},
     ),
+    (
+        "depends-not-a-list",
+        "depends",
+        "depends_on must be a list of item ids",
+        {"items/sample.md": item_text(open_meta(depends_on="other"))},
+    ),
+    (
+        "depends-nested",
+        "depends",
+        "depends_on must be a list of item ids",
+        {
+            "items/sample.md": '+++\nid = "sample"\ntitle = "S"\nbucket = "now"\nrank = 1\nfiled = 2026-09-06\n'
+            'depends_on = [["other"]]\n+++\nProse.\n'
+        },
+    ),
+    (
+        "depends-unknown",
+        "depends",
+        "'gone', which is not an open or archived item",
+        {"items/sample.md": item_text(open_meta(depends_on=["gone"]))},
+    ),
+    ("depends-self", "depends", "depends on itself", {"items/sample.md": item_text(open_meta(depends_on=["sample"]))}),
+    (
+        "depends-twice",
+        "depends",
+        "names an item more than once",
+        {
+            "items/sample.md": item_text(open_meta(rank=2, depends_on=["first", "first"])),
+            "items/first.md": item_text(open_meta(id="first")),
+        },
+    ),
+    (
+        "depends-ranked-below",
+        "depends",
+        "depends on 'second' ('now', rank 2), which must come first",
+        {
+            "items/sample.md": item_text(open_meta(depends_on=["second"])),
+            "items/second.md": item_text(open_meta(id="second", rank=2)),
+        },
+    ),
+    (
+        "depends-on-later",
+        "depends",
+        "depends on 'undecided' ('later', rank 1), which must come first: in an earlier bucket",
+        {
+            "items/sample.md": item_text(open_meta(depends_on=["undecided"])),
+            "items/undecided.md": item_text(open_meta(id="undecided", bucket="later", blocked_on="a call")),
+        },
+    ),
+    (
+        # Each one exempts the other from blocked_on, so the ordering rule is what catches it.
+        "depends-later-cycle",
+        "depends",
+        "which must come first",
+        {
+            "items/sample.md": item_text(open_meta(bucket="later", depends_on=["other"])),
+            "items/other.md": item_text(open_meta(id="other", bucket="later", rank=2, depends_on=["sample"])),
+        },
+    ),
+    (
+        "depends-declined",
+        "depends",
+        "depends on 'old', which was declined",
+        {
+            "items/sample.md": item_text(open_meta(depends_on=["old"])),
+            "archive/old.md": item_text(closed_meta(id="old", outcome="declined")),
+        },
+    ),
+    (
+        "depends-archived-malformed",
+        "depends",
+        "depends_on must be a list of item ids",
+        {"archive/sample.md": item_text(closed_meta(depends_on=3))},
+    ),
     ("quoted-date", "dates", "must be a bare TOML date", {"items/sample.md": item_text(open_meta(filed="2026-09-06"))}),
     (
         "datetime",
@@ -234,6 +308,7 @@ def test_a_clean_roadmap_has_no_problems(tmp_path: Path) -> None:
             "items/next-one.md": item_text(open_meta(id="next-one", bucket="next")),
             "items/later-one.md": item_text(open_meta(id="later-one", bucket="later", blocked_on="a call")),
             "archive/old-one.md": item_text(closed_meta(id="old-one", outcome="declined")),
+            "archive/shipped-one.md": item_text(closed_meta(id="shipped-one", depends_on=["old-one"])),
         },
     )
 
@@ -307,3 +382,35 @@ def test_readme_and_done_templates_are_valid_without_items(tmp_path: Path) -> No
     rm = make_roadmap(tmp_path, {"README.md": README, "done.md": DONE})
 
     assert roadmap.check(rm) == []
+
+
+def test_dependencies_may_be_shipped_or_ahead_and_a_later_item_may_wait_on_one(tmp_path: Path) -> None:
+    """A shipped dependency is satisfied. A 'later' item that depends on another
+    'later' item waits on that item's decision, so it needn't repeat it."""
+    rm = make_roadmap(
+        tmp_path,
+        {
+            "items/first.md": item_text(open_meta(id="first")),
+            "items/second.md": item_text(open_meta(id="second", rank=2, depends_on=["first", "shipped"])),
+            "items/after.md": item_text(open_meta(id="after", bucket="next", depends_on=["second"])),
+            "items/undecided.md": item_text(open_meta(id="undecided", bucket="later", blocked_on="a call")),
+            "items/waiting.md": item_text(open_meta(id="waiting", bucket="later", rank=2, depends_on=["undecided"])),
+            "archive/shipped.md": item_text(closed_meta(id="shipped")),
+        },
+    )
+
+    assert roadmap.check(rm) == []
+
+
+def test_a_malformed_dependency_does_not_crash_the_other_rules(tmp_path: Path) -> None:
+    rm = make_roadmap(
+        tmp_path,
+        {
+            "items/sample.md": item_text(open_meta(bucket="later", depends_on=["other"])),
+            "items/other.md": item_text(open_meta(id="other", bucket="someday", rank="x")),
+        },
+    )
+
+    rules = {p.rule for p in roadmap.check(rm)}
+
+    assert {"bucket", "rank"} <= rules

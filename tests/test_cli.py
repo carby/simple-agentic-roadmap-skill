@@ -24,8 +24,9 @@ def test_check_fails_with_one_tagged_line_per_problem(valid: Path) -> None:
 
     assert result.returncode == 1
     lines = result.stderr.splitlines()
-    assert lines[0] == "4 roadmap problem(s):"
-    assert any(line.endswith("must name what it is blocked_on [bucket]") for line in lines)
+    assert lines[0] == "5 roadmap problem(s):"
+    assert any(line.endswith("or depend on another 'later' item [bucket]") for line in lines)
+    assert any("split-app.md: depends on 'cache-tokens' ('later', rank 1)" in line for line in lines)
     assert any(line.endswith("refs.files 'src/app.py' does not exist [refs]") for line in lines)
     assert sum(line.endswith("[generated]") for line in lines) == 1  # the index now puts it under Later
     assert any(
@@ -48,7 +49,7 @@ def test_index_repairs_a_stale_index(valid: Path) -> None:
 def test_index_repairs_the_index_after_an_item_is_deleted_by_hand(valid: Path) -> None:
     """The stale index still links to the deleted file. That is a [generated]
     problem for `index` to fix, not a [links] problem that stops it."""
-    (valid / "roadmap/items/cache-tokens.md").unlink()
+    (valid / "roadmap/items/split-app.md").unlink()
 
     result = run("index", cwd=valid)
 
@@ -114,13 +115,40 @@ def test_new_takes_the_next_free_rank_and_refs(valid: Path) -> None:
     assert run("check", cwd=valid).returncode == 0
 
 
+def snapshot(valid: Path) -> dict[Path, str]:
+    return {path: path.read_text() for path in sorted((valid / "roadmap").rglob("*.md"))}
+
+
 def test_move_goes_to_the_bottom_of_the_target_bucket(valid: Path) -> None:
+    result = run("move", "rotate-keys", "--bucket", "next", cwd=valid)
+
+    assert result.returncode == 0, result.stderr
+    moved = roadmap.parse(valid / "roadmap/items/rotate-keys.md")
+    assert (moved.meta["bucket"], moved.meta["rank"]) == ("next", 2)
+    assert run("check", cwd=valid).returncode == 0
+
+
+def test_move_lands_above_its_dependents_and_shifts_them_down(valid: Path) -> None:
     result = run("move", "cache-tokens", "--bucket", "next", cwd=valid)
 
     assert result.returncode == 0, result.stderr
+    assert result.stdout.splitlines()[1] == "Shifted split-app down a rank, below it."
     moved = roadmap.parse(valid / "roadmap/items/cache-tokens.md")
-    assert (moved.meta["bucket"], moved.meta["rank"]) == ("next", 2)
+    shifted = roadmap.parse(valid / "roadmap/items/split-app.md")
+    assert (moved.meta["bucket"], moved.meta["rank"]) == ("next", 1)
+    assert (shifted.meta["bucket"], shifted.meta["rank"]) == ("next", 2)
     assert run("check", cwd=valid).returncode == 0
+
+
+def test_move_refuses_to_put_an_item_behind_its_dependents_and_writes_nothing(valid: Path) -> None:
+    before = snapshot(valid)
+
+    result = run("move", "cache-tokens", "--bucket", "later", "--blocked-on", "which cache", cwd=valid)
+
+    assert result.returncode == 2
+    assert "moving cache-tokens would break the roadmap" in result.stderr
+    assert "split-app.md: depends on 'cache-tokens' ('later', rank 2)" in result.stderr
+    assert snapshot(valid) == before
 
 
 def test_move_out_of_later_drops_blocked_on_and_asks_for_the_decision(valid: Path) -> None:
@@ -133,12 +161,12 @@ def test_move_out_of_later_drops_blocked_on_and_asks_for_the_decision(valid: Pat
 
 
 def test_move_into_later_needs_the_open_question(valid: Path) -> None:
-    refused = run("move", "cache-tokens", "--bucket", "later", cwd=valid)
-    moved = run("move", "cache-tokens", "--bucket", "later", "--blocked-on", "which cache", cwd=valid)
+    refused = run("move", "split-app", "--bucket", "later", cwd=valid)
+    moved = run("move", "split-app", "--bucket", "later", "--blocked-on", "where to split", cwd=valid)
 
     assert refused.returncode == 2 and "--blocked-on is required" in refused.stderr
     assert moved.returncode == 0, moved.stderr
-    assert roadmap.parse(valid / "roadmap/items/cache-tokens.md").meta["blocked_on"] == "which cache"
+    assert roadmap.parse(valid / "roadmap/items/split-app.md").meta["blocked_on"] == "where to split"
     assert run("check", cwd=valid).returncode == 0
 
 
@@ -162,3 +190,58 @@ def test_move_and_close_refuse_an_archived_item(valid: Path) -> None:
 
         assert result.returncode == 2
         assert "it is already closed" in result.stderr
+
+
+def test_new_records_its_dependencies(valid: Path) -> None:
+    result = run("new", "more-work", "--title", "More", "--bucket", "next", "--depends-on", "split-app",
+                 "--depends-on", "drop-legacy-login", "--body", "Why.", cwd=valid)  # fmt: skip
+
+    assert result.returncode == 0, result.stderr
+    item = roadmap.parse(valid / "roadmap/items/more-work.md")
+    assert (item.meta["rank"], item.meta["depends_on"]) == (2, ["split-app", "drop-legacy-login"])
+    assert run("check", cwd=valid).returncode == 0
+
+
+def test_new_refuses_to_file_an_item_ahead_of_its_dependencies(valid: Path) -> None:
+    result = run("new", "too-soon", "--title", "T", "--bucket", "now", "--depends-on", "split-app", cwd=valid)
+
+    assert result.returncode == 2
+    assert "filing too-soon would break the roadmap" in result.stderr
+    assert "which must come first" in result.stderr
+    assert not (valid / "roadmap/items/too-soon.md").exists()
+
+
+def test_a_later_item_may_wait_on_another_later_item_instead_of_naming_a_question(valid: Path) -> None:
+    filed = run("new", "after-rotation", "--title", "T", "--bucket", "later", "--depends-on", "rotate-keys",
+                "--body", "Why.", cwd=valid)  # fmt: skip
+    assert filed.returncode == 0, filed.stderr
+    assert run("check", cwd=valid).returncode == 0
+    before = snapshot(valid)
+
+    # Taking rotate-keys out of Later, either way, would leave after-rotation blocked on nothing.
+    moved = run("move", "rotate-keys", "--bucket", "next", cwd=valid)
+    closed = run("close", "rotate-keys", "--outcome", "shipped", cwd=valid)
+
+    for result in (moved, closed):
+        assert result.returncode == 2
+        assert "after-rotation.md: a 'later' item must name what it is blocked_on" in result.stderr
+    assert snapshot(valid) == before
+
+
+def test_close_refuses_to_decline_an_item_others_depend_on(valid: Path) -> None:
+    before = snapshot(valid)
+
+    result = run("close", "cache-tokens", "--outcome", "declined", cwd=valid)
+
+    assert result.returncode == 2
+    assert "closing cache-tokens as declined would break the roadmap" in result.stderr
+    assert "split-app.md: depends on 'cache-tokens', which was declined" in result.stderr
+    assert snapshot(valid) == before
+
+
+def test_close_may_ship_an_item_others_depend_on(valid: Path) -> None:
+    result = run("close", "cache-tokens", "--outcome", "shipped", cwd=valid)
+
+    assert result.returncode == 0, result.stderr
+    assert "[Cache auth tokens](archive/cache-tokens.md) (shipped)" in (valid / "roadmap/README.md").read_text()
+    assert run("check", cwd=valid).returncode == 0
