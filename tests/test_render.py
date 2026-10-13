@@ -20,6 +20,7 @@ def test_the_committed_fixture_is_what_the_renderer_produces() -> None:
 def test_empty_blocks_say_so() -> None:
     assert "*Empty.*" in roadmap.render_done([])
     assert roadmap.render_index([]).count("*Empty.*") == 3
+    assert "mermaid" not in roadmap.render_index([])
 
 
 def test_index_orders_by_bucket_then_rank_and_shows_the_note(tmp_path: Path) -> None:
@@ -106,3 +107,48 @@ def test_index_names_dependencies_open_closed_and_unknown(tmp_path: Path) -> Non
         "2. [B](items/b.md) — filed 2026-09-06<br>  **Gate:** fast"
         "<br>  **Depends on:** [A](items/a.md), [Old](archive/old.md) (shipped), gone"
     ) in block
+
+
+def test_the_graph_boxes_buckets_in_order_and_draws_open_dependencies(tmp_path: Path) -> None:
+    rm = make_roadmap(
+        tmp_path,
+        {
+            "items/a.md": item_text(open_meta(id="a", title="A")),
+            "items/end.md": item_text(open_meta(id="end", title="End", bucket="next", depends_on=["a", "old"])),
+            "items/z-z.md": item_text(
+                open_meta(id="z-z", title="Z", bucket="later", depends_on=["end"], blocked_on="x")
+            ),
+            "archive/old.md": item_text(closed_meta(id="old", title="Old")),
+        },
+    )
+    items, archived, _ = roadmap.load(rm)
+
+    block = roadmap.render_index(items, archived)
+
+    assert block.index("```mermaid") < block.index("### Now")
+    assert roadmap.render_graph(items) == [
+        "```mermaid",
+        "flowchart LR",
+        '  subgraph b_now ["Now"]',
+        '    i_a["A"]',
+        "  end",
+        '  subgraph b_next ["Next"]',
+        '    i_end["End"]',
+        "  end",
+        '  subgraph b_later ["Later"]',
+        '    i_z_z["Z"]',
+        "  end",
+        "  b_now ~~~ b_next ~~~ b_later",
+        "  i_a --> i_end",
+        "  i_end --> i_z_z",
+        "  classDef later stroke-dasharray: 5 5",
+        "  class i_z_z later",
+        "```",
+    ]
+
+
+def test_the_graph_escapes_titles(tmp_path: Path) -> None:
+    rm = make_roadmap(tmp_path, {"items/a.md": item_text(open_meta(id="a", title='Fix #12: "<b>" in `x`'))})
+    items, _, _ = roadmap.load(rm)
+
+    assert '    i_a["Fix #35;12: #quot;#lt;b#gt;#quot; in #96;x#96;"]' in roadmap.render_graph(items)

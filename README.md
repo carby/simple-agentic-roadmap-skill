@@ -36,6 +36,9 @@ declined.
 
   You decide the bucket. The agent suggests one, and it usually suggests what
   you'd pick.
+- **A picture of it:** `roadmap/README.md` lists the open items, and above the
+  list is a generated Mermaid diagram that GitHub draws in place: one box per
+  bucket, with an arrow from each item to the items that depend on it.
 - **You are the product owner:** the agent never adds, moves or closes items
   on its own. When it spots something worth tracking, it pitches the item to
   you and files it only if you agree.

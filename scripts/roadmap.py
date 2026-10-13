@@ -575,6 +575,8 @@ def render_index(items: list[Item], archived: list[Item] | tuple[Item, ...] = ()
     to name the closed items that open ones depend on."""
     by_id = _by_id([*items, *archived])
     lines = [INDEX_BEGIN, ""]
+    if graph := render_graph(items):
+        lines += [*graph, ""]
     for bucket in BUCKETS:
         in_bucket = [i for i in items if i.bucket == bucket]
         lines += [f"### {BUCKET_TITLES[bucket]} ({len(in_bucket)})", ""]
@@ -589,6 +591,43 @@ def render_index(items: list[Item], archived: list[Item] | tuple[Item, ...] = ()
         lines.append("")
     lines.append(INDEX_END)
     return "\n".join(lines)
+
+
+def render_graph(items: list[Item]) -> list[str]:
+    """A Mermaid flowchart of the open items, which GitHub renders in place:
+    one box per bucket, holding its items in rank order, and an arrow from each
+    dependency to the item that waits on it. A closed dependency is already
+    satisfied, so it draws no arrow. Later items get a dashed border, and
+    nothing sets a colour, so the chart reads in light and dark themes."""
+    queued = [i for i in items if i.bucket in BUCKETS]
+    if not queued:
+        return []
+    ids = {i.id for i in queued}
+    lines = ["```mermaid", "flowchart LR"]
+    buckets = [b for b in BUCKETS if any(i.bucket == b for i in queued)]
+    for bucket in buckets:
+        lines.append(f'  subgraph b_{bucket} ["{BUCKET_TITLES[bucket]}"]')
+        lines += [f'    {_node(i.id)}["{_label(i.title)}"]' for i in queued if i.bucket == bucket]
+        lines.append("  end")
+    if len(buckets) > 1:
+        lines.append("  " + " ~~~ ".join(f"b_{b}" for b in buckets))  # invisible links keep the buckets in order
+    lines += [f"  {_node(d)} --> {_node(i.id)}" for i in queued for d in _depends_on(i) if d in ids and d != i.id]
+    if later := [_node(i.id) for i in queued if i.bucket == "later"]:
+        lines += ["  classDef later stroke-dasharray: 5 5", f"  class {','.join(later)} later"]
+    lines.append("```")
+    return lines
+
+
+def _node(item_id: str) -> str:
+    """A Mermaid node id. The prefix keeps a slug like `end` from being read as a keyword."""
+    return "i_" + item_id.replace("-", "_")
+
+
+def _label(title: str) -> str:
+    """A title as a quoted Mermaid label. `#` starts an entity code there, so it goes first."""
+    for char, code in (("#", "#35;"), ('"', "#quot;"), ("<", "#lt;"), (">", "#gt;"), ("`", "#96;")):
+        title = title.replace(char, code)
+    return title
 
 
 def _note(item: Item, by_id: dict[str, Item]) -> str:
