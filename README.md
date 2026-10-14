@@ -216,8 +216,19 @@ changes = ["openspec/changes/{}", "openspec/changes/archive/*-{}"]
 ```
 
 **Upgrading the vendored script.** `python tools/roadmap.py --version` shows
-which version is vendored. To upgrade, copy the new `scripts/roadmap.py` over
-it.
+which version is vendored. After updating the skill (`git pull` in its
+directory, or `git submodule update --remote`), upgrade the vendored copy from
+the skill's:
+
+```bash
+python .claude/skills/roadmap/scripts/roadmap.py upgrade   # --script <path> if not tools/roadmap.py
+```
+
+`upgrade` replaces the vendored script, prints `old → new`, and leaves
+`roadmap/` alone. It then runs `check` with the new version, so any rule
+changes show up straight away. It refuses a downgrade, or a copy with local
+edits, unless you pass `--force`. Until you upgrade, the skill's copy warns
+whenever it runs next to an older `tools/roadmap.py`.
 
 ## Contributing
 

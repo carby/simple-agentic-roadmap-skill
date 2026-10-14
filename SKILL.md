@@ -42,6 +42,10 @@ All commands go through `roadmap.py`. Use the repo's vendored copy
 `scripts/roadmap.py`. Run them from the repo root; pass `--dir` if the roadmap
 is somewhere other than `roadmap/`.
 
+When both copies exist, compare their `--version` once per session. If the
+vendored copy is older, tell the user and offer to run
+`python <skill>/scripts/roadmap.py upgrade`. Don't run it unasked.
+
 ## Before proposing work
 
 Search done.md first. Then open only the matching `archive/<id>.md`. Don't
@@ -66,6 +70,7 @@ without new evidence. Explain what has changed since then.
 | Close declined work | `python tools/roadmap.py close <id> --outcome declined` |
 | Regenerate the indexes after a hand edit | `python tools/roadmap.py index` |
 | Verify | `python tools/roadmap.py check` |
+| Upgrade the vendored script, once the user says yes | `python <skill>/scripts/roadmap.py upgrade`. It replaces `tools/roadmap.py` with the skill's copy and runs `check`. Fix or report what the new rules reject. |
 
 **Always finish a roadmap edit with `python tools/roadmap.py check`,** and fix
 every problem it reports. Each problem ends with a rule tag in brackets, such

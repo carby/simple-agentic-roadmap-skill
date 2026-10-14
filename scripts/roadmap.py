@@ -86,6 +86,7 @@ _INLINE_LINK = re.compile(r"\]\(\s*(<[^>\n]*>|[^)\s]+)")
 _REFERENCE_LINK = re.compile(r"^ {0,3}\[[^\]\n]+\]:[ \t]*(<[^>\n]*>|\S+)", re.MULTILINE)
 _SCHEME = re.compile(r"[A-Za-z][A-Za-z0-9+.-]*:")
 _COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
+_VERSION = re.compile(r'^__version__ = "([^"]+)"', re.MULTILINE)
 
 
 class UsageError(Exception):
@@ -1055,6 +1056,60 @@ def cmd_init(rm: Roadmap, args: argparse.Namespace) -> int:
     return 0
 
 
+def _script_version(path: Path) -> str | None:
+    """The `__version__` a copy of this script declares, read as text so the copy never runs."""
+    match = _VERSION.search(path.read_text())
+    return match.group(1) if match else None
+
+
+def _version_key(version: str) -> tuple[int, ...]:
+    return tuple(int(part) for part in re.findall(r"\d+", version))
+
+
+def cmd_upgrade(rm: Roadmap, args: argparse.Namespace) -> int:
+    script = Path(args.script)
+    if script.exists() and script.resolve() == Path(__file__).resolve():
+        raise UsageError(f"upgrade runs from the skill's own copy of roadmap.py, not from {script} itself")
+    if not script.exists():
+        raise UsageError(f"{script} does not exist; run `init` to set up a roadmap, or pass --script")
+    old = _script_version(script)
+    if not args.force:
+        if old is None:
+            raise UsageError(f"{script} declares no __version__; pass --force to overwrite it")
+        if _version_key(old) > _version_key(__version__):
+            raise UsageError(f"{script} is roadmap.py {old}, newer than this {__version__}; pass --force to downgrade")
+        if old == __version__:
+            if script.read_bytes() == Path(__file__).read_bytes():
+                print(f"{script} is already roadmap.py {__version__}.")
+                return 0
+            raise UsageError(f"{script} is roadmap.py {old} but has local edits; pass --force to overwrite them")
+
+    shutil.copyfile(Path(__file__), script)
+    print(f"Upgraded {script}: roadmap.py {old or 'unknown'} → {__version__}.")
+    if not rm.dir.is_dir():
+        return 0
+    if code := cmd_check(rm, args):
+        print("Some of these may come from rule changes; the release notes say what changed.", file=sys.stderr)
+    return code
+
+
+def _warn_if_vendored_is_older(command: str) -> None:
+    """The skill's copy warns when the repo's vendored copy lags behind it."""
+    template = Path(__file__).resolve().parent.parent / "assets" / "template"
+    vendored = Path("tools/roadmap.py")
+    if command in ("init", "upgrade") or not template.is_dir() or not vendored.is_file():
+        return
+    if vendored.resolve() == Path(__file__).resolve():
+        return
+    old = _script_version(vendored)
+    if old and _version_key(old) < _version_key(__version__):
+        print(
+            f"warning: {vendored} is roadmap.py {old}, older than this {__version__};"
+            f" run `python {Path(__file__).as_posix()} upgrade`",
+            file=sys.stderr,
+        )
+
+
 def _date(text: str) -> datetime.date:
     try:
         return datetime.date.fromisoformat(text)
@@ -1075,6 +1130,13 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("init", parents=[common], help="create roadmap/ and vendor this script")
     p.add_argument("--script", default="tools/roadmap.py", help="where to copy this script (default: tools/roadmap.py)")
     p.set_defaults(run=cmd_init)
+
+    p = sub.add_parser("upgrade", parents=[common], help="replace the vendored script with this one, then run check")
+    p.add_argument(
+        "--script", default="tools/roadmap.py", help="the vendored copy to replace (default: tools/roadmap.py)"
+    )
+    p.add_argument("--force", action="store_true", help="overwrite even a newer, unversioned or locally edited copy")
+    p.set_defaults(run=cmd_upgrade, base=None)
 
     p = sub.add_parser("check", parents=[common], help="validate everything; exit 1 on any problem (for CI)")
     p.add_argument("--base", help="git ref to hold archive/ append-only against, e.g. origin/main")
@@ -1118,6 +1180,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    _warn_if_vendored_is_older(args.command)
     try:
         return args.run(open_roadmap(args.dir), args)
     except UsageError as exc:
