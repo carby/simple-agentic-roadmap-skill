@@ -141,3 +141,88 @@ def test_an_edit_the_frontmatter_editor_cannot_verify_is_refused(repo: Path) -> 
     assert result.returncode == 2
     assert "edit it by hand" in result.stderr
     assert item.read_text() == before
+
+
+def vendor_as(repo: Path, version: str) -> Path:
+    """Rewrite the vendored copy to claim another version, as an older or newer release would."""
+    vendored = repo / "tools/roadmap.py"
+    vendored.write_text(
+        vendored.read_text().replace(f'__version__ = "{roadmap.__version__}"', f'__version__ = "{version}"')
+    )
+    return vendored
+
+
+def test_upgrade_replaces_an_older_vendored_copy_and_leaves_the_roadmap_alone(repo: Path) -> None:
+    vendored = vendor_as(repo, "0.9.0")
+    before = {p: p.read_bytes() for p in (repo / "roadmap").rglob("*") if p.is_file()}
+
+    result = run("upgrade", cwd=repo)
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.splitlines()[0] == f"Upgraded tools/roadmap.py: roadmap.py 0.9.0 → {roadmap.__version__}."
+    assert result.stdout.splitlines()[1].startswith("Roadmap OK")
+    assert vendored.read_bytes() == SCRIPT.read_bytes()
+    assert {p: p.read_bytes() for p in (repo / "roadmap").rglob("*") if p.is_file()} == before
+
+
+def test_upgrade_refuses_a_downgrade_unless_forced(repo: Path) -> None:
+    vendored = vendor_as(repo, "99.0.0")
+
+    refused = run("upgrade", cwd=repo)
+    assert refused.returncode == 2
+    assert "newer than this" in refused.stderr and "--force" in refused.stderr
+    assert "99.0.0" in vendored.read_text()
+
+    forced = run("upgrade", "--force", cwd=repo)
+    assert forced.returncode == 0, forced.stderr
+    assert vendored.read_bytes() == SCRIPT.read_bytes()
+
+
+def test_upgrade_to_the_same_version_is_a_no_op(repo: Path) -> None:
+    result = run("upgrade", cwd=repo)
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == f"tools/roadmap.py is already roadmap.py {roadmap.__version__}.\n"
+
+
+def test_upgrade_keeps_local_edits_unless_forced(repo: Path) -> None:
+    vendored = repo / "tools/roadmap.py"
+    vendored.write_text(vendored.read_text() + "# a local patch\n")
+
+    result = run("upgrade", cwd=repo)
+
+    assert result.returncode == 2
+    assert "has local edits" in result.stderr
+    assert vendored.read_text().endswith("# a local patch\n")
+
+
+def test_upgrade_needs_the_skills_copy_and_a_vendored_one(repo: Path) -> None:
+    itself = run("upgrade", cwd=repo, script=repo / "tools/roadmap.py")
+    missing = run("upgrade", "--script", "bin/roadmap.py", cwd=repo)
+
+    assert itself.returncode == 2 and "upgrade runs from the skill's own copy" in itself.stderr
+    assert missing.returncode == 2 and "bin/roadmap.py does not exist" in missing.stderr
+
+
+def test_upgrade_reports_what_the_new_rules_reject(repo: Path) -> None:
+    vendor_as(repo, "0.9.0")
+    ok(repo, "new", "some-work", "--title", "T", "--bucket", "now", "--body", "Why.")
+    item = repo / "roadmap/items/some-work.md"
+    item.write_text(item.read_text().replace("Why.", "<!-- nothing yet -->"))
+
+    result = run("upgrade", cwd=repo)
+
+    assert result.returncode == 1
+    assert (repo / "tools/roadmap.py").read_bytes() == SCRIPT.read_bytes()
+    assert "[body]" in result.stderr and "the release notes say what changed" in result.stderr
+
+
+def test_the_skills_copy_warns_when_the_vendored_copy_is_older(repo: Path) -> None:
+    assert "warning" not in run("check", cwd=repo).stderr
+    vendor_as(repo, "0.9.0")
+
+    result = run("check", cwd=repo)
+
+    assert result.returncode == 0, result.stderr
+    assert f"tools/roadmap.py is roadmap.py 0.9.0, older than this {roadmap.__version__}" in result.stderr
+    assert "upgrade" in result.stderr

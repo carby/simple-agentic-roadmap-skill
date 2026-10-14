@@ -28,7 +28,7 @@ uv run ruff check . && uv run ruff format --check .
 | `tests/test_rules.py` | one failing case per rule tag, plus what the rules deliberately allow. `test_every_rule_has_a_failing_case` fails if a tag in `RULES` has no case. |
 | `tests/test_render.py` | the generated index and done.md: order, grouping, splicing |
 | `tests/test_cli.py` | the script as a subprocess: exit codes, stderr, `--dir`, usage errors |
-| `tests/test_workflow.py` | `init → new → move → close` in a fresh repo, with `check` required to pass after every step, and link rewriting |
+| `tests/test_workflow.py` | `init → new → move → close` in a fresh repo, with `check` required to pass after every step, and link rewriting; `upgrade` and the drift warning |
 | `tests/test_append_only.py` | `check --base` against a real temporary git repo |
 | `tests/test_skill.py` | SKILL.md frontmatter; every command the agent docs name exists; every rule tag documented; the dogfood roadmap is clean |
 | `tests/test_readme.py` | README.md and this file: the right sections exist, and they name real commands and Action inputs |
@@ -86,3 +86,7 @@ that breaks existing users:
 - turning something `check` accepted into an error
 
 Leave `v1` on the last 1.x release.
+
+`upgrade` runs `check` straight after replacing a vendored copy, so a rule
+that got stricter shows up as soon as someone upgrades. Say what changed about
+the rules in the release notes.
