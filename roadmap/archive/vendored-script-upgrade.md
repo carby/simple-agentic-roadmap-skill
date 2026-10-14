@@ -1,9 +1,10 @@
 +++
 id = "vendored-script-upgrade"
 title = "Upgrade path for the vendored roadmap.py"
-bucket = "now"
-rank = 1
 filed = 2026-10-14
+closed = 2026-10-14
+outcome = "shipped"
+shipped_as = "#2"
 
 [refs]
 files = ["scripts/roadmap.py"]

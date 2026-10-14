@@ -38,22 +38,18 @@ work is done. **Close it in the same branch as the code**, so it moves to
 
 ```mermaid
 flowchart LR
-  subgraph b_now ["Now"]
-    i_vendored_script_upgrade["Upgrade path for the vendored roadmap.py"]
-  end
   subgraph b_later ["Later"]
     i_agent_behaviour_evals["Evals for how an agent uses the skill, not just for the script"]
     i_epics["Epics: parent items that group others"]
     i_gantt_scheduling["Gantt scheduling: estimates and dates on a timeline"]
   end
-  b_now ~~~ b_later
   classDef later stroke-dasharray: 5 5
   class i_agent_behaviour_evals,i_epics,i_gantt_scheduling later
 ```
 
-### Now (1)
+### Now (0)
 
-1. [Upgrade path for the vendored roadmap.py](items/vendored-script-upgrade.md) — filed 2026-10-14
+*Empty.*
 
 ### Next (0)
 
