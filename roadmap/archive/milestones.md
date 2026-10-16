@@ -15,3 +15,5 @@ This extends [dependency chaining](../archive/dependency-chaining.md), which tod
 - Milestones are declared in `roadmap.toml` as `[milestones] beta = { title = "...", date = 2026-12-01 }`. A milestone has a title and a date and nothing else, so it needs no file or prose of its own.
 - Items relate to a milestone in both directions. `depends_on = ["beta"]` waits on it, and `milestone = "beta"` is due for it, with one milestone per item, as in GitHub. `check` puts items due for a milestone, or for an earlier one, ahead of the items waiting on it. It also rejects an item that waits on a milestone at or after the one it is due for, or that depends on an item due for a later milestone.
 - No rule compares against today's date, so `check` gives the same answer every day. A milestone that has passed is retired by hand: drop the `depends_on` entries that name it, then delete it from `roadmap.toml`.
+
+**2026-10-16:** shipped in #3.
