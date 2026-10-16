@@ -42,9 +42,10 @@ flowchart LR
     i_agent_behaviour_evals["Evals for how an agent uses the skill, not just for the script"]
     i_epics["Epics: parent items that group others"]
     i_gantt_scheduling["Gantt scheduling: estimates and dates on a timeline"]
+    i_milestones["Milestones that items can depend on"]
   end
   classDef later stroke-dasharray: 5 5
-  class i_agent_behaviour_evals,i_epics,i_gantt_scheduling later
+  class i_agent_behaviour_evals,i_epics,i_gantt_scheduling,i_milestones later
 ```
 
 ### Now (0)
@@ -55,11 +56,12 @@ flowchart LR
 
 *Empty.*
 
-### Later (3)
+### Later (4)
 
 1. [Evals for how an agent uses the skill, not just for the script](items/agent-behaviour-evals.md) — filed 2026-09-25<br>  **Blocked on:** whether evals that call a model run in CI (cost, nondeterminism) or only on demand
 3. [Epics: parent items that group others](items/epics.md) — filed 2026-09-25<br>  **Blocked on:** whether the roadmap grows past KISS to have a hierarchy of items<br>  **Depends on:** [Dependency chaining between items](archive/dependency-chaining.md) (shipped)
 4. [Gantt scheduling: estimates and dates on a timeline](items/gantt-scheduling.md) — filed 2026-09-25<br>  **Blocked on:** whether the roadmap should say when work happens, not just what is blocking it<br>  **Depends on:** [Dependency chaining between items](archive/dependency-chaining.md) (shipped)
+5. [Milestones that items can depend on](items/milestones.md) — filed 2026-10-16<br>  **Blocked on:** what a milestone is: a named point items gather behind, or a tag on items, or an epic by another name<br>  **Depends on:** [Dependency chaining between items](archive/dependency-chaining.md) (shipped)
 
 <!-- END INDEX -->
 
