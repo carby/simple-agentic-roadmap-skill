@@ -41,6 +41,26 @@ re-argued, either by dropping the dependency or re-scoping the item, and
 `later` item that depends on another `later` item waits on that item's
 decision, so it may leave out `blocked_on`.
 
+**Milestones are named points in time.** roadmap.toml declares them, each
+with a title and a date. An item relates to a milestone in one of two ways:
+
+- `milestone = "beta"`: the item is **due for** beta, and ships by then. An
+  item has at most one milestone.
+- `depends_on = ["beta"]`: the item **waits on** beta, and doesn't start
+  before it. `depends_on` mixes item and milestone ids freely.
+
+`check` puts every item due for a milestone, or for an earlier one, ahead of
+the items that wait on it, in the same bucket-then-rank order as a
+dependency. An item can't wait on a milestone that falls on or after the one
+it is due for, and it can't depend on an item that is due for a later
+milestone than its own. A `later` item due for a milestone makes the items
+waiting on it `later` too, without a `blocked_on` of their own. Dates order
+milestones against each other, never against today, so `check` gives the same
+answer every day. Once a milestone has passed, drop the `depends_on` entries
+that name it and then delete it from roadmap.toml. Archived items may still
+name it, because they are history. Milestones need roadmap.py 1.3.0 or later,
+because older versions reject the `[milestones]` table.
+
 **People decide the bucket.** When filing an item, suggest a bucket and ask
 before filing. Base the suggestion on dependency order: an item goes no
 earlier than the items it depends on. If its dependencies are in Now, it
@@ -57,8 +77,9 @@ would be a commit. An item stays in its bucket until the work is done, and is
 commit.
 
 `move <id> --bucket <b>` reprioritises an item. It lands just above the first
-item in the target bucket that depends on it, and that item and everything
-below it shift down a rank. If nothing there depends on it, it lands at the
+item in the target bucket that has to follow it (it depends on the item, or
+waits on a milestone the item is due for). That item and everything below it
+shift down a rank. If nothing there has to follow it, it lands at the
 bottom. Adjust `rank` by hand to place it higher. `new`, `move` and `close`
 refuse, and write nothing, when the result would break `bucket` or `depends`:
 for example a move that leaves a dependency behind its dependent, or a close
@@ -80,7 +101,8 @@ filed = 2026-09-06                # a bare TOML date, not a string
 updated = 2026-09-06              # optional: when the item was last re-argued
 gate = "..."                      # optional: the bar the work has to clear
 blocked_on = "..."                # required for later (unless depends_on names a later item), forbidden elsewhere
-depends_on = ["other-item"]       # optional: ids that must come first; above [refs], or TOML files it under refs
+milestone = "beta"                # optional: the milestone the item is due for, declared in roadmap.toml
+depends_on = ["other-item"]       # optional: item or milestone ids that must come first; above [refs], or TOML files it under refs
 
 [refs]                            # optional: every entry must resolve
 files = ["src/app.py"]            # built in: paths relative to the repo root
@@ -89,8 +111,8 @@ specs = ["auth"]                  # any kind declared in roadmap.toml
 ```
 
 Archived item (`archive/<id>.md`). `close` produces this shape: the queue
-fields (`bucket`, `rank`, `blocked_on`) are removed, `depends_on` stays as
-history, and these are added:
+fields (`bucket`, `rank`, `blocked_on`) are removed, `depends_on` and
+`milestone` stay as history, and these are added:
 
 ```toml
 closed = 2026-09-20
@@ -105,6 +127,8 @@ root = ".."                       # what refs resolve against; default: parent o
 [refs]
 specs   = "openspec/specs/{}"
 changes = ["openspec/changes/{}", "openspec/changes/archive/*-{}"]  # any may match; globs allowed
+[milestones]                      # kebab-case id = a title and a bare TOML date
+beta = { title = "Public beta", date = 2026-12-01 }
 ```
 
 ## Rule tags
@@ -113,16 +137,16 @@ Every problem `check` reports ends in one of these tags.
 
 | Tag | Rule | Typical fix |
 |---|---|---|
-| `config` | roadmap.toml parses and each ref kind is a template containing `{}` | fix the TOML |
+| `config` | roadmap.toml parses, each ref kind is a template containing `{}`, and each milestone has a `title` and a bare `date` | fix the TOML |
 | `frontmatter` | the file starts with `+++`-fenced TOML that parses | add or repair the fence; quote strings |
 | `schema` | required fields present, none unknown, id = filename = kebab slug; archived items carry no queue fields | rename the file or the id; remove the stray field |
 | `bucket` | bucket is `now`, `next` or `later`; `later` ⇔ `blocked_on`, or a dependency in `later` | add `blocked_on`, or `move` the item out of `later` |
 | `rank` | positive integer, unique within the bucket | renumber |
-| `depends` | `depends_on` is a list of ids naming open or shipped items, each ahead of the item: in an earlier bucket, or higher in the same one | reorder or `move` the items; drop a declined or missing dependency and re-argue the item |
+| `depends` | `depends_on` is a list of ids naming open or shipped items or declared milestones, each ahead of the item: in an earlier bucket, or higher in the same one. `milestone` names a declared milestone; items due for it (or an earlier one) come before items waiting on it, and no item waits on a milestone at or after the one it is due for | reorder or `move` the items; drop a declined or missing dependency and re-argue the item; drop a passed milestone from `depends_on` |
 | `dates` | bare TOML dates (`2026-09-06`, not `"2026-09-06"`); none earlier than `filed` | unquote the date |
 | `body` | the prose says something (HTML comments don't count) | write the argument |
 | `refs` | every ref on an open item resolves | update the ref after a rename, or drop it |
-| `ids` | an id is used once, across `items/` and `archive/` | choose a new id |
+| `ids` | an id is used once, across `items/`, `archive/` and the milestones in roadmap.toml | choose a new id |
 | `links` | every relative link in open items, README.md and done.md resolves | repoint it |
 | `generated` | README.md's index and done.md match the files | run `index` |
 | `append-only` | with `--base`: no archived entry is removed, moved, or has a line changed | revert the change; add a dated annotation on new lines instead |

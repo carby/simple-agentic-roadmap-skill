@@ -10,3 +10,8 @@
 # specs   = "openspec/specs/{}"
 # changes = ["openspec/changes/{}", "openspec/changes/archive/*-{}"]
 # adrs    = "docs/adr/{}.md"
+
+# Milestones: named points in time. An item is due for one with
+# `milestone = "beta"`, or waits on one with `depends_on = ["beta"]`.
+[milestones]
+# beta = { title = "Public beta", date = 2026-12-01 }

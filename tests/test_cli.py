@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from conftest import roadmap, run
+import pytest
+from conftest import item_text, make_roadmap, open_meta, roadmap, run
 
 
 def test_check_passes_on_the_valid_fixture(valid: Path) -> None:
@@ -245,3 +246,70 @@ def test_close_may_ship_an_item_others_depend_on(valid: Path) -> None:
     assert result.returncode == 0, result.stderr
     assert "[Cache auth tokens](archive/cache-tokens.md) (shipped)" in (valid / "roadmap/README.md").read_text()
     assert run("check", cwd=valid).returncode == 0
+
+
+MILESTONES = '[milestones]\nbeta = { title = "Public beta", date = 2026-12-01 }\n'
+
+
+def test_new_records_the_milestone_an_item_is_due_for(tmp_path: Path) -> None:
+    make_roadmap(tmp_path, {"roadmap.toml": MILESTONES})
+
+    result = run("new", "ship-it", "--title", "T", "--bucket", "now", "--milestone", "beta", "--body", "Why.",
+                 cwd=tmp_path)  # fmt: skip
+
+    assert result.returncode == 0, result.stderr
+    assert roadmap.parse(tmp_path / "roadmap/items/ship-it.md").meta["milestone"] == "beta"
+    assert "**Due for:** Public beta (2026-12-01)" in (tmp_path / "roadmap/README.md").read_text()
+    assert run("check", cwd=tmp_path).returncode == 0
+
+
+@pytest.mark.parametrize(
+    ("args", "expected"),
+    [
+        (["ship-it", "--milestone", "gamma"], "is due for milestone 'gamma', which roadmap.toml does not declare"),
+        (["beta"], "'beta' is a milestone in"),
+    ],
+    ids=["unknown-milestone", "milestone-id"],
+)
+def test_new_refuses_an_unknown_milestone_and_a_milestones_id(tmp_path: Path, args: list, expected: str) -> None:
+    make_roadmap(tmp_path, {"roadmap.toml": MILESTONES})
+
+    result = run("new", *args, "--title", "T", "--bucket", "now", "--body", "Why.", cwd=tmp_path)
+
+    assert result.returncode == 2
+    assert expected in result.stderr
+    assert list((tmp_path / "roadmap/items").glob("*.md")) == []
+
+
+def test_move_lands_an_item_due_for_a_milestone_above_the_items_waiting_on_it(tmp_path: Path) -> None:
+    make_roadmap(
+        tmp_path,
+        {
+            "roadmap.toml": MILESTONES,
+            "items/due.md": item_text(open_meta(id="due", milestone="beta")),
+            "items/waits.md": item_text(open_meta(id="waits", bucket="next", depends_on=["beta"])),
+        },
+    )
+
+    result = run("move", "due", "--bucket", "next", cwd=tmp_path)
+
+    assert result.returncode == 0, result.stderr
+    assert roadmap.parse(tmp_path / "roadmap/items/due.md").meta["rank"] == 1
+    assert roadmap.parse(tmp_path / "roadmap/items/waits.md").meta["rank"] == 2
+    assert run("check", cwd=tmp_path).returncode == 0
+
+
+def test_move_refuses_to_put_an_item_behind_the_items_waiting_on_its_milestone(tmp_path: Path) -> None:
+    make_roadmap(
+        tmp_path,
+        {
+            "roadmap.toml": MILESTONES,
+            "items/due.md": item_text(open_meta(id="due", milestone="beta")),
+            "items/waits.md": item_text(open_meta(id="waits", bucket="next", depends_on=["beta"])),
+        },
+    )
+
+    result = run("move", "due", "--bucket", "later", "--blocked-on", "a call", cwd=tmp_path)
+
+    assert result.returncode == 2
+    assert "waits.md: depends on milestone 'beta' (2026-12-01), but 'due' ('later', rank 1)" in result.stderr

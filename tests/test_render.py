@@ -152,3 +152,48 @@ def test_the_graph_escapes_titles(tmp_path: Path) -> None:
     items, _, _ = roadmap.load(rm)
 
     assert '    i_a["Fix #35;12: #quot;#lt;b#gt;#quot; in #96;x#96;"]' in roadmap.render_graph(items)
+
+
+MILESTONES = (
+    '[milestones]\nbeta = { title = "Public beta", date = 2026-12-01 }\nunused = { title = "U", date = 2027-01-01 }\n'
+)
+
+
+def test_the_index_names_the_milestones_an_item_is_due_for_and_waits_on(tmp_path: Path) -> None:
+    rm = make_roadmap(
+        tmp_path,
+        {
+            "roadmap.toml": MILESTONES,
+            "items/a.md": item_text(open_meta(id="a", title="A", milestone="beta")),
+            "items/b.md": item_text(open_meta(id="b", title="B", bucket="next", depends_on=["beta", "a"])),
+        },
+    )
+    items, archived, _ = roadmap.load(rm)
+
+    block = roadmap.render_index(items, archived, rm.milestones)
+
+    assert "1. [A](items/a.md) — filed 2026-09-06<br>  **Due for:** Public beta (2026-12-01)" in block
+    assert "**Depends on:** Public beta (2026-12-01), [A](items/a.md)" in block
+    assert roadmap.check(rm) == []
+
+
+def test_the_graph_draws_the_milestones_open_items_name_as_hexagons(tmp_path: Path) -> None:
+    rm = make_roadmap(
+        tmp_path,
+        {
+            "roadmap.toml": MILESTONES,
+            "items/a.md": item_text(open_meta(id="a", title="A", milestone="beta")),
+            "items/b.md": item_text(open_meta(id="b", title="B", bucket="next", depends_on=["beta"])),
+        },
+    )
+    items, _, _ = roadmap.load(rm)
+
+    graph = roadmap.render_graph(items, rm.milestones)
+
+    assert graph[-4:] == [
+        '  m_beta{{"Public beta (2026-12-01)"}}',
+        "  i_a --> m_beta",
+        "  m_beta --> i_b",
+        "```",
+    ]
+    assert not any("m_unused" in line for line in graph)

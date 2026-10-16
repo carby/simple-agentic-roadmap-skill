@@ -9,8 +9,9 @@ metadata:
 # Roadmap
 
 A simple roadmap, built **KISS style**: Markdown files in three buckets, with
-`depends_on` to say which items must come first. Don't add structure the
-roadmap doesn't have, such as epics, milestones, estimates or schedules. If one of those seems necessary,
+`depends_on` to say which items must come first, and milestones (named dates
+in `roadmap.toml`) that items are due for or wait on. Don't add structure the
+roadmap doesn't have, such as epics, estimates or schedules. If one of those seems necessary,
 file it as a roadmap item instead of improvising it in the files.
 
 ## When invoked as `/roadmap [arguments]`
@@ -63,7 +64,7 @@ without new evidence. Explain what has changed since then.
 | Want to | Run |
 |---|---|
 | Set up a roadmap in a repo | `python <skill>/scripts/roadmap.py init`, where `<skill>` is the directory this SKILL.md was loaded from (e.g. `~/.claude/skills/roadmap` or `.claude/skills/roadmap`). It writes `roadmap/` and vendors the script to `tools/roadmap.py`. Every later command uses `tools/roadmap.py`. For CI setup, point the user at this skill's README. |
-| File an item | `python tools/roadmap.py new <id> --title "..." --bucket now [--gate "..."] [--depends-on <id>] [--ref files:path]`, then replace the placeholder body with the argument |
+| File an item | `python tools/roadmap.py new <id> --title "..." --bucket now [--gate "..."] [--depends-on <id>] [--milestone <id>] [--ref files:path]`, then replace the placeholder body with the argument |
 | File an undecided item | `python tools/roadmap.py new <id> --title "..." --bucket later --blocked-on "the open question"` |
 | Reprioritise an item | `python tools/roadmap.py move <id> --bucket next` (add `--blocked-on "..."` for `later`). It lands just above the items there that depend on it, shifting them down, or else at the bottom; edit `rank` to place it higher. It refuses a move that would put an item ahead of its dependencies. |
 | Close shipped work | `python tools/roadmap.py close <id> --outcome shipped --as <pr-or-change>`, **in the same branch as the code**, so it moves to done.md when that merges |
@@ -97,8 +98,10 @@ and `check` afterwards.
    on: if its dependencies are in `now`, suggest `next`, and record them with
    `--depends-on`. An unmade decision means `later`, with `blocked_on` naming
    that decision; an item waiting on a `later` item's decision may rely on its
-   `depends_on` instead. The bucket reflects
-   priority and blockers, not size.
+   `depends_on` instead. An item that waits on a milestone (`--depends-on
+   <milestone>`) goes after every item due for it; if the milestone is still
+   ahead, that usually means Next rather than Now, but the human decides. The
+   bucket reflects priority and blockers, not size.
 3. **`now` is the top priority, not "in progress".** Think of it as the
    planned sprint. Don't record who is working on what or when work started:
    that is a commit per status change. The item stays put until its work

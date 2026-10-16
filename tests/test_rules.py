@@ -12,6 +12,9 @@ import pytest
 from conftest import DONE, README, closed_meta, item_text, make_roadmap, open_meta, roadmap
 
 D = datetime.date
+MILESTONES = (
+    '[milestones]\nalpha = { title = "Alpha", date = 2026-11-01 }\nbeta = { title = "Beta", date = 2026-12-01 }\n'
+)
 
 CASES = [
     # (case id, rule, expected message fragment, files relative to roadmap/)
@@ -235,6 +238,73 @@ CASES = [
         "links to 'decisions.md'",
         {"README.md": README + "\nClosed items used to live in [decisions](decisions.md).\n"},
     ),
+    (
+        "milestone-not-a-string",
+        "schema",
+        "milestone must be a non-empty string",
+        {"items/sample.md": item_text(open_meta(milestone=3))},
+    ),
+    (
+        "milestone-undeclared",
+        "depends",
+        "is due for milestone 'gamma', which roadmap.toml does not declare",
+        {"roadmap.toml": MILESTONES, "items/sample.md": item_text(open_meta(milestone="gamma"))},
+    ),
+    (
+        "depends-unknown-milestone",
+        "depends",
+        "'gamma', which is not an open or archived item, or a declared milestone",
+        {"roadmap.toml": MILESTONES, "items/sample.md": item_text(open_meta(depends_on=["gamma"]))},
+    ),
+    (
+        "milestone-due-ranked-below",
+        "depends",
+        "depends on milestone 'beta' (2026-12-01), but 'due' ('now', rank 2) is due by then and must come first",
+        {
+            "roadmap.toml": MILESTONES,
+            "items/sample.md": item_text(open_meta(depends_on=["beta"])),
+            "items/due.md": item_text(open_meta(id="due", rank=2, milestone="beta")),
+        },
+    ),
+    (
+        # Due for an earlier milestone is due by the later one too.
+        "milestone-due-earlier-ranked-below",
+        "depends",
+        "but 'due' ('next', rank 1) is due by then and must come first",
+        {
+            "roadmap.toml": MILESTONES,
+            "items/sample.md": item_text(open_meta(depends_on=["beta"])),
+            "items/due.md": item_text(open_meta(id="due", bucket="next", milestone="alpha")),
+        },
+    ),
+    (
+        "milestone-waits-on-its-own",
+        "depends",
+        "is due for 'alpha' (2026-11-01) but waits on 'alpha' (2026-11-01)",
+        {"roadmap.toml": MILESTONES, "items/sample.md": item_text(open_meta(milestone="alpha", depends_on=["alpha"]))},
+    ),
+    (
+        "milestone-waits-on-a-later-one",
+        "depends",
+        "is due for 'alpha' (2026-11-01) but waits on 'beta' (2026-12-01)",
+        {"roadmap.toml": MILESTONES, "items/sample.md": item_text(open_meta(milestone="alpha", depends_on=["beta"]))},
+    ),
+    (
+        "milestone-dependency-due-later",
+        "depends",
+        "is due for 'alpha' (2026-11-01) but depends on 'first', which is due later, for 'beta' (2026-12-01)",
+        {
+            "roadmap.toml": MILESTONES,
+            "items/sample.md": item_text(open_meta(rank=2, milestone="alpha", depends_on=["first"])),
+            "items/first.md": item_text(open_meta(id="first", milestone="beta")),
+        },
+    ),
+    (
+        "milestone-id-taken",
+        "ids",
+        "id 'beta' is also a milestone in roadmap.toml",
+        {"roadmap.toml": MILESTONES, "items/beta.md": item_text(open_meta(id="beta"))},
+    ),
 ]
 
 
@@ -279,6 +349,12 @@ def test_a_missing_done_md_is_reported(tmp_path: Path) -> None:
         ('[refs]\nspecs = "specs/"', "must be a path template containing {}"),
         ('owner = "me"', "unknown key(s) owner"),
         ("root = 1", "root must be a path string"),
+        ('milestones = "beta"', "milestones must be a table"),
+        ('[milestones]\nBeta = { title = "B", date = 2026-12-01 }', "milestone id 'Beta' is not a kebab-case slug"),
+        ('[milestones]\nbeta = { title = "B", date = "2026-12-01" }', "milestones.beta must be"),
+        ("[milestones]\nbeta = { date = 2026-12-01 }", "milestones.beta must be"),
+        ('[milestones]\nbeta = { title = "B", date = 2026-12-01, owner = "me" }', "milestones.beta must be"),
+        ('[milestones]\nbeta = "2026-12-01"', "milestones.beta must be"),
     ],
 )
 def test_a_broken_config_is_refused(tmp_path: Path, toml: str, expected: str) -> None:
@@ -414,3 +490,25 @@ def test_a_malformed_dependency_does_not_crash_the_other_rules(tmp_path: Path) -
     rules = {p.rule for p in roadmap.check(rm)}
 
     assert {"bucket", "rank"} <= rules
+
+
+def test_milestones_order_the_items_due_for_them_ahead_of_the_items_waiting_on_them(tmp_path: Path) -> None:
+    """Items due for a milestone, or for an earlier one, come first. A 'later'
+    item due for it makes the items waiting on it 'later' too, without a
+    blocked_on of their own. An archived item may name a milestone that is gone."""
+    rm = make_roadmap(
+        tmp_path,
+        {
+            "roadmap.toml": MILESTONES,
+            "items/early.md": item_text(open_meta(id="early", milestone="alpha")),
+            "items/due.md": item_text(open_meta(id="due", rank=2, milestone="beta", depends_on=["alpha"])),
+            "items/after.md": item_text(open_meta(id="after", bucket="next", depends_on=["alpha", "early"])),
+            "items/undecided.md": item_text(
+                open_meta(id="undecided", bucket="later", milestone="beta", blocked_on="a call")
+            ),
+            "items/waiting.md": item_text(open_meta(id="waiting", bucket="later", rank=2, depends_on=["beta"])),
+            "archive/old.md": item_text(closed_meta(id="old", milestone="retired", depends_on=["retired"])),
+        },
+    )
+
+    assert roadmap.check(rm) == []
