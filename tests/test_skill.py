@@ -47,15 +47,15 @@ def test_every_documented_frontmatter_field_is_one_the_schema_knows() -> None:
     for doc in AGENT_DOCS:
         for block in re.findall(r"```toml\n(.*?)```", doc.read_text(), re.DOTALL):
             fields = set(re.findall(r"^([a-z_]+) =", block.replace("+++", ""), re.MULTILINE))
-            fields -= {"root", "specs", "changes", "files"}  # roadmap.toml keys and [refs] kinds
+            fields -= {"root", "specs", "changes", "files", "beta"}  # roadmap.toml keys, [refs] kinds, milestones
             assert fields <= known, f"{doc.name} documents {fields - known}"
 
 
 def test_the_template_config_parses_with_its_examples_uncommented() -> None:
     text = (REPO / "assets/template/roadmap.toml").read_text()
-    uncommented = re.sub(r"^# (root|specs|changes|adrs)", r"\1", text, flags=re.MULTILINE)
+    uncommented = re.sub(r"^# (root|specs|changes|adrs|beta)", r"\1", text, flags=re.MULTILINE)
 
-    tomllib.loads(uncommented)
+    assert "beta" in tomllib.loads(uncommented)["milestones"]
 
 
 def test_the_dogfood_roadmap_is_clean() -> None:
