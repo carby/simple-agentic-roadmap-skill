@@ -2,3 +2,7 @@
 __pycache__/
 .pytest_cache/
 .ruff_cache/
+
+# Obsidian: only docs/.obsidian/app.json is shared
+docs/.obsidian/*
+!docs/.obsidian/app.json
