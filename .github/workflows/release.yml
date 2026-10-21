@@ -1,0 +1,23 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  # The Claude app installs a skill from an uploaded zip: one folder with
+  # SKILL.md at its top. Only what the agent reads or runs goes in it.
+  skill-zip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build roadmap.zip
+        run: git archive --format=zip --prefix=roadmap/ -o roadmap.zip HEAD SKILL.md LICENSE references scripts assets
+      - name: Attach it to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: gh release upload "$TAG" roadmap.zip --clobber

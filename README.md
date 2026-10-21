@@ -94,7 +94,21 @@ git clone https://github.com/carby/simple-agentic-roadmap-skill.git .claude/skil
 python .claude/skills/roadmap/scripts/roadmap.py init
 ```
 
-Either way, you can also ask the agent to "set up a roadmap here", and it will
+**Option C: chats and Projects in the Claude app (claude.ai, desktop)**
+
+The app's Code tab is Claude Code, so use Option A or B there. This option is
+for chats, which read the roadmap but can't change the repo.
+
+Download
+[`roadmap.zip`](https://github.com/carby/simple-agentic-roadmap-skill/releases/latest/download/roadmap.zip)
+from the latest release and upload it in the app's Skills settings. To use it
+on a repo, add the repo to a Project and include the `roadmap/` folder in the
+files it syncs. The app reads that copy but can't write to your repo, so
+`/roadmap` and questions work as usual. `new`, `move` and `close` give you the
+changed files to download and commit yourself; run `python tools/roadmap.py
+index` and `check` locally afterwards.
+
+Any way you install it, you can also ask the agent to "set up a roadmap here", and it will
 run `init` from wherever it loaded the skill.
 
 `init` creates:

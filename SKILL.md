@@ -43,6 +43,11 @@ All commands go through `roadmap.py`. Use the repo's vendored copy
 `scripts/roadmap.py`. Run them from the repo root; pass `--dir` if the roadmap
 is somewhere other than `roadmap/`.
 
+If the roadmap is only readable, e.g. synced into a Claude app Project, answer
+from it as usual. For a change, copy `roadmap/` and the script into your
+working directory, run the command there, and give the user the changed files
+to commit, since you can't write to their repo.
+
 When both copies exist, compare their `--version` once per session. If the
 vendored copy is older, tell the user and offer to run
 `python <skill>/scripts/roadmap.py upgrade`. Don't run it unasked.
