@@ -79,6 +79,12 @@ git push github master v1.0.1
 git push -f github v1                  # force: v1 already exists on the remote
 ```
 
+Publishing the GitHub release runs `.github/workflows/release.yml`, which
+attaches `roadmap.zip`, the skill packaged for upload to the Claude app. It
+holds `SKILL.md`, `LICENSE`, `references/`, `scripts/` and `assets/`; if the
+skill gains a directory the agent needs, add it to the workflow's
+`git archive` line.
+
 Bump the major version, e.g. to `v2.0.0` with a new `v2` tag, for any change
 that breaks existing users:
 - renaming or removing a command
