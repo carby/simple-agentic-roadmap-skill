@@ -14,7 +14,7 @@ repos, which must not need to install anything to run it.
 
 The pytest suite tests the tool, the template, SKILL.md and the docs. It
 never runs in a client's CI. Clients only run `roadmap.py check`, as described
-in the [README](README.md#checking-your-roadmap).
+in [Checking your roadmap](docs/checking.md).
 
 ```bash
 uv sync                                        # dev deps: pytest, ruff
@@ -31,7 +31,7 @@ uv run ruff check . && uv run ruff format --check .
 | `tests/test_workflow.py` | `init → new → move → close` in a fresh repo, with `check` required to pass after every step, and link rewriting; `upgrade` and the drift warning |
 | `tests/test_append_only.py` | `check --base` against a real temporary git repo |
 | `tests/test_skill.py` | SKILL.md frontmatter; every command the agent docs name exists; every rule tag documented; the dogfood roadmap is clean |
-| `tests/test_readme.py` | README.md and this file: the right sections exist, and they name real commands and Action inputs |
+| `tests/test_readme.py` | README.md, the `docs/` vault and this file: the right notes and sections exist, they name real commands and Action inputs, and every relative link resolves |
 
 `tests/fixtures/valid/` is a complete example roadmap. Its README.md and
 done.md are the golden output of the renderer. If you change the rendering on

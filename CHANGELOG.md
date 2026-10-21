@@ -1,13 +1,18 @@
 # Changelog
 
 Each release has a fixed `vX.Y.Z` tag. The skill is installed pinned to one
-(see the [README](README.md#install-the-skill)), so read this before moving the
+(see [Install](docs/install.md)), so read this before moving the
 pin. **Upgrade notes** say what you have to do after `upgrade`. Where a release
 changes the rules `check` enforces, it says so there, because a stricter rule can
 turn a passing `check` red.
 
 ## Unreleased
 
+- **Docs** — The README is now a short anchor: a quick start, the slash
+  commands and a map of the docs. The detail moved into `docs/`, one note per
+  topic (install, upgrading, checking, CI, rule tags, configuration), which
+  also opens as an Obsidian vault. Links are plain Markdown, so they work on
+  GitHub too.
 - **Install** — The README now leads with one path: the skill as a git
   submodule pinned to a release tag, then `init`, then a note in `CLAUDE.md`
   saying the skill is required. A global clone and the Claude app zip are
