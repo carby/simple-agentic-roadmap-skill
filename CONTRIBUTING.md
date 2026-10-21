@@ -65,11 +65,15 @@ Releases use two kinds of tag:
 - a floating major tag, `v1`, which always points at the newest 1.x release
 
 The README tells users `uses: carby/simple-agentic-roadmap-skill@v1`, so every
-compatible release moves `v1` forward.
+compatible release moves `v1` forward. It installs the skill itself differently:
+as a submodule pinned to the newest fixed `vX.Y.Z` tag, which `v1` must never
+stand in for, because a pin that moves is not a pin.
 
 ```bash
 # 1. Bump the version in both places (a test fails if they differ):
-#    __version__ in scripts/roadmap.py, and version in pyproject.toml
+#    __version__ in scripts/roadmap.py, and version in pyproject.toml.
+#    Rename CHANGELOG.md's "Unreleased" heading to "1.0.1 — <date>" (a test
+#    fails if the current version has no entry).
 uv lock && uv run pytest && git commit -am "chore: release 1.0.1"
 
 # 2. Tag the release and move the major tag onto it
@@ -95,4 +99,5 @@ Leave `v1` on the last 1.x release.
 
 `upgrade` runs `check` straight after replacing a vendored copy, so a rule
 that got stricter shows up as soon as someone upgrades. Say what changed about
-the rules in the release notes.
+the rules in CHANGELOG.md, under **Upgrade notes** or **Rules**, and in the
+release notes. People read it before they move their pin.

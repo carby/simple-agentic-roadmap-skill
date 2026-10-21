@@ -48,9 +48,16 @@ from it as usual. For a change, copy `roadmap/` and the script into your
 working directory, run the command there, and give the user the changed files
 to commit, since you can't write to their repo.
 
-When both copies exist, compare their `--version` once per session. If the
-vendored copy is older, tell the user and offer to run
-`python <skill>/scripts/roadmap.py upgrade`. Don't run it unasked.
+When both copies exist, compare their `--version` once per session:
+
+- **Vendored copy older:** tell the user and offer to run
+  `python <skill>/scripts/roadmap.py upgrade`. Don't run it unasked.
+- **Skill's copy older:** the repo has moved ahead of the skill you loaded, so
+  you are following rules older than the ones `check` enforces. Tell the user to
+  update the skill (in a submodule: `git -C <skill> fetch --tags`, then check out
+  the release the repo's `tools/roadmap.py --version` names), and don't run
+  `upgrade`, which refuses a downgrade. Until then, rely on `check` and ask
+  before any change the older rules might get wrong.
 
 ## Before proposing work
 

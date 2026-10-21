@@ -60,3 +60,28 @@ def test_every_slash_command_the_readme_advertises_is_handled_by_the_skill() -> 
 
     assert advertised, "README.md's slash-command table is empty or the regex is out of date"
     assert advertised <= handled, f"SKILL.md does not say what to do for /roadmap {advertised - handled}"
+
+
+def test_every_install_snippet_pins_the_skill_to_a_release() -> None:
+    """An unpinned clone is how a skill drifts, so no snippet may show one."""
+    blocks = re.findall(r"```bash\n(.*?)```", README, re.DOTALL)
+    installs = [b for b in blocks if re.search(r"git (clone|submodule add) \S*simple-agentic-roadmap-skill", b)]
+
+    assert installs, "README.md shows no install snippet; the regex is out of date"
+    for block in installs:
+        assert "checkout" in block and "describe --tags" in block, f"this install snippet is not pinned:\n{block}"
+
+
+def test_the_readme_tells_users_to_make_the_skill_a_visible_requirement() -> None:
+    install = section("Install the skill")
+
+    assert "CLAUDE.md" in install
+    assert "If the skill isn't available" in install, "the CLAUDE.md snippet must say what to do without the skill"
+
+
+def test_the_changelog_has_an_entry_for_the_current_version() -> None:
+    changelog = (REPO / "CHANGELOG.md").read_text()
+
+    assert re.search(rf"^## {re.escape(roadmap.__version__)} — \d{{4}}-\d{{2}}-\d{{2}}$", changelog, re.MULTILINE), (
+        f"CHANGELOG.md has no '## {roadmap.__version__} — <date>' entry; rename Unreleased when releasing"
+    )
