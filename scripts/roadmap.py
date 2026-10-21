@@ -38,7 +38,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from urllib.parse import unquote
 
-__version__ = "1.3.0"
+__version__ = "1.3.1"
 
 BUCKETS = ("now", "next", "later")
 BUCKET_TITLES = {"now": "Now", "next": "Next", "later": "Later"}
