@@ -70,58 +70,138 @@ Originally extracted from the roadmap of the snakestream project.
 
 ## Install the skill
 
-Installing has two steps:
-1. Put the skill where your agent can load it: globally or in one repo.
-2. Run `init` once in each repo that should have a roadmap.
+A roadmap leans on two things that can drift apart: the **skill**, which holds
+the rules your agent follows, and the **vendored script**, `tools/roadmap.py`,
+which enforces them and lives in your repo. Install them so that both are
+pinned to a release and both are committed, and so the repo says what to do
+when the skill is missing. That takes three steps, once per repo. The commands
+are bash; on Windows use WSL or Git Bash.
 
-Only step 2's command depends on where you installed the skill. The examples
-use Claude Code's skill directories.
-
-**Option A: global (every repo on your machine)**
-
-```bash
-git clone https://github.com/carby/simple-agentic-roadmap-skill.git ~/.claude/skills/roadmap
-
-# then, from the root of each repo that should have a roadmap:
-python ~/.claude/skills/roadmap/scripts/roadmap.py init
-```
-
-**Option B: per repo (committed with the repo, so collaborators get it too)**
+### 1. Add the skill as a pinned submodule
 
 ```bash
 # from the root of the repo:
-git clone https://github.com/carby/simple-agentic-roadmap-skill.git .claude/skills/roadmap      # or add it as a git submodule
-python .claude/skills/roadmap/scripts/roadmap.py init
+git submodule add https://github.com/carby/simple-agentic-roadmap-skill.git .claude/skills/roadmap
+git -C .claude/skills/roadmap checkout "$(git -C .claude/skills/roadmap describe --tags --abbrev=0 --match 'v*.*.*')"
+git add .gitmodules .claude/skills/roadmap
 ```
 
-**Option C: chats and Projects in the Claude app (claude.ai, desktop)**
+That checks out the newest release tag. Commit it, and your repo records that
+exact commit of the skill. A submodule is pinned to a commit, not a branch, so
+every collaborator, CI run and agent session gets the same rules until someone
+deliberately moves the pin (see [Upgrading](#upgrading)). Claude Code loads
+skills from `.claude/skills/`, so there is nothing else to configure.
 
-The app's Code tab is Claude Code, so use Option A or B there. This option is
-for chats, which read the roadmap but can't change the repo.
+People who clone the repo need the submodule too: `git clone --recurse-submodules`,
+or `git submodule update --init` afterwards. If your CI or cloud agents check out
+the repo, make sure they fetch submodules. An empty `.claude/skills/roadmap`
+means no skill.
 
-Download
-[`roadmap.zip`](https://github.com/carby/simple-agentic-roadmap-skill/releases/latest/download/roadmap.zip)
-from the latest release and upload it in the app's Skills settings. To use it
-on a repo, add the repo to a Project and include the `roadmap/` folder in the
-files it syncs. The app reads that copy but can't write to your repo, so
-`/roadmap` and questions work as usual. `new`, `move` and `close` give you the
-changed files to download and commit yourself; run `python tools/roadmap.py
-index` and `check` locally afterwards.
+### 2. Run `init`
 
-Any way you install it, you can also ask the agent to "set up a roadmap here", and it will
-run `init` from wherever it loaded the skill.
+```bash
+python .claude/skills/roadmap/scripts/roadmap.py init
+git add roadmap tools/roadmap.py
+```
 
 `init` creates:
 - `roadmap/`, containing README.md, done.md, roadmap.toml, `items/` and
   `archive/`
 - `tools/roadmap.py`, a copy of the script
 
-Use `--dir` and `--script` to put them somewhere else.
+Use `--dir` and `--script` to put them somewhere else. You can also ask the
+agent to "set up a roadmap here", and it will run `init` from wherever it
+loaded the skill.
 
-**After `init`, the install location no longer matters.** Every other
-command, in the docs, in CI and when the agent runs one, goes through the
-repo's own copy, `python tools/roadmap.py ...`. The repo and its CI keep
-working even on machines without the skill installed.
+### 3. Tell your agent the skill is required
+
+Put this in your repo's `CLAUDE.md` (or `AGENTS.md`). It is what makes a missing
+or stale skill a visible failure instead of an agent quietly improvising:
+
+```markdown
+### Roadmap
+
+The roadmap lives in `roadmap/` and is managed with the `roadmap` skill, which
+this repo carries as a submodule at `.claude/skills/roadmap`. Use `/roadmap` for
+any change to it. If the skill isn't available (try `git submodule update
+--init`), stop and tell the user. Don't edit `roadmap/items/` or `roadmap/archive/`
+by hand without it. Verify with `python tools/roadmap.py check`.
+```
+
+**After `init`, the tooling no longer depends on where the skill is installed.**
+Every command, in the docs, in CI and when the agent runs one, goes through the
+repo's own copy, `python tools/roadmap.py ...`, so the repo and its CI keep
+working on machines without the skill. What the skill still supplies is the
+agent's behaviour, which is why step 3 exists.
+
+### Alternatives
+
+**Global, for yourself (every repo on your machine).** Nothing is committed, so
+collaborators and CI don't get the skill, and you have to keep it current
+yourself. Pin the clone to a release, and still add the note from step 3.
+
+```bash
+git clone https://github.com/carby/simple-agentic-roadmap-skill.git ~/.claude/skills/roadmap
+git -C ~/.claude/skills/roadmap checkout "$(git -C ~/.claude/skills/roadmap describe --tags --abbrev=0 --match 'v*.*.*')"
+
+# then, from the root of each repo that should have a roadmap:
+python ~/.claude/skills/roadmap/scripts/roadmap.py init
+```
+
+**A plain clone into the repo is not an install.** `git clone ... .claude/skills/roadmap`
+isn't tracked by your repo, so collaborators get nothing and each machine ends
+up on whichever commit it cloned that day. Use the submodule, or commit a
+copy at a known release.
+
+**Chats and Projects in the Claude app (claude.ai, desktop).** The app's Code
+tab is Claude Code, so use the submodule there. This option is for chats,
+which read the roadmap but can't change the repo.
+
+Download
+[`roadmap.zip`](https://github.com/carby/simple-agentic-roadmap-skill/releases/latest/download/roadmap.zip)
+from the latest release (or from a specific one, by replacing `latest/download`
+in the link with `download/<tag>`) and upload it in the app's Skills settings.
+To use it on a repo, add the repo to a Project and include the `roadmap/`
+folder in the files it syncs. The app reads that copy but can't write to your
+repo, so `/roadmap` and questions work as usual. `new`, `move` and `close` give
+you the changed files to download and commit yourself; run `python
+tools/roadmap.py index` and `check` locally afterwards.
+
+## Upgrading
+
+The skill and the vendored script move together, in one commit. Read the
+[CHANGELOG](CHANGELOG.md) first: it says when a release changes the rules, since
+a stricter rule can turn a passing `check` red.
+
+```bash
+git -C .claude/skills/roadmap fetch --tags
+git -C .claude/skills/roadmap checkout <tag>             # the release you want
+python .claude/skills/roadmap/scripts/roadmap.py upgrade # --script <path> if not tools/roadmap.py
+git add .claude/skills/roadmap tools/roadmap.py
+git commit -m "chore: upgrade the roadmap skill to <tag>"
+```
+
+`upgrade` replaces the vendored script, prints `old → new`, and leaves
+`roadmap/` alone. It then runs `check` with the new version, so any rule
+changes show up straight away. It refuses a downgrade, or a copy with local
+edits, unless you pass `--force`.
+
+**How drift shows up.** `python tools/roadmap.py --version` says which release
+is vendored.
+- The skill's copy warns on stderr whenever it runs next to an older
+  `tools/roadmap.py`.
+- Once per session the agent compares the two versions. If the vendored script
+  is older it offers `upgrade`. If the skill is older than the script, it tells
+  you to update the skill, because someone upgraded the repo without the
+  checkout you are using.
+- With the submodule, `git submodule status` shows the pinned commit, and a
+  commit that moves it is easy to spot in review. Git may label that commit
+  `v1` rather than `v1.3.1`, because the floating tag sits on the same commit.
+  The commit is what is pinned, so the label doesn't matter.
+
+The GitHub Action's floating `@v1` tag is the only thing that follows new
+releases on its own. It runs your vendored `tools/roadmap.py` when there is one,
+and falls back to the copy bundled with the action when there isn't.
 
 ## Checking your roadmap
 
@@ -239,21 +319,6 @@ date, then file items with `--milestone beta` (due for it) or
 [milestones]
 beta = { title = "Public beta", date = 2026-12-01 }
 ```
-
-**Upgrading the vendored script.** `python tools/roadmap.py --version` shows
-which version is vendored. After updating the skill (`git pull` in its
-directory, or `git submodule update --remote`), upgrade the vendored copy from
-the skill's:
-
-```bash
-python .claude/skills/roadmap/scripts/roadmap.py upgrade   # --script <path> if not tools/roadmap.py
-```
-
-`upgrade` replaces the vendored script, prints `old → new`, and leaves
-`roadmap/` alone. It then runs `check` with the new version, so any rule
-changes show up straight away. It refuses a downgrade, or a copy with local
-edits, unless you pass `--force`. Until you upgrade, the skill's copy warns
-whenever it runs next to an older `tools/roadmap.py`.
 
 ## Contributing
 
