@@ -120,6 +120,7 @@ gate = "..."            # optional; the bar the work has to clear
 blocked_on = "..."      # required for `later` (unless a dependency is), forbidden elsewhere
 milestone = "beta"      # optional; the milestone it is due for, declared in roadmap.toml
 depends_on = ["other"]  # optional; item or milestone ids that must come first (keep it above [refs])
+supersedes = "old"      # optional; the declined item this one tries again
 
 [refs]                  # optional; each entry is checked to exist
 files = ["src/app.py"]  # other kinds are declared in roadmap.toml

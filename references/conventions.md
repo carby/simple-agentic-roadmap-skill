@@ -166,6 +166,7 @@ gate = "..."                      # optional: the bar the work has to clear
 blocked_on = "..."                # required for later (unless depends_on names a later item), forbidden elsewhere
 milestone = "beta"                # optional: the milestone the item is due for, declared in roadmap.toml
 depends_on = ["other-item"]       # optional: item or milestone ids that must come first; above [refs], or TOML files it under refs
+supersedes = "old-item"           # optional: the declined archived item this one tries again
 
 [refs]                            # optional: every entry must resolve
 files = ["src/app.py"]            # built in: paths relative to the repo root
@@ -206,6 +207,7 @@ Every problem `check` reports ends in one of these tags.
 | `bucket` | bucket is `now`, `next` or `later`; `later` ⇔ `blocked_on`, or a dependency in `later` | add `blocked_on`, or `move` the item out of `later` |
 | `rank` | positive integer, unique within the bucket | `index --renumber` |
 | `depends` | `depends_on` is a list of ids naming open or shipped items or declared milestones, each ahead of the item: in an earlier bucket, or higher in the same one. `milestone` names a declared milestone; items due for it (or an earlier one) come before items waiting on it, and no item waits on a milestone at or after the one it is due for | reorder or `move` the items; drop a declined or missing dependency and re-argue the item; drop a passed milestone from `depends_on` |
+| `supersedes` | `supersedes` names a declined archived item, not the item itself | point it at the declined item; for follow-up work on a shipped item use `depends_on` |
 | `dates` | bare TOML dates (`2026-09-06`, not `"2026-09-06"`); none earlier than `filed` | unquote the date |
 | `body` | the prose says something (HTML comments don't count) | write the argument |
 | `refs` | every ref on an open item resolves | update the ref after a rename, or drop it |

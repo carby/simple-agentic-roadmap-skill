@@ -63,6 +63,21 @@ def test_done_is_newest_first_and_grouped_by_month(tmp_path: Path) -> None:
     assert "- **declined** [Mid](archive/mid.md) — closed 2026-09-02" in block
 
 
+def test_a_retry_links_to_the_declined_item_both_ways(tmp_path: Path) -> None:
+    rm = make_roadmap(
+        tmp_path,
+        {
+            "archive/old.md": item_text(closed_meta(id="old", title="Old", outcome="declined")),
+            "items/retry.md": item_text(open_meta(id="retry", title="Retry", supersedes="old")),
+        },
+    )
+    items, archived, _ = roadmap.load(rm)
+
+    assert "**Supersedes:** [Old](archive/old.md) (declined)" in roadmap.render_index(items, archived)
+    assert "closed 2026-09-10 — superseded by [Retry](items/retry.md)" in roadmap.render_done(archived, items)
+    assert roadmap.check(rm) == []
+
+
 def test_splice_keeps_the_prose_around_the_block() -> None:
     text = f"before\n{roadmap.INDEX_BEGIN}\nold\n{roadmap.INDEX_END}\nafter\n"
 

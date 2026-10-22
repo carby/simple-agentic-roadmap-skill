@@ -74,14 +74,16 @@ grep -i "<keyword>" roadmap/done.md roadmap/decisions.md
 
 If a matching entry says **declined**, or a decision rules the idea out, don't
 propose the same thing again without new evidence. Explain what has changed
-since then.
+since then. If the user wants it filed, file it with `--supersedes
+<declined-id>`, and say in its prose what changed. The index and done.md then
+link the two attempts.
 
 ## Workflows
 
 | Want to | Run |
 |---|---|
 | Set up a roadmap in a repo | `python <skill>/scripts/roadmap.py init`, where `<skill>` is the directory this SKILL.md was loaded from (e.g. `~/.claude/skills/roadmap` or `.claude/skills/roadmap`). It writes `roadmap/` and vendors the script to `tools/roadmap.py`. Every later command uses `tools/roadmap.py`. For CI setup, point the user at this skill's README. |
-| File an item | `python tools/roadmap.py new <id> --title "..." --bucket now [--gate "..."] [--depends-on <id>] [--milestone <id>] [--ref files:path]`, then replace the placeholder body with the argument |
+| File an item | `python tools/roadmap.py new <id> --title "..." --bucket now [--gate "..."] [--depends-on <id>] [--milestone <id>] [--supersedes <declined-id>] [--ref files:path]`, then replace the placeholder body with the argument |
 | File an undecided item | `python tools/roadmap.py new <id> --title "..." --bucket later --blocked-on "the open question"` |
 | Reprioritise an item | `python tools/roadmap.py move <id> --bucket next` (add `--blocked-on "..."` for `later`). It lands just above the items there that depend on it, shifting them down, or else at the bottom. To place it elsewhere, or to re-rank it within its bucket, add `--rank <n>` or `--above <other-id>` (which also takes the other item's bucket); the items it passes shift a rank. It refuses a move that would put an item ahead of its dependencies. A move to another bucket sets `updated`. |
 | Close shipped work | `python tools/roadmap.py close <id> --outcome shipped --as <pr-or-change>`, **in the same branch as the code**, so it moves to done.md when that merges. Always pass `--as`: the archive is append-only, so it can't be added later |
@@ -106,9 +108,9 @@ Editing prose is a plain file edit. Run `index` and `check` afterwards.
    - a few lines on what is wrong and why it matters,
    - a suggested bucket.
 
-   Then wait for a yes. Only a yes lets you run `new`, `move` or `close`. An
-   explicit request (`/roadmap new ...`, "close this") counts as that yes for
-   the item it names, and nothing else.
+   Then wait for a yes. Only a yes lets you run `new`, `move`, `close` or
+   `decide`. An explicit request (`/roadmap new ...`, "close this") counts as
+   that yes for the item or decision it names, and nothing else.
 1. **Never hand-edit the generated blocks** in README.md or done.md. Edit the
    item files and run `index`.
 2. **The human decides the bucket.** Suggest one, ask, and then file it.

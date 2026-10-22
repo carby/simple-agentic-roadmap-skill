@@ -8,6 +8,14 @@ turn a passing `check` red.
 
 ## Unreleased
 
+- **Supersedes** — `new --supersedes <declined-id>` files a second attempt
+  at a declined idea and links it to the first. The new `[supersedes]` rule
+  requires the field to name a declined archived item. Follow-up work on a
+  shipped item uses `depends_on` instead. The index shows the link on the new
+  item, and done.md shows "superseded by" on the declined one. Nothing to do
+  after upgrading.
+- **SKILL.md** — Hard rule 0 now lists `decide` among the commands that need
+  the user's yes.
 - **Decisions log** — `roadmap/decisions.md` logs the decisions that belong
   to no single item, such as a convention or something the project doesn't
   do. `decide --title "..." --body "..."` appends a dated entry, and `init`
