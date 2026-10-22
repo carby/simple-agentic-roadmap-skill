@@ -41,10 +41,9 @@ work is done. **Close it in the same branch as the code**, so it moves to
 
 *No open item depends on another or on a milestone, so there is no chart.*
 
-### Now (3)
+### Now (2)
 
 5. [Evals for how an agent uses the skill, not just for the script](items/agent-behaviour-evals.md) — filed 2026-09-25
-9. [Show readiness and rank in the roadmap chart](items/graph-ready-and-ranks.md) — filed 2026-10-22
 11. [A milestone timeline in the roadmap index](items/milestone-timeline.md) — filed 2026-10-22
 
 ### Next (0)

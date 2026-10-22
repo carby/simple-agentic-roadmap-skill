@@ -1,9 +1,10 @@
 +++
 id = "graph-ready-and-ranks"
 title = "Show readiness and rank in the roadmap chart"
-bucket = "now"
-rank = 9
 filed = 2026-10-22
+closed = 2026-10-22
+outcome = "shipped"
+shipped_as = "#14"
 
 [refs]
 files = ["scripts/roadmap.py"]
