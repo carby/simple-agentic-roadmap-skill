@@ -82,6 +82,7 @@ without new evidence. Explain what has changed since then.
 | Close shipped work | `python tools/roadmap.py close <id> --outcome shipped --as <pr-or-change>`, **in the same branch as the code**, so it moves to done.md when that merges |
 | Close declined work | `python tools/roadmap.py close <id> --outcome declined` |
 | Regenerate the indexes after a hand edit | `python tools/roadmap.py index` |
+| Resolve a merge of two roadmap branches | For a conflict in a generated block, take either side and run `index`. For `[rank]` (both branches filed into the same bucket), run `index --renumber`. A `merge-driver` can take the generated blocks automatically; see references/conventions.md. |
 | Verify | `python tools/roadmap.py check` |
 | Upgrade the vendored script, once the user says yes | `python <skill>/scripts/roadmap.py upgrade`. It replaces `tools/roadmap.py` with the skill's copy and runs `check`. Fix or report what the new rules reject. |
 

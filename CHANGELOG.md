@@ -8,6 +8,12 @@ turn a passing `check` red.
 
 ## Unreleased
 
+- **Parallel branches** — `index --renumber` numbers each bucket 1, 2, 3...
+  in its current order, which fixes the `[rank]` collision two branches cause
+  when each files an item into the same bucket. A new `merge-driver` command
+  lets git merge README.md and done.md around their generated blocks, so
+  closing items on two branches no longer conflicts there; run `index` after
+  the merge. Both are documented under "Parallel branches" in the conventions.
 - **Docs** — The README is now a short anchor: a quick start, the slash
   commands and a map of the docs. The detail moved into `docs/`, one note per
   topic (install, upgrading, checking, CI, rule tags, configuration), which
