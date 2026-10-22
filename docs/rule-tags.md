@@ -17,7 +17,7 @@ and the tag names the rule that failed:
 | `[body]` | the item has no prose (`new` leaves a placeholder you have to replace) |
 | `[refs]`, `[links]` | a ref or a relative link points at a file that doesn't exist |
 | `[generated]` | the lists in README.md or done.md are out of date: run `index` |
-| `[append-only]` | an archived entry was changed or deleted (only with `--base`) |
+| `[append-only]` | an archived entry or a line of decisions.md was changed or deleted (only with `--base`) |
 | `[config]` | `roadmap.toml` is invalid |
 
 [`references/conventions.md`](../references/conventions.md#rule-tags) gives each

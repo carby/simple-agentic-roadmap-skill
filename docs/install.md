@@ -42,8 +42,8 @@ git add roadmap tools/roadmap.py
 ```
 
 `init` creates:
-- `roadmap/`, containing README.md, done.md, roadmap.toml, `items/` and
-  `archive/`
+- `roadmap/`, containing README.md, done.md, decisions.md, roadmap.toml,
+  `items/` and `archive/`
 - `tools/roadmap.py`, a copy of the script
 
 Use `--dir` and `--script` to put them somewhere else. You can also ask the

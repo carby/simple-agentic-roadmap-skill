@@ -7,7 +7,10 @@ buckets, and nothing more. Each item is one file under
 
 Closed items, whether shipped or measured and declined, move to
 [`archive/`](archive/). [`done.md`](done.md) is their one-line-per-item index.
-**Search `done.md` before proposing work.** It answers "has this been tried?"
+Decisions that belong to no single item, such as a convention or something
+the project doesn't do, are logged in [`decisions.md`](decisions.md).
+**Search `done.md` and `decisions.md` before proposing work.** They answer
+"has this been tried?" and "has this been ruled out?"
 
 **Guiding principle:** Stay KISS: plain Markdown in three buckets, with a
 checker that stops the roadmap silently drifting out of date. A rule the
@@ -66,6 +69,7 @@ python scripts/roadmap.py new <id> --title "..." --bucket now   # file an item
 python scripts/roadmap.py move <id> --bucket now                # reprioritise (lands above its dependents, else at the bottom)
 python scripts/roadmap.py move <id> --rank 1                    # re-rank (or --above <id>); the items it passes shift
 python scripts/roadmap.py close <id> --outcome shipped --as <change-or-pr>   # in the same branch as the code
+python scripts/roadmap.py decide --title "..." --body "..."      # log a decision that belongs to no single item
 python scripts/roadmap.py index                                 # regenerate this index and done.md
 python scripts/roadmap.py check                                 # what CI runs
 ```
@@ -93,6 +97,8 @@ scaffolding earns is an edit to the item itself, in place:
 
 Once closed, an entry is never edited again. The one exception is a dated
 annotation, added as new lines, marking a claim that later events falsified.
+`decisions.md` is held to the same rule: a decision is reversed by a new
+entry, not by editing the old one.
 `check --base origin/main` enforces this in pull requests.
 
 ### Fix roadmap mistakes forward

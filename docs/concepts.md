@@ -29,6 +29,9 @@ What the roadmap is, and what it isn't.
 - **Closed work:** an item is closed in the same branch as its code, so it
   moves to `roadmap/archive/` and gets a line in `done.md` when that code
   merges. Declined ideas are archived too, with the reasoning.
+- **Decisions:** a decision that belongs to no single item, such as a
+  convention or something the project doesn't do, is logged in
+  `roadmap/decisions.md`. Like the archive, it is only ever added to.
 - **Checking:** one dependency-free script, `check`, catches mistakes in CI.
   See [Checking your roadmap](checking.md).
 

@@ -1,6 +1,6 @@
 ---
 name: roadmap
-description: Keep a Now/Next/Later project roadmap as one Markdown file per item, with closed items archived and indexed in done.md, and every rule checked in CI. Use when the user asks what to work on next, wants to file, reprioritise or close a roadmap item, asks what has to land before a milestone or release (e.g. "what's left for beta?"), links items to OpenSpec specs or changes, proposes a cleanup or refactor (check done.md first: it may already have been declined), or wants to set up a roadmap in a repo.
+description: Keep a Now/Next/Later project roadmap as one Markdown file per item, with closed items archived and indexed in done.md, and every rule checked in CI. Use when the user asks what to work on next, wants to file, reprioritise or close a roadmap item, records a decision that cuts across items, asks what has to land before a milestone or release (e.g. "what's left for beta?"), links items to OpenSpec specs or changes, proposes a cleanup or refactor (check done.md and decisions.md first: it may already have been declined or ruled out), or wants to set up a roadmap in a repo.
 license: MIT
 metadata:
   author: Tommy Derngren <tommy.derngren@hiq.se>
@@ -24,8 +24,9 @@ file it as a roadmap item instead of improvising it in the files.
 | `move <id> <bucket>` | Run `move`. For `later`, ask what decision it is blocked on. |
 | `move <id> <rank>` or `move <id> above <other>` | Run `move --rank` or `move --above`. |
 | `close <id> [reason]` | Ask whether it shipped or was declined, unless that is clear. Add the outcome and reasoning to the item's prose *before* running `close`, because after that it is append-only. Then run `check`. |
+| `decide <decision>` | Draft a one-line title and the reasoning (why, and what it rules out), and confirm them with the user. Then run `decide` and `check`. A decision about a single item goes in that item's prose instead. |
 | `check` | Run `check`. Fix what can be fixed (run `index` for `[generated]`), and report the rest. |
-| anything else | Treat it as a question. Answer from the roadmap, searching `done.md` first. |
+| anything else | Treat it as a question. Answer from the roadmap, searching `done.md` and `decisions.md` first. |
 
 ## Layout
 
@@ -37,6 +38,8 @@ A roadmap directory (default `roadmap/`) holds:
   **append-only**.
 - `README.md`: conventions plus a **generated** index of the open items.
 - `done.md`: a **generated** one-line-per-item index of the archive, newest first.
+- `decisions.md`: dated decisions that belong to no single item, oldest first.
+  Written by `decide`, and **append-only** like the archive.
 - `roadmap.toml`: optional; declares extra ref kinds, e.g. openspec specs.
 
 All commands go through `roadmap.py`. Use the repo's vendored copy
@@ -62,15 +65,16 @@ When both copies exist, compare their `--version` once per session:
 
 ## Before proposing work
 
-Search done.md first. Then open only the matching `archive/<id>.md`. Don't
-read the whole archive.
+Search done.md and decisions.md first. Then open only the matching
+`archive/<id>.md`. Don't read the whole archive.
 
 ```bash
-grep -i "<keyword>" roadmap/done.md
+grep -i "<keyword>" roadmap/done.md roadmap/decisions.md
 ```
 
-If a matching entry says **declined**, don't propose the same thing again
-without new evidence. Explain what has changed since then.
+If a matching entry says **declined**, or a decision rules the idea out, don't
+propose the same thing again without new evidence. Explain what has changed
+since then.
 
 ## Workflows
 
@@ -82,6 +86,7 @@ without new evidence. Explain what has changed since then.
 | Reprioritise an item | `python tools/roadmap.py move <id> --bucket next` (add `--blocked-on "..."` for `later`). It lands just above the items there that depend on it, shifting them down, or else at the bottom. To place it elsewhere, or to re-rank it within its bucket, add `--rank <n>` or `--above <other-id>` (which also takes the other item's bucket); the items it passes shift a rank. It refuses a move that would put an item ahead of its dependencies. A move to another bucket sets `updated`. |
 | Close shipped work | `python tools/roadmap.py close <id> --outcome shipped --as <pr-or-change>`, **in the same branch as the code**, so it moves to done.md when that merges. Always pass `--as`: the archive is append-only, so it can't be added later |
 | Close declined work | `python tools/roadmap.py close <id> --outcome declined` |
+| Record a decision that belongs to no single item | `python tools/roadmap.py decide --title "..." --body "why, and what it rules out"`. A decision about one item goes in that item's prose. To reverse a decision, record a new one that says so. |
 | Regenerate the indexes after a hand edit | `python tools/roadmap.py index` |
 | Resolve a merge of two roadmap branches | For a conflict in a generated block, take either side and run `index`. For `[rank]` (both branches filed into the same bucket), run `index --renumber`. A `merge-driver` can take the generated blocks automatically; see references/conventions.md. |
 | Verify | `python tools/roadmap.py check` |
@@ -95,8 +100,8 @@ Editing prose is a plain file edit. Run `index` and `check` afterwards.
 
 ## Hard rules
 
-0. **The human is the product owner.** Never file, move or close an item on
-   your own initiative. If you spot something worth tracking, **pitch it**:
+0. **The human is the product owner.** Never file, move or close an item, or
+   record a decision, on your own initiative. If you spot something worth tracking, **pitch it**:
    - a title,
    - a few lines on what is wrong and why it matters,
    - a suggested bucket.
@@ -128,9 +133,10 @@ Editing prose is a plain file edit. Run `index` and `check` afterwards.
    in the same branch as the code, not in a separate commit. The prose of a
    declined item should say *why*, with measurements if there were any. That
    reasoning is the reason the archive exists.
-6. **Never edit an archived entry.** The only exception is to add new lines: a
-   dated annotation such as `**2026-10-01:** this claim was falsified by ...`.
-   `check --base` fails on any changed or removed line.
+6. **Never edit an archived entry or a logged decision.** The only exception
+   is to add new lines: a dated annotation such as `**2026-10-01:** this claim
+   was falsified by ...`, or a new decision. `check --base` fails on any
+   changed or removed line.
 7. **Fix roadmap mistakes forward.** Never `reset`, `amend` or rebase to tidy
    a roadmap commit, because other agents may be committing to the same files.
    Commit the correction on top.

@@ -123,6 +123,33 @@ and, in each clone (git doesn't take drivers from the repo):
 git config merge.roadmap.driver "python tools/roadmap.py merge-driver %O %A %B %P"
 ```
 
+decisions.md needs no driver. Each branch only appends entries to it, so
+git's built-in union merge keeps both sides:
+
+```text
+roadmap/decisions.md merge=union
+```
+
+## Decisions
+
+An item's prose records the decisions about that item, such as what was
+decided when it left `later`. A decision that cuts across items, such as a
+convention, an architecture choice or "we never do X", has no item to live in.
+It goes in `decisions.md`, appended by `decide`:
+
+```markdown
+## 2026-10-22: Short title of the decision
+
+Why, and what it rules out.
+```
+
+Entries are oldest first. The file is append-only, like the archive and for
+the same reason: the reasoning has to survive for the next reader. To reverse
+a decision, record a new one that names the old one and says what changed.
+A dated annotation under an old entry is also allowed. `init` writes the file
+empty, and `decide` creates it in a roadmap that predates it. Like the
+archive, it is exempt from `links`.
+
 ## Frontmatter
 
 Open item (`items/<id>.md`):
@@ -183,9 +210,9 @@ Every problem `check` reports ends in one of these tags.
 | `body` | the prose says something (HTML comments don't count) | write the argument |
 | `refs` | every ref on an open item resolves | update the ref after a rename, or drop it |
 | `ids` | an id is used once, across `items/`, `archive/` and the milestones in roadmap.toml | choose a new id |
-| `links` | every relative link in open items, README.md and done.md resolves | repoint it |
+| `links` | every relative link in open items, README.md and done.md resolves (not the archive or decisions.md) | repoint it |
 | `generated` | README.md's index and done.md match the files | run `index` |
-| `append-only` | with `--base`: no archived entry is removed, moved, or has a line changed | revert the change; add a dated annotation on new lines instead |
+| `append-only` | with `--base`: no archived entry is removed, moved, or has a line changed, and neither is decisions.md or one of its lines | revert the change; add a dated annotation or a new decision on new lines instead |
 
 Archived entries are exempt from `refs` and `links`. They describe the tree
 as it was when they closed, and they cannot be edited to follow a later rename.
