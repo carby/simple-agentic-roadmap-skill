@@ -8,6 +8,12 @@ turn a passing `check` red.
 
 ## Unreleased
 
+- **Review** — `review` lists milestones that have passed, with the items
+  due for or waiting on them, and Now and Next items nobody has touched for 60
+  days (`--days` to change). An item's last touch is the latest of `filed`,
+  `updated` and the last commit to its file. Unlike `check`, it uses today's
+  date, so it is for people and agents, not CI. It always exits 0. Plain
+  `/roadmap` runs it too.
 - **Supersedes** — `new --supersedes <declined-id>` files a second attempt
   at a declined idea and links it to the first. The new `[supersedes]` rule
   requires the field to name a declined archived item. Follow-up work on a

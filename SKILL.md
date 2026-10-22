@@ -1,6 +1,6 @@
 ---
 name: roadmap
-description: Keep a Now/Next/Later project roadmap as one Markdown file per item, with closed items archived and indexed in done.md, and every rule checked in CI. Use when the user asks what to work on next, wants to file, reprioritise or close a roadmap item, records a decision that cuts across items, asks what has to land before a milestone or release (e.g. "what's left for beta?"), links items to OpenSpec specs or changes, proposes a cleanup or refactor (check done.md and decisions.md first: it may already have been declined or ruled out), or wants to set up a roadmap in a repo.
+description: Keep a Now/Next/Later project roadmap as one Markdown file per item, with closed items archived and indexed in done.md, and every rule checked in CI. Use when the user asks what to work on next or what has gone stale, wants to file, reprioritise or close a roadmap item, records a decision that cuts across items, asks what has to land before a milestone or release (e.g. "what's left for beta?"), links items to OpenSpec specs or changes, proposes a cleanup or refactor (check done.md and decisions.md first: it may already have been declined or ruled out), or wants to set up a roadmap in a repo.
 license: MIT
 metadata:
   author: Tommy Derngren <tommy.derngren@hiq.se>
@@ -18,13 +18,14 @@ file it as a roadmap item instead of improvising it in the files.
 
 | Arguments | Do |
 |---|---|
-| none | Read `roadmap/README.md`. Summarise Now, Next and Later in a few lines, and suggest what to pick up. |
+| none | Read `roadmap/README.md` and run `review`. Summarise Now, Next and Later in a few lines, mention what `review` found, and suggest what to pick up. |
 | `init` | Set up a roadmap (see Workflows). |
 | `new <description>` | Choose an id and title. **Suggest a bucket, give the reason in one line, and wait for the user to confirm or change it.** Then run `new`, write the prose (what is wrong, why it matters, what done looks like), and run `check`. |
 | `move <id> <bucket>` | Run `move`. For `later`, ask what decision it is blocked on. |
 | `move <id> <rank>` or `move <id> above <other>` | Run `move --rank` or `move --above`. |
 | `close <id> [reason]` | Ask whether it shipped or was declined, unless that is clear. Add the outcome and reasoning to the item's prose *before* running `close`, because after that it is append-only. Then run `check`. |
 | `decide <decision>` | Draft a one-line title and the reasoning (why, and what it rules out), and confirm them with the user. Then run `decide` and `check`. A decision about a single item goes in that item's prose instead. |
+| `review` | Run `review` and report what it found. Suggest a fix for each (a `move`, a new milestone date, a `close`), but make none unasked. |
 | `check` | Run `check`. Fix what can be fixed (run `index` for `[generated]`), and report the rest. |
 | anything else | Treat it as a question. Answer from the roadmap, searching `done.md` and `decisions.md` first. |
 
@@ -92,6 +93,7 @@ link the two attempts.
 | Regenerate the indexes after a hand edit | `python tools/roadmap.py index` |
 | Resolve a merge of two roadmap branches | For a conflict in a generated block, take either side and run `index`. For `[rank]` (both branches filed into the same bucket), run `index --renumber`. A `merge-driver` can take the generated blocks automatically; see references/conventions.md. |
 | Verify | `python tools/roadmap.py check` |
+| Spot upkeep: passed milestones, stale Now/Next items | `python tools/roadmap.py review [--days 60]`. It uses today's date and git history, so it is never for CI, and it always exits 0. |
 | Upgrade the vendored script, once the user says yes | `python <skill>/scripts/roadmap.py upgrade`. It replaces `tools/roadmap.py` with the skill's copy and runs `check`. Fix or report what the new rules reject. |
 
 **Always finish a roadmap edit with `python tools/roadmap.py check`,** and fix

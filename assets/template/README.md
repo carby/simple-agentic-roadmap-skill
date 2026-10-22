@@ -47,6 +47,7 @@ python {{script}} move <id> --bucket now                # reprioritise (lands ab
 python {{script}} move <id> --rank 1                    # re-rank (or --above <id>); the items it passes shift
 python {{script}} close <id> --outcome shipped --as <change-or-pr>   # in the same branch as the code
 python {{script}} decide --title "..." --body "..."      # log a decision that belongs to no single item
+python {{script}} review                                # passed milestones and stale items (by hand, not in CI)
 python {{script}} index                                 # regenerate this index and done.md
 python {{script}} check                                 # what CI runs
 ```

@@ -14,6 +14,10 @@ python tools/roadmap.py check      # what CI runs
 python tools/roadmap.py index      # regenerates the index in roadmap/README.md and done.md
 ```
 
+`python tools/roadmap.py review` is the opposite: it lists milestones that
+have passed and items nobody has touched for 60 days, so its answer changes
+with the date. Run it by hand, never in CI.
+
 To run it on every push or PR, see [CI](ci.md). To read a failure line, see
 [Rule tags](rule-tags.md).
 
