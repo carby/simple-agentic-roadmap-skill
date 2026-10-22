@@ -8,6 +8,10 @@ turn a passing `check` red.
 
 ## Unreleased
 
+- **No chart without arrows** — The index leaves out its Mermaid chart when
+  no open item depends on another or on a milestone, since it would only
+  repeat the list as boxes. One line says so instead. Run `index` after
+  upgrading: an arrowless index is stale until you do.
 - **`updated` is set for you** — `move` to another bucket sets the item's
   `updated` to today (or `--date`, which `move` now takes too). A re-rank
   within the bucket leaves it alone, as do the items shifted to make room.
