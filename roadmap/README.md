@@ -38,7 +38,7 @@ work is done. **Close it in the same branch as the code**, so it moves to
 
 *No open item depends on another or on a milestone, so there is no chart.*
 
-### Now (8)
+### Now (7)
 
 2. [A decisions log for decisions that belong to no single item](items/decisions-log.md) — filed 2026-10-22
 3. [Link a re-proposed item to the declined item it supersedes](items/supersedes.md) — filed 2026-10-22
@@ -46,7 +46,6 @@ work is done. **Close it in the same branch as the code**, so it moves to
 6. [A review command for upkeep that check deliberately skips](items/review-command.md) — filed 2026-10-22
 7. [list and split commands](items/list-and-split.md) — filed 2026-10-22
 9. [Show readiness and rank in the roadmap chart](items/graph-ready-and-ranks.md) — filed 2026-10-22
-10. [Leave out the roadmap chart when it has no arrows](items/graph-only-with-edges.md) — filed 2026-10-22
 11. [A milestone timeline in the roadmap index](items/milestone-timeline.md) — filed 2026-10-22
 
 ### Next (0)
