@@ -687,6 +687,8 @@ def render_index(
     lines = [INDEX_BEGIN, ""]
     if graph := render_graph(items, milestones):
         lines += [*graph, ""]
+    elif items:
+        lines += ["*No open item depends on another or on a milestone, so there is no chart.*", ""]
     for bucket in BUCKETS:
         in_bucket = [i for i in items if i.bucket == bucket]
         lines += [f"### {BUCKET_TITLES[bucket]} ({len(in_bucket)})", ""]
@@ -710,12 +712,17 @@ def render_graph(items: list[Item], milestones: dict[str, Milestone] | None = No
     satisfied, so it draws no arrow. A milestone an open item names is a
     hexagon outside the buckets, with arrows from the items due for it and to
     the items that wait on it. Later items get a dashed border, and nothing
-    sets a colour, so the chart reads in light and dark themes."""
+    sets a colour, so the chart reads in light and dark themes. A chart with no
+    arrows would only repeat the list as boxes, so it is left out."""
     milestones = milestones or {}
     queued = [i for i in items if i.bucket in BUCKETS]
-    if not queued:
-        return []
     ids = {i.id for i in queued}
+    arrows = [f"  {_node(d)} --> {_node(i.id)}" for i in queued for d in _depends_on(i) if d in ids and d != i.id]
+    due = [(i, m) for i in queued if (m := _due(i, milestones))]
+    by_id = _by_id(items)
+    awaited = [(i, m) for i in queued for m in _awaited(i, by_id, milestones)]
+    if not (arrows or due or awaited):
+        return []
     lines = ["```mermaid", "flowchart LR"]
     buckets = [b for b in BUCKETS if any(i.bucket == b for i in queued)]
     for bucket in buckets:
@@ -724,10 +731,7 @@ def render_graph(items: list[Item], milestones: dict[str, Milestone] | None = No
         lines.append("  end")
     if len(buckets) > 1:
         lines.append("  " + " ~~~ ".join(f"b_{b}" for b in buckets))  # invisible links keep the buckets in order
-    lines += [f"  {_node(d)} --> {_node(i.id)}" for i in queued for d in _depends_on(i) if d in ids and d != i.id]
-    due = [(i, m) for i in queued if (m := _due(i, milestones))]
-    by_id = _by_id(items)
-    awaited = [(i, m) for i in queued for m in _awaited(i, by_id, milestones)]
+    lines += arrows
     for m in sorted({m for _, m in due + awaited}, key=lambda m: (m.date, m.id)):
         lines.append(f'  {_node(m.id, "m_")}{{{{"{_label(str(m))}"}}}}')
     lines += [f"  {_node(i.id)} --> {_node(m.id, 'm_')}" for i, m in due]

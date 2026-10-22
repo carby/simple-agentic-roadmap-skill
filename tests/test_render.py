@@ -147,8 +147,32 @@ def test_the_graph_boxes_buckets_in_order_and_draws_open_dependencies(tmp_path: 
     ]
 
 
+def test_the_graph_leaves_out_a_chart_with_no_arrows(tmp_path: Path) -> None:
+    rm = make_roadmap(
+        tmp_path,
+        {
+            "items/a.md": item_text(open_meta(id="a", title="A")),
+            "items/b.md": item_text(open_meta(id="b", title="B", bucket="next")),
+        },
+    )
+    items, archived, _ = roadmap.load(rm)
+
+    block = roadmap.render_index(items, archived)
+
+    assert roadmap.render_graph(items) == []
+    assert "```mermaid" not in block
+    assert "*No open item depends on another or on a milestone, so there is no chart.*" in block
+    assert roadmap.check(rm) == []
+
+
 def test_the_graph_escapes_titles(tmp_path: Path) -> None:
-    rm = make_roadmap(tmp_path, {"items/a.md": item_text(open_meta(id="a", title='Fix #12: "<b>" in `x`'))})
+    rm = make_roadmap(
+        tmp_path,
+        {
+            "items/a.md": item_text(open_meta(id="a", title='Fix #12: "<b>" in `x`')),
+            "items/b.md": item_text(open_meta(id="b", rank=2, depends_on=["a"])),
+        },
+    )
     items, _, _ = roadmap.load(rm)
 
     assert '    i_a["Fix #35;12: #quot;#lt;b#gt;#quot; in #96;x#96;"]' in roadmap.render_graph(items)
