@@ -1165,7 +1165,8 @@ def cmd_move(rm: Roadmap, args: argparse.Namespace) -> int:
     else:
         shifts = [(i, -1) for i in in_bucket if item.rank < i.rank <= rank]
 
-    assign: dict = {"rank": rank} if staying else {"bucket": bucket, "rank": rank}
+    # A move to another bucket re-argues the item; a re-rank doesn't.
+    assign: dict = {"rank": rank} if staying else {"bucket": bucket, "rank": rank, "updated": _today(args)}
     if args.blocked_on:
         assign["blocked_on"] = args.blocked_on
     remove = frozenset() if staying else frozenset({"blocked_on"}) & frozenset(item.meta)
@@ -1227,6 +1228,11 @@ def cmd_close(rm: Roadmap, args: argparse.Namespace) -> int:
         if before != after:
             print(f"Updated links in {path}.")
     print(f"Closed {args.id} as {args.outcome}: {target}.")
+    if args.outcome == "shipped" and not args.shipped_as:
+        print(
+            "No --as given, so done.md doesn't say what it shipped as."
+            " The archive is append-only, so pass it next time."
+        )
     return 0
 
 
@@ -1407,7 +1413,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser(
         "move",
-        parents=[common],
+        parents=[common, dated],
         help="move an item to another bucket or rank: by default above its dependents there, else at the bottom",
     )
     p.add_argument("id")

@@ -1,6 +1,6 @@
 ---
 name: roadmap
-description: Keep a Now/Next/Later project roadmap as one Markdown file per item, with closed items archived and indexed in done.md, and every rule checked in CI. Use when the user asks what to work on next, wants to file, reprioritise or close a roadmap item, proposes a cleanup or refactor (check done.md first: it may already have been declined), or wants to set up a roadmap in a repo.
+description: Keep a Now/Next/Later project roadmap as one Markdown file per item, with closed items archived and indexed in done.md, and every rule checked in CI. Use when the user asks what to work on next, wants to file, reprioritise or close a roadmap item, asks what has to land before a milestone or release (e.g. "what's left for beta?"), links items to OpenSpec specs or changes, proposes a cleanup or refactor (check done.md first: it may already have been declined), or wants to set up a roadmap in a repo.
 license: MIT
 metadata:
   author: Tommy Derngren <tommy.derngren@hiq.se>
@@ -79,8 +79,8 @@ without new evidence. Explain what has changed since then.
 | Set up a roadmap in a repo | `python <skill>/scripts/roadmap.py init`, where `<skill>` is the directory this SKILL.md was loaded from (e.g. `~/.claude/skills/roadmap` or `.claude/skills/roadmap`). It writes `roadmap/` and vendors the script to `tools/roadmap.py`. Every later command uses `tools/roadmap.py`. For CI setup, point the user at this skill's README. |
 | File an item | `python tools/roadmap.py new <id> --title "..." --bucket now [--gate "..."] [--depends-on <id>] [--milestone <id>] [--ref files:path]`, then replace the placeholder body with the argument |
 | File an undecided item | `python tools/roadmap.py new <id> --title "..." --bucket later --blocked-on "the open question"` |
-| Reprioritise an item | `python tools/roadmap.py move <id> --bucket next` (add `--blocked-on "..."` for `later`). It lands just above the items there that depend on it, shifting them down, or else at the bottom. To place it elsewhere, or to re-rank it within its bucket, add `--rank <n>` or `--above <other-id>` (which also takes the other item's bucket); the items it passes shift a rank. It refuses a move that would put an item ahead of its dependencies. |
-| Close shipped work | `python tools/roadmap.py close <id> --outcome shipped --as <pr-or-change>`, **in the same branch as the code**, so it moves to done.md when that merges |
+| Reprioritise an item | `python tools/roadmap.py move <id> --bucket next` (add `--blocked-on "..."` for `later`). It lands just above the items there that depend on it, shifting them down, or else at the bottom. To place it elsewhere, or to re-rank it within its bucket, add `--rank <n>` or `--above <other-id>` (which also takes the other item's bucket); the items it passes shift a rank. It refuses a move that would put an item ahead of its dependencies. A move to another bucket sets `updated`. |
+| Close shipped work | `python tools/roadmap.py close <id> --outcome shipped --as <pr-or-change>`, **in the same branch as the code**, so it moves to done.md when that merges. Always pass `--as`: the archive is append-only, so it can't be added later |
 | Close declined work | `python tools/roadmap.py close <id> --outcome declined` |
 | Regenerate the indexes after a hand edit | `python tools/roadmap.py index` |
 | Resolve a merge of two roadmap branches | For a conflict in a generated block, take either side and run `index`. For `[rank]` (both branches filed into the same bucket), run `index --renumber`. A `merge-driver` can take the generated blocks automatically; see references/conventions.md. |
