@@ -232,6 +232,8 @@ the doing of it. The item stays in its bucket until the work is complete.
 What scaffolding earns is an edit to the item itself:
 
 - **Split it** if the analysis found two pieces of work rather than one.
+  `split <id> <new-id>` adds the second part directly below the first, with
+  the same bucket, dependencies and refs.
 - **Restate the `gate`** as whatever the work still has to clear. A gate that
   was a question ("benchmark this") is met once the benchmark exists. Leaving
   it in place tells the next reader to redo the work.
