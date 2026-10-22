@@ -68,6 +68,7 @@ python scripts/roadmap.py move <id> --bucket now                # reprioritise (
 python scripts/roadmap.py move <id> --rank 1                    # re-rank (or --above <id>); the items it passes shift
 python scripts/roadmap.py close <id> --outcome shipped --as <change-or-pr>   # in the same branch as the code
 python scripts/roadmap.py decide --title "..." --body "..."      # log a decision that belongs to no single item
+python scripts/roadmap.py review                                # passed milestones and stale items (by hand, not in CI)
 python scripts/roadmap.py index                                 # regenerate this index and done.md
 python scripts/roadmap.py check                                 # what CI runs
 ```

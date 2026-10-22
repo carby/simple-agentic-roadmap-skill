@@ -1107,6 +1107,69 @@ def cmd_check(rm: Roadmap, args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_review(rm: Roadmap, args: argparse.Namespace) -> int:
+    """Upkeep that `check` deliberately skips because it depends on today's
+    date: milestones that have passed, and Now and Next items nobody has
+    touched for a while. It is advice, so it exits 0 whatever it finds; an
+    exit code would only tempt someone to run it in CI, where an unchanged
+    roadmap would start failing one day."""
+    items, _, problems = load(rm)
+    if problems:
+        print("Fix these first; `check` reports them too.", file=sys.stderr)
+        return _report(problems)
+    today = _today(args)
+    by_id = _by_id(items)
+    found = False
+
+    for m in sorted((m for m in rm.milestones.values() if m.date < today), key=lambda m: (m.date, m.id)):
+        if not found:
+            print("Milestones that have passed (move the date, or drop it and the references to it):")
+            found = True
+        due = [i.id for i in items if _due(i, rm.milestones) == m]
+        waiting = [i.id for i in items if m in _awaited(i, by_id, rm.milestones)]
+        names = (["due: " + ", ".join(due)] if due else []) + (["waiting: " + ", ".join(waiting)] if waiting else [])
+        print(f"  {m.id}: {m}, {(today - m.date).days} days ago" + (f"; {'; '.join(names)}" if names else ""))
+
+    committed, note = _last_commits(rm)
+    stale = []
+    for item in sorted((i for i in items if i.bucket in ("now", "next")), key=lambda i: _position(i) or (9, 0)):
+        dates = [item.meta.get("filed"), item.meta.get("updated"), committed.get(item.path.resolve())]
+        touched = max((d for d in dates if isinstance(d, datetime.date)), default=None)
+        if touched and (today - touched).days >= args.days:
+            stale.append(
+                f"  {item.bucket} {item.rank}  {item.id}  last touched {touched} ({(today - touched).days} days ago)"
+            )
+    if stale:
+        print(f"Now and Next items untouched for {args.days} days or more (re-argue, move or close them):")
+        print("\n".join(stale))
+        found = True
+    if note:
+        print(note)
+    if not found:
+        print("Nothing to review.")
+    return 0
+
+
+def _last_commits(rm: Roadmap) -> tuple[dict[Path, datetime.date], str]:
+    """The date of the last commit that changed each item file, from one `git
+    log`, and a note when git can't say, in which case only the frontmatter
+    dates count. It is the author date: a rebase or a rebase-merge resets the
+    committer date, but the change is as old as it was."""
+    try:
+        top = Path(_git(rm.dir, "rev-parse", "--show-toplevel").strip())
+        log = _git(top, "log", "--format=%x00%as", "--name-only", "--", str(rm.items_dir.resolve()))
+    except UsageError:
+        return {}, "Not in a git repository, so only filed and updated dates count as touches."
+    committed: dict[Path, datetime.date] = {}
+    date = None
+    for line in log.splitlines():
+        if line.startswith("\0"):
+            date = datetime.date.fromisoformat(line[1:])
+        elif line and date:
+            committed.setdefault((top / line).resolve(), date)
+    return committed, ""
+
+
 def cmd_index(rm: Roadmap, args: argparse.Namespace) -> int:
     items, archived, problems = load(rm)
     if args.renumber and not problems:
@@ -1459,6 +1522,14 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("check", parents=[common], help="validate everything; exit 1 on any problem (for CI)")
     p.add_argument("--base", help="git ref to hold archive/ append-only against, e.g. origin/main")
     p.set_defaults(run=cmd_check)
+
+    p = sub.add_parser(
+        "review",
+        parents=[common, dated],
+        help="list passed milestones and stale Now/Next items; uses today's date, so never for CI",
+    )
+    p.add_argument("--days", type=_rank, default=60, help="how long untouched counts as stale (default: 60)")
+    p.set_defaults(run=cmd_review)
 
     p = sub.add_parser("index", parents=[common], help="validate, then regenerate README.md's index and done.md")
     p.add_argument("--renumber", action="store_true", help="first number each bucket 1, 2, 3... in its current order")

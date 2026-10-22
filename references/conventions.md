@@ -17,6 +17,11 @@
   append-only log grows past what anyone, human or agent, will read before
   proposing work. done.md is small enough to grep, and each line links to the
   one entry worth opening.
+- **`check` ignores today's date**, so an unchanged roadmap passes CI every
+  day. Upkeep that does depend on the date, such as a milestone that has
+  passed or an item nobody has touched in 60 days, is `review`'s job. That
+  command reads today's date and git history, never runs in CI, and always
+  exits 0.
 
 ## Buckets
 

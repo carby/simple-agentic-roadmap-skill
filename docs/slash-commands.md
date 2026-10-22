@@ -17,6 +17,7 @@ it picks the action:
 | `/roadmap move <id> <rank>` | Re-ranks an item within its bucket, e.g. to the top of Now. `move <id> above <other>` places it directly above another item. |
 | `/roadmap close <id>` | Archives finished or declined work, with the reason, and lists it in `done.md`. Do it in the branch that ships the code. |
 | `/roadmap decide <decision>` | Logs a decision that belongs to no single item in `decisions.md`, with its reasoning, e.g. `/roadmap decide we never track who is working on what`. |
+| `/roadmap review` | Lists milestones that have passed and Now/Next items nobody has touched for 60 days, with a suggested fix for each. Plain `/roadmap` runs it too. |
 | `/roadmap check` | Validates the roadmap and fixes what it can, e.g. a stale index. |
 | `/roadmap <question>` | Answers from the roadmap, `done.md` and `decisions.md`, e.g. `/roadmap has anyone tried caching tokens?` |
 
