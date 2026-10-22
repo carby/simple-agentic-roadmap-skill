@@ -8,6 +8,15 @@ turn a passing `check` red.
 
 ## Unreleased
 
+- **`updated` is set for you** — `move` to another bucket sets the item's
+  `updated` to today (or `--date`, which `move` now takes too). A re-rank
+  within the bucket leaves it alone, as do the items shifted to make room.
+- **`close` asks for `--as`** — closing an item as shipped without `--as`
+  still works, but prints a hint, since the append-only archive can't have it
+  added later.
+- **Small fixes** — The frontmatter examples in the README template now show
+  `milestone`, and say that `depends_on` takes milestone ids. SKILL.md's
+  description now also triggers on milestone and OpenSpec questions.
 - **Re-ranking** — `move <id> --rank <n>` and `move <id> --above <other>`
   re-rank an item within its bucket, or place it in another one, instead of
   renumbering files by hand. The items between the old and new place shift a

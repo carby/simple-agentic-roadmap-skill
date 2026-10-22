@@ -172,6 +172,22 @@ def test_move_into_later_needs_the_open_question(valid: Path) -> None:
     assert run("check", cwd=valid).returncode == 0
 
 
+def test_move_to_another_bucket_sets_updated_and_a_re_rank_does_not(tmp_path: Path) -> None:
+    four_in_now(tmp_path)
+    a = tmp_path / "roadmap/items/a.md"
+    a.write_text(a.read_text().replace("filed = 2026-09-06", "filed = 2026-09-06\nupdated = 2026-09-07"))
+
+    moved = run("move", "a", "--bucket", "next", "--date", "2026-10-01", cwd=tmp_path)
+    re_ranked = run("move", "c", "--rank", "1", "--date", "2026-10-02", cwd=tmp_path)
+
+    assert moved.returncode == 0, moved.stderr
+    assert re_ranked.returncode == 0, re_ranked.stderr
+    assert roadmap.parse(a).meta["updated"] == datetime.date(2026, 10, 1)
+    assert a.read_text().count("updated =") == 1
+    assert all("updated" not in roadmap.parse(tmp_path / f"roadmap/items/{i}.md").meta for i in "bcde")
+    assert run("check", cwd=tmp_path).returncode == 0
+
+
 def test_move_refuses_a_no_op(valid: Path) -> None:
     result = run("move", "split-app", "--bucket", "next", cwd=valid)
 
@@ -351,6 +367,21 @@ def test_close_may_ship_an_item_others_depend_on(valid: Path) -> None:
     assert result.returncode == 0, result.stderr
     assert "[Cache auth tokens](archive/cache-tokens.md) (shipped)" in (valid / "roadmap/README.md").read_text()
     assert run("check", cwd=valid).returncode == 0
+
+
+@pytest.mark.parametrize(
+    ("args", "hinted"),
+    [
+        (["--outcome", "shipped"], True),
+        (["--outcome", "shipped", "--as", "pr-9"], False),
+        (["--outcome", "declined"], False),
+    ],
+)
+def test_close_hints_at_as_when_shipped_without_it(valid: Path, args: list[str], hinted: bool) -> None:
+    result = run("close", "rotate-keys", *args, cwd=valid)
+
+    assert result.returncode == 0, result.stderr
+    assert ("No --as given" in result.stdout) == hinted
 
 
 MILESTONES = '[milestones]\nbeta = { title = "Public beta", date = 2026-12-01 }\n'
