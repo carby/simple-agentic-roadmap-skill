@@ -23,6 +23,7 @@ file it as a roadmap item instead of improvising it in the files.
 | `new <description>` | Choose an id and title. **Suggest a bucket, give the reason in one line, and wait for the user to confirm or change it.** Then run `new`, write the prose (what is wrong, why it matters, what done looks like), and run `check`. |
 | `move <id> <bucket>` | Run `move`. For `later`, ask what decision it is blocked on. |
 | `move <id> <rank>` or `move <id> above <other>` | Run `move --rank` or `move --above`. |
+| `split <id>` | Agree the new part's id and title with the user. Run `split`, write the new item's prose, narrow the original's prose to the part it keeps, then run `check`. |
 | `close <id> [reason]` | Ask whether it shipped or was declined, unless that is clear. Add the outcome and reasoning to the item's prose *before* running `close`, because after that it is append-only. Then run `check`. |
 | `decide <decision>` | Draft a one-line title and the reasoning (why, and what it rules out), and confirm them with the user. Then run `decide` and `check`. A decision about a single item goes in that item's prose instead. |
 | `review` | Run `review` and report what it found. Suggest a fix for each (a `move`, a new milestone date, a `close`), but make none unasked. |
@@ -92,6 +93,8 @@ link the two attempts.
 | Record a decision that belongs to no single item | `python tools/roadmap.py decide --title "..." --body "why, and what it rules out"`. A decision about one item goes in that item's prose. To reverse a decision, record a new one that says so. |
 | Regenerate the indexes after a hand edit | `python tools/roadmap.py index` |
 | Resolve a merge of two roadmap branches | For a conflict in a generated block, take either side and run `index`. For `[rank]` (both branches filed into the same bucket), run `index --renumber`. A `merge-driver` can take the generated blocks automatically; see references/conventions.md. |
+| Split an item that turned out to be two pieces of work | `python tools/roadmap.py split <id> <new-id> --title "..." [--body "..."]`. The new item copies the bucket, gate, blocked_on, depends_on, milestone and refs, and lands directly below the original. The original keeps one part, so narrow its prose. |
+| Read the queue without README.md, or script against it | `python tools/roadmap.py list [--bucket now] [--json]` |
 | Verify | `python tools/roadmap.py check` |
 | Spot upkeep: passed milestones, stale Now/Next items | `python tools/roadmap.py review [--days 60]`. It uses today's date and git history, so it is never for CI, and it always exits 0. |
 | Upgrade the vendored script, once the user says yes | `python <skill>/scripts/roadmap.py upgrade`. It replaces `tools/roadmap.py` with the skill's copy and runs `check`. Fix or report what the new rules reject. |
@@ -130,7 +133,7 @@ Editing prose is a plain file edit. Run `index` and `check` afterwards.
    merges.
 4. **Scaffolding is not closing.** Writing a design doc or spec for an item
    leaves the item open. Instead, edit the item in place:
-   - split it,
+   - split it (`split`),
    - restate its `gate` as what the work still has to clear,
    - record what the analysis corrected.
 5. **Close only when the work is implemented or declined.** Close shipped work

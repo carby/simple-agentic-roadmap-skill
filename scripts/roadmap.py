@@ -1187,14 +1187,26 @@ def cmd_index(rm: Roadmap, args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_new(rm: Roadmap, args: argparse.Namespace) -> int:
-    if not SLUG.fullmatch(args.id):
-        raise UsageError(f"id {args.id!r} is not a kebab-case slug (lowercase letters, digits, single hyphens)")
-    for existing in (rm.items_dir / f"{args.id}.md", rm.archive_dir / f"{args.id}.md"):
+def _check_new_id(rm: Roadmap, new_id: str) -> None:
+    if not SLUG.fullmatch(new_id):
+        raise UsageError(f"id {new_id!r} is not a kebab-case slug (lowercase letters, digits, single hyphens)")
+    for existing in (rm.items_dir / f"{new_id}.md", rm.archive_dir / f"{new_id}.md"):
         if existing.exists():
             raise UsageError(f"{existing} already exists; ids are never reused")
-    if args.id in rm.milestones:
-        raise UsageError(f"{args.id!r} is a milestone in {rm.dir / 'roadmap.toml'}; pick another id")
+    if new_id in rm.milestones:
+        raise UsageError(f"{new_id!r} is a milestone in {rm.dir / 'roadmap.toml'}; pick another id")
+
+
+def _item_text(meta: dict, refs: dict, body: str) -> str:
+    """A new item file: the frontmatter, any refs as a table under it, then the prose."""
+    lines = ["+++", *(f"{k} = {_toml(v)}" for k, v in meta.items())]
+    if refs:
+        lines += ["", "[refs]", *(f"{k} = [{', '.join(_toml(v) for v in vs)}]" for k, vs in refs.items())]
+    return "\n".join([*lines, "+++", "", body, ""])
+
+
+def cmd_new(rm: Roadmap, args: argparse.Namespace) -> int:
+    _check_new_id(rm, args.id)
     if (
         args.blocked_on
         and args.bucket != "later"
@@ -1226,12 +1238,8 @@ def cmd_new(rm: Roadmap, args: argparse.Namespace) -> int:
             raise UsageError(f"--ref {ref!r} must look like KIND:VALUE, e.g. files:src/app.py")
         refs.setdefault(kind, []).append(value)
 
-    lines = ["+++", *(f"{k} = {_toml(v)}" for k, v in meta.items())]
-    if refs:
-        lines += ["", "[refs]", *(f"{k} = [{', '.join(_toml(v) for v in vs)}]" for k, vs in refs.items())]
-    lines += ["+++", "", args.body or PLACEHOLDER, ""]
     path = rm.items_dir / f"{args.id}.md"
-    text = "\n".join(lines)
+    text = _item_text(meta, refs, args.body or PLACEHOLDER)
     _refuse_if_breaking(rm, {path: parse(path, text=text)}, f"filing {args.id}")
 
     rm.items_dir.mkdir(parents=True, exist_ok=True)
@@ -1240,6 +1248,63 @@ def cmd_new(rm: Roadmap, args: argparse.Namespace) -> int:
     print(f"Created {path} in {args.bucket!r} at rank {meta['rank']}.")
     if not args.body:
         print("Its body is a placeholder; `check` fails until the prose is written.")
+    return 0
+
+
+def cmd_split(rm: Roadmap, args: argparse.Namespace) -> int:
+    """Hard rule 4's split: an item that turned out to be two pieces of work
+    gets a sibling directly below it, with the same place in the queue and the
+    same dependencies. The original keeps the other part, so its dependents
+    and its links stay as they are; its prose is narrowed by hand."""
+    item = _open_item(rm, args.id)
+    _check_new_id(rm, args.new_id)
+    meta: dict = {"id": args.new_id, "title": args.title, "bucket": item.bucket, "rank": item.rank + 1}
+    meta["filed"] = _today(args)
+    meta |= {k: item.meta[k] for k in ("gate", "blocked_on", "milestone", "depends_on") if k in item.meta}
+    refs = item.meta.get("refs") if isinstance(item.meta.get("refs"), dict) else {}
+
+    path = rm.items_dir / f"{args.new_id}.md"
+    items, _, _ = load(rm)
+    below = [i for i in items if i.bucket == item.bucket and i.rank > item.rank]
+    texts = {path: _item_text(meta, refs, args.body or PLACEHOLDER)}
+    texts |= {i.path: edit_frontmatter(i.path, assign={"rank": i.rank + 1}) for i in below}
+    _refuse_if_breaking(
+        rm, {p: parse(p, text=text) for p, text in texts.items()}, f"splitting {args.new_id} from {args.id}"
+    )
+
+    for p, text in texts.items():
+        p.write_text(text)
+    write_generated(rm)
+    print(f"Split {args.new_id} from {args.id}: rank {meta['rank']} in {item.bucket!r}.")
+    if below:
+        print(f"Shifted {', '.join(i.id for i in below)} down a rank, below it.")
+    print(f"Narrow {item.path}'s prose to the part it keeps.")
+    if not args.body:
+        print(f"{path}'s body is a placeholder; `check` fails until the prose is written.")
+    return 0
+
+
+def cmd_list(rm: Roadmap, args: argparse.Namespace) -> int:
+    """The open items in queue order, for an agent or a script that wants the
+    roadmap's state without parsing README.md. The item file is the detail view."""
+    items, _, problems = load(rm)
+    if code := _report(problems):
+        return code
+    shown = sorted(
+        (i for i in items if not args.bucket or i.bucket == args.bucket), key=lambda i: _position(i) or (9, 0)
+    )
+    if args.json:
+        print(json.dumps([{"path": i.path.as_posix(), **i.meta} for i in shown], indent=2, default=str))
+        return 0
+    for item in shown:
+        print(f"{item.bucket} {item.rank}  {item.id}  {item.title}")
+        for label, key in (("blocked on", "blocked_on"), ("gate", "gate"), ("due for", "milestone")):
+            if item.meta.get(key):
+                print(f"    {label}: {item.meta[key]}")
+        if deps := _depends_on(item):
+            print(f"    depends on: {', '.join(deps)}")
+    if not shown:
+        print("No open items.")
     return 0
 
 
@@ -1562,6 +1627,20 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--ref", action="append", default=[], metavar="KIND:VALUE", help="repeatable, e.g. files:src/app.py")
     p.add_argument("--body", help="the prose; a placeholder that fails `check` otherwise")
     p.set_defaults(run=cmd_new)
+
+    p = sub.add_parser(
+        "split", parents=[common, dated], help="add a sibling below an item that turned out to be two pieces of work"
+    )
+    p.add_argument("id", help="the open item to split; it keeps one part")
+    p.add_argument("new_id", help="kebab-case slug for the other part; becomes items/<new_id>.md")
+    p.add_argument("--title", required=True)
+    p.add_argument("--body", help="the new item's prose; a placeholder that fails `check` otherwise")
+    p.set_defaults(run=cmd_split)
+
+    p = sub.add_parser("list", parents=[common], help="print the open items in queue order (--json for scripts)")
+    p.add_argument("--bucket", choices=BUCKETS)
+    p.add_argument("--json", action="store_true", help="the full frontmatter and path of each item, as JSON")
+    p.set_defaults(run=cmd_list)
 
     p = sub.add_parser(
         "move",

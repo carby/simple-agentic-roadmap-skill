@@ -8,6 +8,15 @@ turn a passing `check` red.
 
 ## Unreleased
 
+- **Split** — `split <id> <new-id> --title "..."` adds the other part of an
+  item that turned out to be two pieces of work, as hard rule 4 asks. The new
+  item copies the bucket, gate, blocked_on, depends_on, milestone and refs,
+  and lands directly below the original, with the items under it shifting
+  down. The original keeps its id, dependents and links, so you only narrow
+  its prose.
+- **List** — `list [--bucket now] [--json]` prints the open items in queue
+  order, so agents and scripts needn't parse README.md. `--json` gives each
+  item's frontmatter and path, with dates as ISO strings.
 - **Review** — `review` lists milestones that have passed, with the items
   due for or waiting on them, and Now and Next items nobody has touched for 60
   days (`--days` to change). An item's last touch is the latest of `filed`,

@@ -68,6 +68,8 @@ python scripts/roadmap.py move <id> --rank 1                    # re-rank (or --
 python scripts/roadmap.py close <id> --outcome shipped --as <change-or-pr>   # in the same branch as the code
 python scripts/roadmap.py decide --title "..." --body "..."      # log a decision that belongs to no single item
 python scripts/roadmap.py review                                # passed milestones and stale items (by hand, not in CI)
+python scripts/roadmap.py split <id> <new-id> --title "..."      # an item that turned out to be two pieces of work
+python scripts/roadmap.py list [--json]                         # the open items in queue order
 python scripts/roadmap.py index                                 # regenerate this index and done.md
 python scripts/roadmap.py check                                 # what CI runs
 ```
@@ -85,7 +87,7 @@ It checks that:
 Only close an item once the work is **implemented or declined**. Turning an item
 into a design doc or a change proposal does not take it out of the queue. What
 scaffolding earns is an edit to the item itself, in place:
-- **Split it** if it turned out to be two pieces of work.
+- **Split it** if it turned out to be two pieces of work: `split <id> <new-id>`.
 - **Restate the `gate`** as whatever the work still has to clear.
 - **Record what the analysis corrected**, especially where the item's own
   earlier reasoning turned out to be wrong.
