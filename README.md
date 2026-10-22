@@ -43,7 +43,7 @@ Why each step matters, and other ways to install, are in
 | `/roadmap` | Shows what's in Now, Next and Later, and suggests what to pick up. |
 | `/roadmap init` | Sets up `roadmap/` in this repo. |
 | `/roadmap new <what>` | Files a new item, in a bucket you confirm. |
-| `/roadmap move <id> <bucket>` | Reprioritises an item. |
+| `/roadmap move <id> <bucket>` | Reprioritises an item. `move <id> <rank>` re-ranks it within its bucket. |
 | `/roadmap close <id>` | Archives finished or declined work, with the reason. |
 | `/roadmap check` | Validates the roadmap and fixes what it can. |
 | `/roadmap <question>` | Answers from the roadmap and `done.md`. |

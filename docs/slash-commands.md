@@ -14,6 +14,7 @@ it picks the action:
 | `/roadmap init` | Sets up `roadmap/` in this repo. (For CI, see [CI](ci.md).) |
 | `/roadmap new <what>` | Files a new item. The agent suggests a bucket, based on what the item depends on, and **you confirm it**. Then the agent writes the argument and runs the check. |
 | `/roadmap move <id> <bucket>` | Reprioritises an item, e.g. from Next into Now when planning the next sprint. |
+| `/roadmap move <id> <rank>` | Re-ranks an item within its bucket, e.g. to the top of Now. `move <id> above <other>` places it directly above another item. |
 | `/roadmap close <id>` | Archives finished or declined work, with the reason, and lists it in `done.md`. Do it in the branch that ships the code. |
 | `/roadmap check` | Validates the roadmap and fixes what it can, e.g. a stale index. |
 | `/roadmap <question>` | Answers from the roadmap and `done.md`, e.g. `/roadmap has anyone tried caching tokens?` |
