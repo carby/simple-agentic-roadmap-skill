@@ -36,6 +36,24 @@ To fix it, run `python tools/roadmap.py index` and commit the result. `new`,
 `move` and `close` regenerate the lists themselves, so this only follows hand
 edits.
 
+## After merging two roadmap branches
+
+Two branches that each file, move or close an item both rewrite the generated
+lists, and git reports a conflict there. Take either side, then run
+`python tools/roadmap.py index`. If both filed into the same bucket, they gave
+out the same rank and `check` reports `[rank]`; run
+`python tools/roadmap.py index --renumber`.
+
+To have git take the generated lists by itself, add a merge driver:
+
+```bash
+printf 'roadmap/README.md merge=roadmap\nroadmap/done.md merge=roadmap\n' >> .gitattributes
+git config merge.roadmap.driver "python tools/roadmap.py merge-driver %O %A %B %P"
+```
+
+Commit `.gitattributes`. The `git config` line is per clone, so each
+collaborator runs it once. You still run `index` after the merge.
+
 ## Append-only archive
 
 Add `--base <ref>`, e.g. `python tools/roadmap.py check --base origin/main`, to

@@ -61,6 +61,10 @@ DONE_END = "<!-- END DONE -->"
 # count as prose, so an item nobody has argued for yet fails the body rule.
 PLACEHOLDER = "<!-- What is wrong, why it matters, and what done looks like. -->"
 
+# What `merge-driver` puts in place of a generated block while git merges the
+# rest of the file around it.
+MERGE_STANDIN = "<!-- roadmap.py merge-driver: generated block -->"
+
 # Every rule `check` enforces, keyed by the tag printed after each problem.
 # README.md's error table has one row per key, and a test keeps them in step.
 RULES = {
@@ -969,6 +973,38 @@ def _next_rank(rm: Roadmap, bucket: str) -> int:
     return 1 + max((i.rank for i in items if i.bucket == bucket), default=0)
 
 
+def _renumbered(rm: Roadmap, items: list[Item], archived: list[Item]) -> dict[Path, str]:
+    """The item files whose rank changes when each bucket is numbered 1, 2, 3...
+    in its current order. Items that share a rank, as after two branches each
+    filed one, keep what they depend on first, then go oldest first, then by id.
+    Items with an invalid bucket or rank are left for `bucket` and `rank` to report."""
+    by_id = _by_id(items + archived)
+    texts = {}
+    for bucket in BUCKETS:
+        tied: dict[int, list[Item]] = {}
+        for item in sorted(items, key=lambda i: (i.rank, str(i.meta.get("filed")), i.id)):
+            if item.bucket == bucket and item.rank > 0:
+                tied.setdefault(item.rank, []).append(item)
+        ordered = [i for group in tied.values() for i in _dependencies_first(group, by_id, rm.milestones)]
+        for rank, item in enumerate(ordered, start=1):
+            if item.rank != rank:
+                texts[item.path] = edit_frontmatter(item.path, assign={"rank": rank})
+    return texts
+
+
+def _dependencies_first(group: list[Item], by_id: dict[str, Item], milestones: dict[str, Milestone]) -> list[Item]:
+    """`group` reordered so no item comes before one it has to follow. A cycle,
+    which `depends` reports, keeps the order it was given."""
+    ordered, rest = [], list(group)
+    while rest:
+        ready = next(
+            (i for i in rest if not any(o is not i and _must_follow(i, o, by_id, milestones) for o in rest)), rest[0]
+        )
+        ordered.append(ready)
+        rest = [i for i in rest if i is not ready]
+    return ordered
+
+
 def _refuse_if_breaking(rm: Roadmap, changes: dict[Path, Item | None], doing: str) -> None:
     """Refuse a command whose result would fail `bucket` or `depends`. `changes`
     maps each path the command touches to its item afterwards, or to None for
@@ -1009,6 +1045,14 @@ def cmd_check(rm: Roadmap, args: argparse.Namespace) -> int:
 
 def cmd_index(rm: Roadmap, args: argparse.Namespace) -> int:
     items, archived, problems = load(rm)
+    if args.renumber and not problems:
+        texts = _renumbered(rm, items, archived)
+        _refuse_if_breaking(rm, {path: parse(path, text=text) for path, text in texts.items()}, "renumbering")
+        for path, text in texts.items():
+            path.write_text(text)
+        if texts:
+            print(f"Renumbered {', '.join(path.stem for path in texts)}.")
+        items, archived, problems = load(rm)
     if code := _report(problems + validate(rm, items, archived)):
         return code
     written = write_generated(rm)
@@ -1156,6 +1200,34 @@ def cmd_close(rm: Roadmap, args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_merge_driver(rm: Roadmap | None, args: argparse.Namespace) -> int:
+    """A git merge driver for README.md and done.md. Git merges the hand-written
+    text around the generated block as usual, and the block is taken from this
+    branch whole, since both sides regenerate it and their versions always
+    clash. It is likely stale after that, so run `index` once the merge is done."""
+    paths = [Path(args.ours), Path(args.base), Path(args.theirs)]
+    texts = [path.read_text() for path in paths]
+    markers = ((INDEX_BEGIN, INDEX_END), (DONE_BEGIN, DONE_END))
+    spans = [next((s for begin, end in markers if (s := _block_span(text, begin, end))), None) for text in texts]
+    block = None
+    if all(spans):
+        block = texts[0][spans[0][0] : spans[0][1]]
+        for path, text, (start, stop) in zip(paths, texts, spans, strict=True):
+            path.write_text(text[:start] + MERGE_STANDIN + text[stop:])
+
+    result = subprocess.run(["git", "merge-file", *map(str, paths)], capture_output=True, text=True)
+    if not 0 <= result.returncode < 128:
+        raise UsageError(f"git merge-file failed: {result.stderr.strip()}")
+    if block is not None:
+        paths[0].write_text(paths[0].read_text().replace(MERGE_STANDIN, block))
+        print(
+            f"roadmap.py: kept this branch's generated block in {args.path or args.ours};"
+            " run `roadmap.py index` once the merge is done",
+            file=sys.stderr,
+        )
+    return 1 if result.returncode else 0
+
+
 def cmd_init(rm: Roadmap, args: argparse.Namespace) -> int:
     template = Path(__file__).resolve().parent.parent / "assets" / "template"
     if not template.is_dir():
@@ -1221,7 +1293,7 @@ def _warn_if_vendored_is_older(command: str) -> None:
     """The skill's copy warns when the repo's vendored copy lags behind it."""
     template = Path(__file__).resolve().parent.parent / "assets" / "template"
     vendored = Path("tools/roadmap.py")
-    if command in ("init", "upgrade") or not template.is_dir() or not vendored.is_file():
+    if command in ("init", "upgrade", "merge-driver") or not template.is_dir() or not vendored.is_file():
         return
     if vendored.resolve() == Path(__file__).resolve():
         return
@@ -1267,7 +1339,15 @@ def build_parser() -> argparse.ArgumentParser:
     p.set_defaults(run=cmd_check)
 
     p = sub.add_parser("index", parents=[common], help="validate, then regenerate README.md's index and done.md")
+    p.add_argument("--renumber", action="store_true", help="first number each bucket 1, 2, 3... in its current order")
     p.set_defaults(run=cmd_index)
+
+    p = sub.add_parser("merge-driver", help="git merge driver for README.md and done.md (see .gitattributes)")
+    p.add_argument("base", help="%%O")
+    p.add_argument("ours", help="%%A; the result is written here")
+    p.add_argument("theirs", help="%%B")
+    p.add_argument("path", nargs="?", help="%%P, the file's path in the repo")
+    p.set_defaults(run=cmd_merge_driver)
 
     p = sub.add_parser("new", parents=[common, dated], help="file a new item")
     p.add_argument("id", help="kebab-case slug; becomes items/<id>.md")
@@ -1311,7 +1391,7 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     _warn_if_vendored_is_older(args.command)
     try:
-        return args.run(open_roadmap(args.dir), args)
+        return args.run(open_roadmap(args.dir) if "dir" in vars(args) else None, args)
     except UsageError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
