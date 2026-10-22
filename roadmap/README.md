@@ -44,7 +44,6 @@ flowchart LR
     i_agent_behaviour_evals["Evals for how an agent uses the skill, not just for the script"]
     i_review_command["A review command for upkeep that check deliberately skips"]
     i_list_and_split["list and split commands"]
-    i_small_fixes_2026_10["Small fixes to docs, templates and defaults"]
     i_graph_ready_and_ranks["Show readiness and rank in the roadmap chart"]
     i_graph_only_with_edges["Leave out the roadmap chart when it has no arrows"]
     i_milestone_timeline["A milestone timeline in the roadmap index"]
@@ -58,14 +57,13 @@ flowchart LR
   class i_epics,i_gantt_scheduling later
 ```
 
-### Now (9)
+### Now (8)
 
 2. [A decisions log for decisions that belong to no single item](items/decisions-log.md) — filed 2026-10-22
 3. [Link a re-proposed item to the declined item it supersedes](items/supersedes.md) — filed 2026-10-22
 5. [Evals for how an agent uses the skill, not just for the script](items/agent-behaviour-evals.md) — filed 2026-09-25
 6. [A review command for upkeep that check deliberately skips](items/review-command.md) — filed 2026-10-22
 7. [list and split commands](items/list-and-split.md) — filed 2026-10-22
-8. [Small fixes to docs, templates and defaults](items/small-fixes-2026-10.md) — filed 2026-10-22
 9. [Show readiness and rank in the roadmap chart](items/graph-ready-and-ranks.md) — filed 2026-10-22
 10. [Leave out the roadmap chart when it has no arrows](items/graph-only-with-edges.md) — filed 2026-10-22
 11. [A milestone timeline in the roadmap index](items/milestone-timeline.md) — filed 2026-10-22
