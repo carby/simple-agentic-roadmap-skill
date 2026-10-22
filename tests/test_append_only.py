@@ -1,5 +1,5 @@
-"""`check --base` holds archive/ append-only against a git ref: an entry may
-gain lines, but it may not lose, change or move any."""
+"""`check --base` holds archive/ and decisions.md append-only against a git
+ref: an entry may gain lines, but it may not lose, change or move any."""
 
 from __future__ import annotations
 
@@ -75,6 +75,44 @@ def test_an_entry_moved_back_to_items_fails(repo: Path) -> None:
     result = run("check", "--base", "HEAD", cwd=repo)
 
     assert "existed at HEAD and is gone" in result.stderr
+
+
+DECISIONS = "roadmap/decisions.md"
+
+
+def test_a_new_decision_passes(repo: Path) -> None:
+    result = run("decide", "--title", "Ship weekly", "--body", "Smaller releases.", cwd=repo)
+    assert result.returncode == 0, result.stderr
+
+    assert run("check", "--base", "HEAD", cwd=repo).returncode == 0
+
+
+def test_an_edited_decision_fails(repo: Path) -> None:
+    decisions = repo / DECISIONS
+    decisions.write_text(decisions.read_text().replace("Rules out a shared token cache.", "Allows a cache."))
+
+    result = run("check", "--base", "HEAD", cwd=repo)
+
+    assert result.returncode == 1
+    assert "decisions.md only takes added lines" in result.stderr
+    assert f"{DECISIONS}:" in result.stderr and "[append-only]" in result.stderr
+
+
+def test_a_deleted_decisions_log_fails(repo: Path) -> None:
+    (repo / DECISIONS).unlink()
+
+    result = run("check", "--base", "HEAD", cwd=repo)
+
+    assert result.returncode == 1
+    assert "existed at HEAD and is gone; a decision is reversed by a new entry" in result.stderr
+
+
+def test_a_decisions_log_new_since_the_base_passes(repo: Path) -> None:
+    git(repo, "rm", "-q", DECISIONS)
+    git(repo, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "no log")
+    assert run("decide", "--title", "Ship weekly", "--body", "Smaller releases.", cwd=repo).returncode == 0
+
+    assert run("check", "--base", "HEAD", cwd=repo).returncode == 0
 
 
 def test_an_unknown_base_is_a_usage_error(repo: Path) -> None:
