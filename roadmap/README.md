@@ -41,9 +41,8 @@ work is done. **Close it in the same branch as the code**, so it moves to
 
 *No open item depends on another or on a milestone, so there is no chart.*
 
-### Now (7)
+### Now (6)
 
-2. [A decisions log for decisions that belong to no single item](items/decisions-log.md) — filed 2026-10-22
 3. [Link a re-proposed item to the declined item it supersedes](items/supersedes.md) — filed 2026-10-22
 5. [Evals for how an agent uses the skill, not just for the script](items/agent-behaviour-evals.md) — filed 2026-09-25
 6. [A review command for upkeep that check deliberately skips](items/review-command.md) — filed 2026-10-22
