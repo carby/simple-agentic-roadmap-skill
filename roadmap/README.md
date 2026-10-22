@@ -39,7 +39,6 @@ work is done. **Close it in the same branch as the code**, so it moves to
 ```mermaid
 flowchart LR
   subgraph b_now ["Now"]
-    i_parallel_branch_merges["Parallel branches collide on ranks and the generated indexes"]
     i_decisions_log["A decisions log for decisions that belong to no single item"]
     i_supersedes["Link a re-proposed item to the declined item it supersedes"]
     i_rerank_within_bucket["Re-rank an item within its bucket"]
@@ -60,9 +59,8 @@ flowchart LR
   class i_epics,i_gantt_scheduling later
 ```
 
-### Now (11)
+### Now (10)
 
-1. [Parallel branches collide on ranks and the generated indexes](items/parallel-branch-merges.md) — filed 2026-10-22
 2. [A decisions log for decisions that belong to no single item](items/decisions-log.md) — filed 2026-10-22
 3. [Link a re-proposed item to the declined item it supersedes](items/supersedes.md) — filed 2026-10-22
 4. [Re-rank an item within its bucket](items/rerank-within-bucket.md) — filed 2026-10-22
