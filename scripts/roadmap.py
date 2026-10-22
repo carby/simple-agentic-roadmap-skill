@@ -754,9 +754,14 @@ def render_graph(items: list[Item], milestones: dict[str, Milestone] | None = No
     dependency to the item that waits on it. A closed dependency is already
     satisfied, so it draws no arrow. A milestone an open item names is a
     hexagon outside the buckets, with arrows from the items due for it and to
-    the items that wait on it. Later items get a dashed border, and nothing
-    sets a colour, so the chart reads in light and dark themes. A chart with no
-    arrows would only repeat the list as boxes, so it is left out."""
+    the items that wait on it. Each label starts with the item's rank, and a
+    long title is shortened; the list below has it in full. An item nothing
+    holds up gets a thick border: it is not in Later and waits on no open item
+    and no milestone. A milestone counts as waiting even once its date has
+    passed, because telling would take today's date, which `check` never
+    reads. Later items get a dashed border. Nothing sets a colour, so the
+    chart reads in light and dark themes. A chart with no arrows would only
+    repeat the list as boxes, so it is left out."""
     milestones = milestones or {}
     queued = [i for i in items if i.bucket in BUCKETS]
     ids = {i.id for i in queued}
@@ -770,7 +775,7 @@ def render_graph(items: list[Item], milestones: dict[str, Milestone] | None = No
     buckets = [b for b in BUCKETS if any(i.bucket == b for i in queued)]
     for bucket in buckets:
         lines.append(f'  subgraph b_{bucket} ["{BUCKET_TITLES[bucket]}"]')
-        lines += [f'    {_node(i.id)}["{_label(i.title)}"]' for i in queued if i.bucket == bucket]
+        lines += [f'    {_node(i.id)}["{i.rank} · {_label(_short(i.title))}"]' for i in queued if i.bucket == bucket]
         lines.append("  end")
     if len(buckets) > 1:
         lines.append("  " + " ~~~ ".join(f"b_{b}" for b in buckets))  # invisible links keep the buckets in order
@@ -779,6 +784,10 @@ def render_graph(items: list[Item], milestones: dict[str, Milestone] | None = No
         lines.append(f'  {_node(m.id, "m_")}{{{{"{_label(str(m))}"}}}}')
     lines += [f"  {_node(i.id)} --> {_node(m.id, 'm_')}" for i, m in due]
     lines += [f"  {_node(m.id, 'm_')} --> {_node(i.id)}" for i, m in awaited]
+    waiting = {i.id for i in queued for d in _depends_on(i) if (dep := by_id.get(d)) and not dep.archived}
+    waiting |= {i.id for i, _ in awaited}
+    if ready := [_node(i.id) for i in queued if i.bucket != "later" and i.id not in waiting]:
+        lines += ["  classDef ready stroke-width: 3px", f"  class {','.join(ready)} ready"]
     if later := [_node(i.id) for i in queued if i.bucket == "later"]:
         lines += ["  classDef later stroke-dasharray: 5 5", f"  class {','.join(later)} later"]
     lines.append("```")
@@ -789,6 +798,14 @@ def _node(slug: str, prefix: str = "i_") -> str:
     """A Mermaid node id: `i_` for an item, `m_` for a milestone. The prefix
     keeps a slug like `end` from being read as a keyword, and the two apart."""
     return prefix + slug.replace("-", "_")
+
+
+def _short(title: str, limit: int = 40) -> str:
+    """A title cut to fit a chart box, at a word break where there is one."""
+    if len(title) <= limit:
+        return title
+    cut = title[: limit - 1]
+    return (cut.rsplit(" ", 1)[0] if " " in cut else cut).rstrip(" ,;:-") + "…"
 
 
 def _label(title: str) -> str:
@@ -1528,6 +1545,17 @@ def cmd_upgrade(rm: Roadmap, args: argparse.Namespace) -> int:
     print(f"Upgraded {script}: roadmap.py {old or 'unknown'} → {__version__}.")
     if not rm.dir.is_dir():
         return 0
+    # A release may render the index differently. The generated blocks are
+    # never edited by hand, so rewrite them now rather than leave `check` to
+    # report them stale. A roadmap the new rules reject is left alone, as
+    # `index` would leave it, and `check` reports why.
+    items, archived, problems = load(rm)
+    if not problems and not validate(rm, items, archived):
+        try:
+            if written := write_generated(rm):
+                print(f"Regenerated {', '.join(map(str, written))}.")
+        except (UsageError, OSError):
+            pass  # missing files or markers; `check` reports them
     if code := cmd_check(rm, args):
         print("Some of these may come from rule changes; the release notes say what changed.", file=sys.stderr)
     return code

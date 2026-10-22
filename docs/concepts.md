@@ -20,7 +20,9 @@ What the roadmap is, and what it isn't.
 - **A picture of it:** `roadmap/README.md` lists the open items. Once items
   depend on each other or on milestones, a generated Mermaid diagram above the
   list shows it, and GitHub draws it in place: one box per bucket, with an
-  arrow from each item to the items that depend on it.
+  arrow from each item to the items that depend on it. Each item's box starts
+  with its rank. A thick border means nothing holds the item up, and a dashed
+  one means it is in Later.
 - **You are the product owner:** the agent never adds, moves or closes items
   on its own. When it spots something worth tracking, it pitches the item to
   you and files it only if you agree.

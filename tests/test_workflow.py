@@ -173,6 +173,19 @@ def test_upgrade_replaces_an_older_vendored_copy_and_leaves_the_roadmap_alone(re
     assert {p: p.read_bytes() for p in (repo / "roadmap").rglob("*") if p.is_file()} == before
 
 
+def test_upgrade_regenerates_an_index_the_old_script_rendered(repo: Path) -> None:
+    vendor_as(repo, "0.9.0")
+    ok(repo, "new", "some-work", "--title", "T", "--bucket", "now", "--body", "Why.")
+    readme = repo / "roadmap/README.md"
+    readme.write_text(readme.read_text().replace("1. [T]", "1. [Rendered the old way]"))
+
+    result = run("upgrade", cwd=repo)
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.splitlines()[1] == f"Regenerated {Path('roadmap/README.md')}."
+    assert "1. [T](items/some-work.md)" in readme.read_text()
+
+
 def test_upgrade_refuses_a_downgrade_unless_forced(repo: Path) -> None:
     vendored = vendor_as(repo, "99.0.0")
 

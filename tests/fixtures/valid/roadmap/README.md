@@ -38,16 +38,18 @@ work is done. **Close it in the same branch as the code**, so it moves to
 ```mermaid
 flowchart LR
   subgraph b_now ["Now"]
-    i_cache_tokens["Cache auth tokens"]
+    i_cache_tokens["1 · Cache auth tokens"]
   end
   subgraph b_next ["Next"]
-    i_split_app["Split app.py"]
+    i_split_app["1 · Split app.py"]
   end
   subgraph b_later ["Later"]
-    i_rotate_keys["Rotate signing keys"]
+    i_rotate_keys["1 · Rotate signing keys"]
   end
   b_now ~~~ b_next ~~~ b_later
   i_cache_tokens --> i_split_app
+  classDef ready stroke-width: 3px
+  class i_cache_tokens ready
   classDef later stroke-dasharray: 5 5
   class i_rotate_keys later
 ```

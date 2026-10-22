@@ -8,6 +8,16 @@ turn a passing `check` red.
 
 ## Unreleased
 
+- **Chart** — Each item's box in the roadmap chart starts with its rank, and
+  titles over 40 characters are shortened at a word break. An item nothing
+  holds up (not in Later, waiting on no open item or milestone) gets a thick
+  border. A milestone always counts as waiting, so `check` still never reads
+  today's date.
+- **Upgrade regenerates the index** — When a new version renders README.md's
+  index or done.md differently, as this release does, `upgrade` rewrites
+  those generated blocks and says so, instead of leaving `check` to report
+  them stale. A roadmap the new rules reject is left alone, and `check`
+  reports why.
 - **Split** — `split <id> <new-id> --title "..."` adds the other part of an
   item that turned out to be two pieces of work, as hard rule 4 asks. The new
   item copies the bucket, gate, blocked_on, depends_on, milestone and refs,
@@ -42,8 +52,7 @@ turn a passing `check` red.
   decisions merge cleanly.
 - **No chart without arrows** — The index leaves out its Mermaid chart when
   no open item depends on another or on a milestone, since it would only
-  repeat the list as boxes. One line says so instead. Run `index` after
-  upgrading: an arrowless index is stale until you do.
+  repeat the list as boxes. One line says so instead.
 - **`updated` is set for you** — `move` to another bucket sets the item's
   `updated` to today (or `--date`, which `move` now takes too). A re-rank
   within the bucket leaves it alone, as do the items shifted to make room.
