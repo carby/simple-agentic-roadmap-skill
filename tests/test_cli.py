@@ -420,6 +420,33 @@ def test_decide_needs_a_one_line_title_and_the_reasoning(valid: Path, args: list
     assert (valid / "roadmap/decisions.md").read_text() == before
 
 
+def test_new_supersedes_links_a_retry_and_close_moves_the_link(valid: Path) -> None:
+    filed = run("new", "retry-rust", "--title", "Rust, again", "--bucket", "next", "--supersedes", "rewrite-in-rust",
+                "--body", "Incremental builds changed the numbers.", cwd=valid)  # fmt: skip
+    done = valid / "roadmap/done.md"
+
+    assert filed.returncode == 0, filed.stderr
+    assert roadmap.parse(valid / "roadmap/items/retry-rust.md").meta["supersedes"] == "rewrite-in-rust"
+    assert "superseded by [Rust, again](items/retry-rust.md)" in done.read_text()
+    assert run("check", cwd=valid).returncode == 0
+
+    closed = run("close", "retry-rust", "--outcome", "shipped", "--as", "pr-3", cwd=valid)
+
+    assert closed.returncode == 0, closed.stderr
+    assert "superseded by [Rust, again](archive/retry-rust.md)" in done.read_text()
+    assert run("check", cwd=valid).returncode == 0
+
+
+def test_new_refuses_to_supersede_a_shipped_item_and_writes_nothing(valid: Path) -> None:
+    before = snapshot(valid)
+
+    result = run("new", "again", "--title", "Again", "--bucket", "now", "--supersedes", "drop-legacy-login", cwd=valid)
+
+    assert result.returncode == 2
+    assert "supersedes 'drop-legacy-login', which shipped" in result.stderr
+    assert snapshot(valid) == before
+
+
 MILESTONES = '[milestones]\nbeta = { title = "Public beta", date = 2026-12-01 }\n'
 
 

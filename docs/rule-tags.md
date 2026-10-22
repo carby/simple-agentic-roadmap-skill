@@ -13,6 +13,7 @@ and the tag names the rule that failed:
 | `[frontmatter]`, `[schema]` | an item's `+++` header is missing or broken, or has missing or unknown fields |
 | `[bucket]` | the item's fields don't fit its bucket (e.g. a `later` item without `blocked_on`) |
 | `[depends]` | a dependency or milestone doesn't exist, was declined, or doesn't come first (earlier bucket, or higher rank) |
+| `[supersedes]` | `supersedes` names something other than a declined archived item; follow-up work on a shipped item uses `depends_on` |
 | `[rank]`, `[dates]`, `[ids]` | a duplicate rank (after a merge, run `index --renumber`), a quoted date, or an id used twice |
 | `[body]` | the item has no prose (`new` leaves a placeholder you have to replace) |
 | `[refs]`, `[links]` | a ref or a relative link points at a file that doesn't exist |

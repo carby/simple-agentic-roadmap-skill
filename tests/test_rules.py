@@ -82,6 +82,36 @@ CASES = [
         {"items/sample.md": item_text(open_meta()), "items/other.md": item_text(open_meta(id="other"))},
     ),
     (
+        "supersedes-shipped",
+        "supersedes",
+        "supersedes 'old', which shipped; use depends_on for follow-up work",
+        {
+            "items/sample.md": item_text(open_meta(supersedes="old")),
+            "archive/old.md": item_text(closed_meta(id="old")),
+        },
+    ),
+    (
+        "supersedes-unknown",
+        "supersedes",
+        "supersedes 'ghost', which is not an archived item",
+        {"items/sample.md": item_text(open_meta(supersedes="ghost"))},
+    ),
+    (
+        "supersedes-open",
+        "supersedes",
+        "supersedes 'other', which is not an archived item",
+        {
+            "items/sample.md": item_text(open_meta(supersedes="other")),
+            "items/other.md": item_text(open_meta(id="other", rank=2)),
+        },
+    ),
+    (
+        "supersedes-self",
+        "supersedes",
+        "supersedes itself",
+        {"items/sample.md": item_text(open_meta(supersedes="sample"))},
+    ),
+    (
         "depends-not-a-list",
         "depends",
         "depends_on must be a list of item ids",
@@ -384,7 +414,12 @@ def test_a_clean_roadmap_has_no_problems(tmp_path: Path) -> None:
             "items/next-one.md": item_text(open_meta(id="next-one", bucket="next")),
             "items/later-one.md": item_text(open_meta(id="later-one", bucket="later", blocked_on="a call")),
             "archive/old-one.md": item_text(closed_meta(id="old-one", outcome="declined")),
-            "archive/shipped-one.md": item_text(closed_meta(id="shipped-one", depends_on=["old-one"])),
+            "archive/shipped-one.md": item_text(
+                closed_meta(id="shipped-one", depends_on=["old-one"], supersedes="old-one")
+            ),
+            "items/retry-one.md": item_text(open_meta(id="retry-one", rank=2, supersedes="old-one")),
+            # An archived item keeps supersedes as history, whatever its target became.
+            "archive/history.md": item_text(closed_meta(id="history", supersedes="shipped-one")),
         },
     )
 
