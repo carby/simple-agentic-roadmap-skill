@@ -1,9 +1,10 @@
 +++
 id = "small-fixes-2026-10"
 title = "Small fixes to docs, templates and defaults"
-bucket = "now"
-rank = 8
 filed = 2026-10-22
+closed = 2026-10-22
+outcome = "shipped"
+shipped_as = "#8"
 +++
 
 Small things found in a review of the skill on 2026-10-22, collected in one item:
