@@ -6,7 +6,7 @@ pin. **Upgrade notes** say what you have to do after `upgrade`. Where a release
 changes the rules `check` enforces, it says so there, because a stricter rule can
 turn a passing `check` red.
 
-## Unreleased
+## 1.4.0 — 2026-10-22
 
 - **Chart** — Each item's box in the roadmap chart starts with its rank, and
   titles over 40 characters are shortened at a word break. An item nothing
