@@ -1,9 +1,10 @@
 +++
 id = "graph-only-with-edges"
 title = "Leave out the roadmap chart when it has no arrows"
-bucket = "now"
-rank = 10
 filed = 2026-10-22
+closed = 2026-10-22
+outcome = "shipped"
+shipped_as = "#9"
 
 [refs]
 files = ["scripts/roadmap.py"]
