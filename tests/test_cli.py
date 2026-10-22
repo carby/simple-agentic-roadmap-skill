@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime
 from pathlib import Path
 
 import pytest
@@ -313,3 +314,64 @@ def test_move_refuses_to_put_an_item_behind_the_items_waiting_on_its_milestone(t
 
     assert result.returncode == 2
     assert "waits.md: depends on milestone 'beta' (2026-12-01), but 'due' ('later', rank 1)" in result.stderr
+
+
+def test_index_renumber_resolves_a_rank_collision_oldest_first(tmp_path: Path) -> None:
+    make_roadmap(
+        tmp_path,
+        {
+            "items/newer.md": item_text(open_meta(id="newer", filed=datetime.date(2026, 9, 8))),
+            "items/older.md": item_text(open_meta(id="older")),
+        },
+    )
+    assert "[rank]" in run("check", cwd=tmp_path).stderr
+
+    result = run("index", "--renumber", cwd=tmp_path)
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.splitlines()[0] == "Renumbered newer."
+    assert roadmap.parse(tmp_path / "roadmap/items/older.md").meta["rank"] == 1
+    assert roadmap.parse(tmp_path / "roadmap/items/newer.md").meta["rank"] == 2
+    assert run("check", cwd=tmp_path).returncode == 0
+
+
+def test_index_renumber_puts_a_dependency_first_among_tied_items(tmp_path: Path) -> None:
+    make_roadmap(
+        tmp_path,
+        {
+            "items/dependent.md": item_text(open_meta(id="dependent", depends_on=["dependency"])),
+            "items/dependency.md": item_text(open_meta(id="dependency", filed=datetime.date(2026, 9, 8))),
+        },
+    )
+
+    assert run("index", "--renumber", cwd=tmp_path).returncode == 0
+
+    assert roadmap.parse(tmp_path / "roadmap/items/dependency.md").meta["rank"] == 1
+    assert roadmap.parse(tmp_path / "roadmap/items/dependent.md").meta["rank"] == 2
+    assert run("check", cwd=tmp_path).returncode == 0
+
+
+def test_index_renumber_closes_gaps_and_leaves_ranks_that_hold_alone(tmp_path: Path) -> None:
+    make_roadmap(
+        tmp_path,
+        {
+            "items/first.md": item_text(open_meta(id="first")),
+            "items/third.md": item_text(open_meta(id="third", rank=3)),
+        },
+    )
+    first = (tmp_path / "roadmap/items/first.md").read_text()
+
+    assert run("index", "--renumber", cwd=tmp_path).returncode == 0
+
+    assert (tmp_path / "roadmap/items/first.md").read_text() == first
+    assert roadmap.parse(tmp_path / "roadmap/items/third.md").meta["rank"] == 2
+
+
+def test_index_renumber_changes_nothing_on_a_clean_roadmap(valid: Path) -> None:
+    before = snapshot(valid)
+
+    result = run("index", "--renumber", cwd=valid)
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == "Index already up to date.\n"
+    assert snapshot(valid) == before

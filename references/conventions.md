@@ -2,8 +2,11 @@
 
 ## Why the roadmap is shaped this way
 
-- **One file per item** means two agents editing different items never
-  conflict. It also means an item can be linked, moved and checked on its own.
+- **One file per item** means two agents editing different items don't
+  conflict in the item files. What the commands write around them, the
+  generated blocks and the next free rank, can still clash; see
+  [Parallel branches](#parallel-branches). It also means an item can be
+  linked, moved and checked on its own.
 - **Frontmatter carries what a reader would otherwise have to infer.** That
   includes the bucket, the rank, what gates the item, what it is blocked on,
   which items must come first, and which files and specs it touches. The prose is the argument, and no
@@ -87,6 +90,37 @@ that takes away the `later` item another `later` item was waiting on. Moving
 out of `later` drops `blocked_on`, so record what was decided in the item's
 prose.
 
+## Parallel branches
+
+Two branches that each run `new`, `move` or `close` merge cleanly in the item
+files, but not always around them:
+
+- **The generated blocks clash.** Both branches rewrote the index in README.md
+  or done.md. Take either side of the conflict, then run `index`, which
+  renders the block from the merged item files.
+- **Ranks collide.** `new` gives an item the next free rank in its bucket, so
+  two branches filing in the same bucket hand out the same rank, and `check`
+  fails with `[rank]` after the merge. Run `index --renumber`: it numbers each
+  bucket 1, 2, 3... in its current order, with tied items keeping their
+  dependencies first, then oldest first.
+
+`merge-driver` resolves the first case for you. It lets git merge the
+hand-written text as usual and keeps this branch's generated block whole, so
+the merge stops only for a real conflict. Run `index` afterwards, since the
+kept block is likely stale; `check` reports `[generated]` until you do. Turn
+it on with two lines in `.gitattributes`:
+
+```text
+roadmap/README.md merge=roadmap
+roadmap/done.md merge=roadmap
+```
+
+and, in each clone (git doesn't take drivers from the repo):
+
+```bash
+git config merge.roadmap.driver "python tools/roadmap.py merge-driver %O %A %B %P"
+```
+
 ## Frontmatter
 
 Open item (`items/<id>.md`):
@@ -141,7 +175,7 @@ Every problem `check` reports ends in one of these tags.
 | `frontmatter` | the file starts with `+++`-fenced TOML that parses | add or repair the fence; quote strings |
 | `schema` | required fields present, none unknown, id = filename = kebab slug; archived items carry no queue fields | rename the file or the id; remove the stray field |
 | `bucket` | bucket is `now`, `next` or `later`; `later` ⇔ `blocked_on`, or a dependency in `later` | add `blocked_on`, or `move` the item out of `later` |
-| `rank` | positive integer, unique within the bucket | renumber |
+| `rank` | positive integer, unique within the bucket | `index --renumber` |
 | `depends` | `depends_on` is a list of ids naming open or shipped items or declared milestones, each ahead of the item: in an earlier bucket, or higher in the same one. `milestone` names a declared milestone; items due for it (or an earlier one) come before items waiting on it, and no item waits on a milestone at or after the one it is due for | reorder or `move` the items; drop a declined or missing dependency and re-argue the item; drop a passed milestone from `depends_on` |
 | `dates` | bare TOML dates (`2026-09-06`, not `"2026-09-06"`); none earlier than `filed` | unquote the date |
 | `body` | the prose says something (HTML comments don't count) | write the argument |

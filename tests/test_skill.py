@@ -29,8 +29,8 @@ def test_skill_frontmatter_names_and_describes_the_skill() -> None:
 
 def test_every_command_the_docs_name_exists() -> None:
     for doc in AGENT_DOCS:
-        named = set(re.findall(r"roadmap\.py (?:--dir \S+ )?([a-z]+)", doc.read_text()))
-        named |= set(re.findall(r"\{\{script\}\} ([a-z]+)", doc.read_text()))
+        named = set(re.findall(r"roadmap\.py (?:--dir \S+ )?([a-z]+(?:-[a-z]+)*)", doc.read_text()))
+        named |= set(re.findall(r"\{\{script\}\} ([a-z]+(?:-[a-z]+)*)", doc.read_text()))
         assert named or doc.name == "conventions.md", f"{doc.name} names no commands; the regex is out of date"
         assert named <= COMMANDS, f"{doc.name} names {named - COMMANDS}, which roadmap.py does not have"
 

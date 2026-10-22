@@ -38,7 +38,7 @@ def test_client_checks_are_in_the_readme_and_developer_tests_in_contributing() -
 
 def test_every_command_the_docs_and_contributing_name_exists() -> None:
     for name, text in {"user docs": USER_DOCS, "CONTRIBUTING.md": (REPO / "CONTRIBUTING.md").read_text()}.items():
-        named = set(re.findall(r"roadmap\.py (?:--dir \S+ )?([a-z]+)", text))
+        named = set(re.findall(r"roadmap\.py (?:--dir \S+ )?([a-z]+(?:-[a-z]+)*)", text))
 
         assert named, f"{name} names no commands; the regex is out of date"
         assert named <= COMMANDS, f"{name} names {named - COMMANDS}"
