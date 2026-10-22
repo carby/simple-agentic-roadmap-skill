@@ -38,26 +38,48 @@ work is done. **Close it in the same branch as the code**, so it moves to
 
 ```mermaid
 flowchart LR
-  subgraph b_later ["Later"]
+  subgraph b_now ["Now"]
+    i_parallel_branch_merges["Parallel branches collide on ranks and the generated indexes"]
+    i_decisions_log["A decisions log for decisions that belong to no single item"]
+    i_supersedes["Link a re-proposed item to the declined item it supersedes"]
+    i_rerank_within_bucket["Re-rank an item within its bucket"]
     i_agent_behaviour_evals["Evals for how an agent uses the skill, not just for the script"]
+    i_review_command["A review command for upkeep that check deliberately skips"]
+    i_list_and_split["list and split commands"]
+    i_small_fixes_2026_10["Small fixes to docs, templates and defaults"]
+    i_graph_ready_and_ranks["Show readiness and rank in the roadmap chart"]
+    i_graph_only_with_edges["Leave out the roadmap chart when it has no arrows"]
+    i_milestone_timeline["A milestone timeline in the roadmap index"]
+  end
+  subgraph b_later ["Later"]
     i_epics["Epics: parent items that group others"]
     i_gantt_scheduling["Gantt scheduling: estimates and dates on a timeline"]
   end
+  b_now ~~~ b_later
   classDef later stroke-dasharray: 5 5
-  class i_agent_behaviour_evals,i_epics,i_gantt_scheduling later
+  class i_epics,i_gantt_scheduling later
 ```
 
-### Now (0)
+### Now (11)
 
-*Empty.*
+1. [Parallel branches collide on ranks and the generated indexes](items/parallel-branch-merges.md) — filed 2026-10-22
+2. [A decisions log for decisions that belong to no single item](items/decisions-log.md) — filed 2026-10-22
+3. [Link a re-proposed item to the declined item it supersedes](items/supersedes.md) — filed 2026-10-22
+4. [Re-rank an item within its bucket](items/rerank-within-bucket.md) — filed 2026-10-22
+5. [Evals for how an agent uses the skill, not just for the script](items/agent-behaviour-evals.md) — filed 2026-09-25
+6. [A review command for upkeep that check deliberately skips](items/review-command.md) — filed 2026-10-22
+7. [list and split commands](items/list-and-split.md) — filed 2026-10-22
+8. [Small fixes to docs, templates and defaults](items/small-fixes-2026-10.md) — filed 2026-10-22
+9. [Show readiness and rank in the roadmap chart](items/graph-ready-and-ranks.md) — filed 2026-10-22
+10. [Leave out the roadmap chart when it has no arrows](items/graph-only-with-edges.md) — filed 2026-10-22
+11. [A milestone timeline in the roadmap index](items/milestone-timeline.md) — filed 2026-10-22
 
 ### Next (0)
 
 *Empty.*
 
-### Later (3)
+### Later (2)
 
-1. [Evals for how an agent uses the skill, not just for the script](items/agent-behaviour-evals.md) — filed 2026-09-25<br>  **Blocked on:** whether evals that call a model run in CI (cost, nondeterminism) or only on demand
 3. [Epics: parent items that group others](items/epics.md) — filed 2026-09-25<br>  **Blocked on:** whether the roadmap grows past KISS to have a hierarchy of items<br>  **Depends on:** [Dependency chaining between items](archive/dependency-chaining.md) (shipped)
 4. [Gantt scheduling: estimates and dates on a timeline](items/gantt-scheduling.md) — filed 2026-09-25<br>  **Blocked on:** whether the roadmap should say when work happens, not just what is blocking it<br>  **Depends on:** [Dependency chaining between items](archive/dependency-chaining.md) (shipped)
 
