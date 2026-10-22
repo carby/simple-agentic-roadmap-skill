@@ -6,6 +6,8 @@ repo, see the [README](README.md).
 The skill's own plans are in [`roadmap/`](roadmap/), kept with the skill
 itself. The same rule applies here as everywhere: the maintainer is the
 product owner. Pitch an idea in an issue before filing it as an item.
+`.claude/skills/roadmap` symlinks to this working copy, so an agent session in
+this repo runs `/roadmap` with the rules as you are editing them.
 
 **`scripts/roadmap.py` must stay stdlib-only.** `init` vendors it into other
 repos, which must not need to install anything to run it.
