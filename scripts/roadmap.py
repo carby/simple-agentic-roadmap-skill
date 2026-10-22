@@ -1116,45 +1116,75 @@ def cmd_new(rm: Roadmap, args: argparse.Namespace) -> int:
 
 def cmd_move(rm: Roadmap, args: argparse.Namespace) -> int:
     item = _open_item(rm, args.id)
-    if item.bucket == args.bucket:
-        raise UsageError(f"{item.path} is already in {args.bucket!r}")
+    above = _open_item(rm, args.above) if args.above else None
+    if above and above.id == item.id:
+        raise UsageError(f"{args.id} cannot go above itself")
+    if above and args.bucket and args.bucket != above.bucket:
+        raise UsageError(f"--above {above.id} is in {above.bucket!r}, not {args.bucket!r}")
+    bucket = above.bucket if above else args.bucket or item.bucket
+    if not (args.bucket or args.rank or above):
+        raise UsageError("give --bucket, --rank or --above")
+    staying = bucket == item.bucket
+    if staying and not (args.rank or above):
+        raise UsageError(f"{item.path} is already in {bucket!r}")
     items, archived, _ = load(rm)
     by_id = _by_id(items + archived)
-    if (
+    if staying and args.blocked_on:
+        raise UsageError("--blocked-on is only for moving an item into 'later' from another bucket")
+    if not staying and (
         args.blocked_on
-        and args.bucket != "later"
-        or (args.bucket == "later" and not args.blocked_on and not _waits_on_later(item, by_id, rm.milestones))
+        and bucket != "later"
+        or (bucket == "later" and not args.blocked_on and not _waits_on_later(item, by_id, rm.milestones))
     ):
         raise UsageError(
             "--blocked-on is required when moving to 'later' an item that depends on no other 'later' item,"
             " and forbidden otherwise"
         )
 
-    # An item lands just above the first item in the bucket that has to come
-    # after it, pushing that one and everything below it down a rank.
-    # Otherwise it lands at the bottom.
-    in_bucket = [i for i in items if i.bucket == args.bucket and i.rank > 0]
-    dependents = [i for i in in_bucket if _must_follow(i, item, by_id, rm.milestones)]
-    if dependents:
-        rank = min(i.rank for i in dependents)
-        shifted = [i for i in in_bucket if i.rank >= rank]
+    in_bucket = [i for i in items if i.bucket == bucket and i.rank > 0 and i.id != item.id]
+    if above:
+        # Within the bucket, moving down vacates a rank above `above`, which
+        # then shifts up into it; the item takes the rank just above.
+        rank = above.rank - 1 if staying and above.rank > item.rank else above.rank
+    elif args.rank:
+        rank = args.rank
     else:
-        rank, shifted = 1 + max((i.rank for i in in_bucket), default=0), []
+        # An item lands just above the first item in the bucket that has to
+        # come after it. Otherwise it lands at the bottom.
+        dependents = [i for i in in_bucket if _must_follow(i, item, by_id, rm.milestones)]
+        rank = min((i.rank for i in dependents), default=1 + max((i.rank for i in in_bucket), default=0))
+    if staying and rank == item.rank:
+        raise UsageError(f"{item.path} is already at rank {rank} in {bucket!r}")
 
-    assign: dict = {"bucket": args.bucket, "rank": rank}
+    # The items between the old and new place shift a rank to close the gap
+    # and open one; across buckets, everything from the new rank down shifts.
+    if not staying:
+        shifts = [(i, 1) for i in in_bucket if i.rank >= rank]
+    elif rank < item.rank:
+        shifts = [(i, 1) for i in in_bucket if rank <= i.rank < item.rank]
+    else:
+        shifts = [(i, -1) for i in in_bucket if item.rank < i.rank <= rank]
+
+    assign: dict = {"rank": rank} if staying else {"bucket": bucket, "rank": rank}
     if args.blocked_on:
         assign["blocked_on"] = args.blocked_on
-    remove = frozenset({"blocked_on"}) & frozenset(item.meta)
+    remove = frozenset() if staying else frozenset({"blocked_on"}) & frozenset(item.meta)
     texts = {item.path: edit_frontmatter(item.path, remove=remove, assign=assign)}
-    texts |= {i.path: edit_frontmatter(i.path, assign={"rank": i.rank + 1}) for i in shifted}
+    texts |= {i.path: edit_frontmatter(i.path, assign={"rank": i.rank + d}) for i, d in shifts}
     _refuse_if_breaking(rm, {path: parse(path, text=text) for path, text in texts.items()}, f"moving {args.id}")
 
     for path, text in texts.items():
         path.write_text(text)
     write_generated(rm)
-    print(f"Moved {item.path} to {args.bucket!r} at rank {rank}.")
-    if shifted:
-        print(f"Shifted {', '.join(i.id for i in shifted)} down a rank, below it.")
+    print(
+        f"Moved {item.path} to rank {rank} in {bucket!r}."
+        if staying
+        else f"Moved {item.path} to {bucket!r} at rank {rank}."
+    )
+    if down := [i.id for i, d in shifts if d > 0]:
+        print(f"Shifted {', '.join(down)} down a rank, below it.")
+    if up := [i.id for i, d in shifts if d < 0]:
+        print(f"Shifted {', '.join(up)} up a rank, above it.")
     if remove:
         print("It was blocked on a decision; record in its prose what was decided.")
     return 0
@@ -1306,6 +1336,12 @@ def _warn_if_vendored_is_older(command: str) -> None:
         )
 
 
+def _rank(text: str) -> int:
+    if not text.isdigit() or int(text) < 1:
+        raise argparse.ArgumentTypeError(f"{text!r} is not a positive integer")
+    return int(text)
+
+
 def _date(text: str) -> datetime.date:
     try:
         return datetime.date.fromisoformat(text)
@@ -1370,10 +1406,15 @@ def build_parser() -> argparse.ArgumentParser:
     p.set_defaults(run=cmd_new)
 
     p = sub.add_parser(
-        "move", parents=[common], help="move an item to another bucket: above its dependents there, else at the bottom"
+        "move",
+        parents=[common],
+        help="move an item to another bucket or rank: by default above its dependents there, else at the bottom",
     )
     p.add_argument("id")
-    p.add_argument("--bucket", required=True, choices=BUCKETS)
+    p.add_argument("--bucket", choices=BUCKETS, help="default: the --above item's bucket, else the item's own")
+    place = p.add_mutually_exclusive_group()
+    place.add_argument("--rank", type=_rank, help="the rank to take, shifting the items in between")
+    place.add_argument("--above", metavar="ID", help="land directly above this open item")
     p.add_argument(
         "--blocked-on", help="the undecided question (required for 'later', unless it depends on a 'later' item)"
     )

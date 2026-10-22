@@ -179,6 +179,110 @@ def test_move_refuses_a_no_op(valid: Path) -> None:
     assert "is already in 'next'" in result.stderr
 
 
+def four_in_now(tmp_path: Path, **depends: list[str]) -> None:
+    """Items a, b, c, d at ranks 1-4 in Now, and e at rank 1 in Next."""
+    files = {
+        f"items/{i}.md": item_text(open_meta(id=i, rank=rank, depends_on=depends.get(i)))
+        for rank, i in enumerate("abcd", start=1)
+    }
+    files["items/e.md"] = item_text(open_meta(id="e", bucket="next"))
+    make_roadmap(tmp_path, files)
+
+
+def ranks(tmp_path: Path) -> dict[str, tuple[str, int]]:
+    items, _, _ = roadmap.load(roadmap.open_roadmap(tmp_path / "roadmap"))
+    return {i.id: (i.bucket, i.rank) for i in items}
+
+
+def test_move_rank_raises_an_item_and_shifts_the_ones_it_passes_down(tmp_path: Path) -> None:
+    four_in_now(tmp_path)
+
+    result = run("move", "c", "--rank", "1", cwd=tmp_path)
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.splitlines() == [
+        "Moved roadmap/items/c.md to rank 1 in 'now'.",
+        "Shifted a, b down a rank, below it.",
+    ]
+    assert ranks(tmp_path) == {"c": ("now", 1), "a": ("now", 2), "b": ("now", 3), "d": ("now", 4), "e": ("next", 1)}
+    assert run("check", cwd=tmp_path).returncode == 0
+
+
+def test_move_rank_lowers_an_item_and_shifts_the_ones_it_passes_up(tmp_path: Path) -> None:
+    four_in_now(tmp_path)
+
+    result = run("move", "a", "--rank", "3", cwd=tmp_path)
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.splitlines()[1] == "Shifted b, c up a rank, above it."
+    assert ranks(tmp_path) == {"b": ("now", 1), "c": ("now", 2), "a": ("now", 3), "d": ("now", 4), "e": ("next", 1)}
+    assert run("check", cwd=tmp_path).returncode == 0
+
+
+@pytest.mark.parametrize(("item", "above", "order"), [("d", "b", "adbc"), ("a", "d", "bcad")])
+def test_move_above_lands_directly_above_the_other_item(tmp_path: Path, item: str, above: str, order: str) -> None:
+    four_in_now(tmp_path)
+
+    result = run("move", item, "--above", above, cwd=tmp_path)
+
+    assert result.returncode == 0, result.stderr
+    now = sorted((r, i) for i, (b, r) in ranks(tmp_path).items() if b == "now")
+    assert "".join(i for _, i in now) == order
+    assert run("check", cwd=tmp_path).returncode == 0
+
+
+def test_move_above_takes_the_other_items_bucket(tmp_path: Path) -> None:
+    four_in_now(tmp_path)
+
+    result = run("move", "e", "--above", "b", cwd=tmp_path)
+
+    assert result.returncode == 0, result.stderr
+    assert ranks(tmp_path) == {"a": ("now", 1), "e": ("now", 2), "b": ("now", 3), "c": ("now", 4), "d": ("now", 5)}
+    assert run("check", cwd=tmp_path).returncode == 0
+
+
+def test_move_rank_into_another_bucket_shifts_that_bucket_down(tmp_path: Path) -> None:
+    four_in_now(tmp_path)
+
+    result = run("move", "a", "--bucket", "next", "--rank", "1", cwd=tmp_path)
+
+    assert result.returncode == 0, result.stderr
+    assert ranks(tmp_path)["a"] == ("next", 1) and ranks(tmp_path)["e"] == ("next", 2)
+    assert run("check", cwd=tmp_path).returncode == 0
+
+
+def test_move_rank_refuses_to_put_an_item_above_its_dependency_and_writes_nothing(tmp_path: Path) -> None:
+    four_in_now(tmp_path, c=["b"])
+    before = {path: path.read_text() for path in sorted((tmp_path / "roadmap").rglob("*.md"))}
+
+    result = run("move", "c", "--rank", "1", cwd=tmp_path)
+
+    assert result.returncode == 2
+    assert "moving c would break the roadmap" in result.stderr
+    assert {path: path.read_text() for path in sorted((tmp_path / "roadmap").rglob("*.md"))} == before
+
+
+@pytest.mark.parametrize(
+    ("args", "expected"),
+    [
+        (["a", "--rank", "1"], "is already at rank 1 in 'now'"),
+        (["a", "--above", "a"], "cannot go above itself"),
+        (["a", "--above", "b", "--bucket", "next"], "--above b is in 'now', not 'next'"),
+        (["a", "--rank", "2", "--blocked-on", "why"], "--blocked-on is only for moving"),
+        (["a", "--rank", "2", "--above", "c"], "not allowed with argument"),
+        (["a", "--rank", "0"], "is not a positive integer"),
+        (["a"], "give --bucket, --rank or --above"),
+    ],
+)
+def test_move_refuses_a_bad_re_rank(tmp_path: Path, args: list[str], expected: str) -> None:
+    four_in_now(tmp_path)
+
+    result = run("move", *args, cwd=tmp_path)
+
+    assert result.returncode == 2
+    assert expected in result.stderr
+
+
 def test_there_is_no_wip_tracking_command(valid: Path) -> None:
     result = run("claim", "cache-tokens", cwd=valid)
 

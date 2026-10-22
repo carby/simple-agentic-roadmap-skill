@@ -83,7 +83,9 @@ commit.
 item in the target bucket that has to follow it (it depends on the item, or
 waits on a milestone the item is due for). That item and everything below it
 shift down a rank. If nothing there has to follow it, it lands at the
-bottom. Adjust `rank` by hand to place it higher. `new`, `move` and `close`
+bottom. `--rank <n>` or `--above <id>` places it instead, and re-ranks an
+item within its own bucket: the items between its old and new place shift a
+rank to make room. `--above` takes the other item's bucket. `new`, `move` and `close`
 refuse, and write nothing, when the result would break `bucket` or `depends`:
 for example a move that leaves a dependency behind its dependent, or a close
 that takes away the `later` item another `later` item was waiting on. Moving

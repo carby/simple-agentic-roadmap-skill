@@ -8,6 +8,12 @@ turn a passing `check` red.
 
 ## Unreleased
 
+- **Re-ranking** — `move <id> --rank <n>` and `move <id> --above <other>`
+  re-rank an item within its bucket, or place it in another one, instead of
+  renumbering files by hand. The items between the old and new place shift a
+  rank to make room. `--above` takes the other item's bucket, and `--bucket`
+  is now optional. Like a move between buckets, a re-rank that would put an
+  item ahead of its dependencies is refused.
 - **Parallel branches** — `index --renumber` numbers each bucket 1, 2, 3...
   in its current order, which fixes the `[rank]` collision two branches cause
   when each files an item into the same bucket. A new `merge-driver` command
@@ -27,7 +33,7 @@ turn a passing `check` red.
 - **Agent behaviour** — `SKILL.md` now also tells the agent what to do when the
   skill's copy of `roadmap.py` is *older* than the repo's vendored one. Before,
   only the opposite case was covered.
-- No change to `roadmap.py` or to the rules `check` enforces.
+- No change to the rules `check` enforces.
 
 ## 1.3.1 — 2026-10-21
 
