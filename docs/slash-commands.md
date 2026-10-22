@@ -16,13 +16,14 @@ it picks the action:
 | `/roadmap move <id> <bucket>` | Reprioritises an item, e.g. from Next into Now when planning the next sprint. |
 | `/roadmap move <id> <rank>` | Re-ranks an item within its bucket, e.g. to the top of Now. `move <id> above <other>` places it directly above another item. |
 | `/roadmap close <id>` | Archives finished or declined work, with the reason, and lists it in `done.md`. Do it in the branch that ships the code. |
+| `/roadmap decide <decision>` | Logs a decision that belongs to no single item in `decisions.md`, with its reasoning, e.g. `/roadmap decide we never track who is working on what`. |
 | `/roadmap check` | Validates the roadmap and fixes what it can, e.g. a stale index. |
-| `/roadmap <question>` | Answers from the roadmap and `done.md`, e.g. `/roadmap has anyone tried caching tokens?` |
+| `/roadmap <question>` | Answers from the roadmap, `done.md` and `decisions.md`, e.g. `/roadmap has anyone tried caching tokens?` |
 
 You don't have to use the slash command. The agent also loads the skill on
 its own when you ask what to work on next, or when you propose a cleanup. In
-that case it checks `done.md` first, in case the idea was already tried and
-declined.
+that case it checks `done.md` and `decisions.md` first, in case the idea was
+already tried and declined, or ruled out.
 
 ---
 

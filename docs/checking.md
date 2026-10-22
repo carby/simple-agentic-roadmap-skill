@@ -48,11 +48,14 @@ To have git take the generated lists by itself, add a merge driver:
 
 ```bash
 printf 'roadmap/README.md merge=roadmap\nroadmap/done.md merge=roadmap\n' >> .gitattributes
+printf 'roadmap/decisions.md merge=union\n' >> .gitattributes
 git config merge.roadmap.driver "python tools/roadmap.py merge-driver %O %A %B %P"
 ```
 
 Commit `.gitattributes`. The `git config` line is per clone, so each
-collaborator runs it once. You still run `index` after the merge.
+collaborator runs it once. You still run `index` after the merge. The
+`union` line needs no setup: it is built into git, and keeps the decisions
+both branches logged.
 
 ## Append-only archive
 
