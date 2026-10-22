@@ -22,6 +22,7 @@ file it as a roadmap item instead of improvising it in the files.
 | `init` | Set up a roadmap (see Workflows). |
 | `new <description>` | Choose an id and title. **Suggest a bucket, give the reason in one line, and wait for the user to confirm or change it.** Then run `new`, write the prose (what is wrong, why it matters, what done looks like), and run `check`. |
 | `move <id> <bucket>` | Run `move`. For `later`, ask what decision it is blocked on. |
+| `move <id> <rank>` or `move <id> above <other>` | Run `move --rank` or `move --above`. |
 | `close <id> [reason]` | Ask whether it shipped or was declined, unless that is clear. Add the outcome and reasoning to the item's prose *before* running `close`, because after that it is append-only. Then run `check`. |
 | `check` | Run `check`. Fix what can be fixed (run `index` for `[generated]`), and report the rest. |
 | anything else | Treat it as a question. Answer from the roadmap, searching `done.md` first. |
@@ -78,7 +79,7 @@ without new evidence. Explain what has changed since then.
 | Set up a roadmap in a repo | `python <skill>/scripts/roadmap.py init`, where `<skill>` is the directory this SKILL.md was loaded from (e.g. `~/.claude/skills/roadmap` or `.claude/skills/roadmap`). It writes `roadmap/` and vendors the script to `tools/roadmap.py`. Every later command uses `tools/roadmap.py`. For CI setup, point the user at this skill's README. |
 | File an item | `python tools/roadmap.py new <id> --title "..." --bucket now [--gate "..."] [--depends-on <id>] [--milestone <id>] [--ref files:path]`, then replace the placeholder body with the argument |
 | File an undecided item | `python tools/roadmap.py new <id> --title "..." --bucket later --blocked-on "the open question"` |
-| Reprioritise an item | `python tools/roadmap.py move <id> --bucket next` (add `--blocked-on "..."` for `later`). It lands just above the items there that depend on it, shifting them down, or else at the bottom; edit `rank` to place it higher. It refuses a move that would put an item ahead of its dependencies. |
+| Reprioritise an item | `python tools/roadmap.py move <id> --bucket next` (add `--blocked-on "..."` for `later`). It lands just above the items there that depend on it, shifting them down, or else at the bottom. To place it elsewhere, or to re-rank it within its bucket, add `--rank <n>` or `--above <other-id>` (which also takes the other item's bucket); the items it passes shift a rank. It refuses a move that would put an item ahead of its dependencies. |
 | Close shipped work | `python tools/roadmap.py close <id> --outcome shipped --as <pr-or-change>`, **in the same branch as the code**, so it moves to done.md when that merges |
 | Close declined work | `python tools/roadmap.py close <id> --outcome declined` |
 | Regenerate the indexes after a hand edit | `python tools/roadmap.py index` |
@@ -90,8 +91,7 @@ without new evidence. Explain what has changed since then.
 every problem it reports. Each problem ends with a rule tag in brackets, such
 as `[bucket]`. references/conventions.md explains every tag.
 
-Re-ranking within a bucket and editing prose are plain file edits. Run `index`
-and `check` afterwards.
+Editing prose is a plain file edit. Run `index` and `check` afterwards.
 
 ## Hard rules
 

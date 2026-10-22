@@ -41,6 +41,7 @@ work is done. **Close it in the same branch as the code**, so it moves to
 ```bash
 python {{script}} new <id> --title "..." --bucket now   # file an item
 python {{script}} move <id> --bucket now                # reprioritise (lands above its dependents, else at the bottom)
+python {{script}} move <id> --rank 1                    # re-rank (or --above <id>); the items it passes shift
 python {{script}} close <id> --outcome shipped --as <change-or-pr>   # in the same branch as the code
 python {{script}} index                                 # regenerate this index and done.md
 python {{script}} check                                 # what CI runs
