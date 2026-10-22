@@ -87,10 +87,11 @@ title = "One line, rendered into the index"
 bucket = "now"          # now | next | later
 rank = 1                # unique within the bucket, most valuable first
 filed = 2026-09-06      # a bare TOML date, not a string
-updated = 2026-09-06    # optional; when the item was last re-argued
+updated = 2026-09-06    # optional; when the item was last re-argued (set by `move` to another bucket)
 gate = "..."            # optional; the bar the work has to clear
 blocked_on = "..."      # required for `later` (unless a dependency is), forbidden elsewhere
-depends_on = ["other"]  # optional; ids that must come first (keep it above [refs])
+milestone = "beta"      # optional; the milestone it is due for, declared in roadmap.toml
+depends_on = ["other"]  # optional; item or milestone ids that must come first (keep it above [refs])
 
 [refs]                  # optional; each entry is checked to exist
 files = ["src/app.py"]  # other kinds are declared in roadmap.toml
