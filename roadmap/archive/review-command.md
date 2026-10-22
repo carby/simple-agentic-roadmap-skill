@@ -1,9 +1,10 @@
 +++
 id = "review-command"
 title = "A review command for upkeep that check deliberately skips"
-bucket = "now"
-rank = 6
 filed = 2026-10-22
+closed = 2026-10-22
+outcome = "shipped"
+shipped_as = "#12"
 +++
 
 `check` never compares against today's date, so it gives the same answer every day. As a result nothing flags a milestone that has passed but is still in roadmap.toml, or a Now item nobody has touched in months.
