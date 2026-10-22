@@ -1,9 +1,10 @@
 +++
 id = "list-and-split"
 title = "list and split commands"
-bucket = "now"
-rank = 7
 filed = 2026-10-22
+closed = 2026-10-22
+outcome = "shipped"
+shipped_as = "#13"
 
 [refs]
 files = ["scripts/roadmap.py"]
