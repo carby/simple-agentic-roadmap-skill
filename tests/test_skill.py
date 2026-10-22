@@ -58,6 +58,11 @@ def test_the_template_config_parses_with_its_examples_uncommented() -> None:
     assert "beta" in tomllib.loads(uncommented)["milestones"]
 
 
+def test_the_template_decisions_log_is_what_decide_writes() -> None:
+    """A vendored copy has no template, so `decide` writes the head itself."""
+    assert (REPO / "assets/template/decisions.md").read_text() == roadmap.DECISIONS_INTRO
+
+
 def test_the_dogfood_roadmap_is_clean() -> None:
     assert roadmap.check(roadmap.open_roadmap(REPO / "roadmap")) == []
 

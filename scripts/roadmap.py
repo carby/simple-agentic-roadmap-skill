@@ -9,12 +9,14 @@ would otherwise have to infer from the prose. The prose body is where the
 argument lives, and no schema tries to parse it.
 
 roadmap/README.md carries a generated index of the open items, and
-roadmap/done.md carries a generated index of the archive. `check` fails when:
+roadmap/done.md carries a generated index of the archive. roadmap/decisions.md,
+if there is one, logs the decisions that belong to no single item, and is
+append-only like the archive. `check` fails when:
 - either index has drifted from the item files,
 - an item breaks its bucket's entry criterion,
 - a dependency or milestone is missing, was declined, or doesn't come first,
 - a ref or a relative link points at nothing, or
-- (given --base) an archived entry lost a line.
+- (given --base) an archived entry or decisions.md lost a line.
 
 Run `python roadmap.py --help` for the commands. This file is vendored from
 the roadmap skill, and `--version` says which release it came from.
@@ -65,6 +67,20 @@ PLACEHOLDER = "<!-- What is wrong, why it matters, and what done looks like. -->
 # rest of the file around it.
 MERGE_STANDIN = "<!-- roadmap.py merge-driver: generated block -->"
 
+# The head of decisions.md. `decide` writes it when the file is missing, since a
+# vendored copy of this script has no template next to it; init copies
+# assets/template/decisions.md, which a test keeps identical.
+DECISIONS_INTRO = """# Decisions
+
+Decisions that belong to no single item: conventions, architecture choices,
+things this project doesn't do. A decision about one item goes in that item's
+prose instead. **Search this file and `done.md` before proposing work.**
+
+Record a decision with `roadmap.py decide`. Entries are appended oldest first,
+and the file is **append-only**: `check --base` fails on a changed or removed
+line. To reverse a decision, record a new one that says so.
+"""
+
 # Every rule `check` enforces, keyed by the tag printed after each problem.
 # README.md's error table has one row per key, and a test keeps them in step.
 RULES = {
@@ -82,7 +98,7 @@ RULES = {
     "ids": "an id is used once, across open and archived items and milestones",
     "links": "every relative link in open items, README.md and done.md resolves",
     "generated": "README.md's index and done.md match the item files",
-    "append-only": "with --base: no archived entry is removed, moved or loses a line",
+    "append-only": "with --base: no archived entry is removed, moved or loses a line, and neither does decisions.md",
 }
 
 SLUG = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
@@ -160,6 +176,10 @@ class Roadmap:
     @property
     def done(self) -> Path:
         return self.dir / "done.md"
+
+    @property
+    def decisions(self) -> Path:
+        return self.dir / "decisions.md"
 
 
 @dataclass(frozen=True)
@@ -636,7 +656,8 @@ def link_problems(rm: Roadmap, items: list[Item]) -> list[Problem]:
     refs are. So are the generated blocks: `index` rewrites them from the
     files, and a stale index is reported as `generated`. Checking their links
     too would stop `index` from repairing an index that links to a deleted
-    item."""
+    item. decisions.md is exempt like the archive: being append-only, it
+    could never fix a link that broke later."""
     problems = []
     generated = {rm.readme: (INDEX_BEGIN, INDEX_END), rm.done: (DONE_BEGIN, DONE_END)}
     for path in [i.path for i in items] + [p for p in (rm.readme, rm.done) if p.exists()]:
@@ -868,39 +889,42 @@ def _git(cwd: Path, *args: str) -> str:
         raise UsageError(f"git {' '.join(args)} failed: {exc.stderr.strip()}") from exc
 
 
+ARCHIVE_RULE = "archived entries only take added lines (dated annotations)"
+ARCHIVE_KEPT = "archived entries are never deleted or moved"
+DECISIONS_RULE = "decisions.md only takes added lines (new entries, dated annotations)"
+
+
 def append_only_problems(rm: Roadmap, base: str) -> list[Problem]:
     """Every archived entry that existed at `base` must still exist, and it may
     only have gained lines. That leaves room for a dated annotation added under
-    a claim that later events falsified, and for nothing else."""
+    a claim that later events falsified, and for nothing else. decisions.md is
+    held to the same rule, so a decision is reversed by a new entry."""
     top = Path(_git(rm.dir, "rev-parse", "--show-toplevel").strip())
-    prefix = Path(os.path.relpath(rm.archive_dir.resolve(), top)).as_posix()
+    archive = Path(os.path.relpath(rm.archive_dir.resolve(), top)).as_posix()
+    decisions = Path(os.path.relpath(rm.decisions.resolve(), top)).as_posix()
     problems = []
-    for rel in _git(top, "ls-tree", "-r", "--name-only", base, "--", prefix).splitlines():
-        if not rel.endswith(".md"):
+    for rel in _git(top, "ls-tree", "-r", "--name-only", base, "--", archive, decisions).splitlines():
+        if rel == decisions:
+            shown, rule, kept = rm.decisions, DECISIONS_RULE, "a decision is reversed by a new entry"
+        elif rel.endswith(".md"):
+            shown, rule, kept = rm.archive_dir / Path(rel).relative_to(archive), ARCHIVE_RULE, ARCHIVE_KEPT
+        else:
             continue
-        shown = rm.archive_dir / Path(rel).relative_to(prefix)
-        if not (top / rel).exists():
-            problems.append(
-                Problem(
-                    shown, "append-only", f"existed at {base} and is gone; archived entries are never deleted or moved"
-                )
-            )
-            continue
-        old = _git(top, "show", f"{base}:{rel}").splitlines()
-        new = (top / rel).read_text().splitlines()
-        for tag, i1, i2, _, _ in difflib.SequenceMatcher(None, old, new, autojunk=False).get_opcodes():
-            if tag in ("replace", "delete"):
-                lines = f"line {i1 + 1}" if i2 - i1 == 1 else f"lines {i1 + 1}-{i2}"
-                problems.append(
-                    Problem(
-                        shown,
-                        "append-only",
-                        f"changes {lines} as of {base}; archived entries only take added lines (dated annotations)",
-                        i1 + 1,
-                    )
-                )
-                break
+        problems += _lost_lines(top, rel, base, shown, rule, kept)
     return problems
+
+
+def _lost_lines(top: Path, rel: str, base: str, shown: Path, rule: str, why_kept: str) -> list[Problem]:
+    """The first change to `rel` since `base` that isn't an added line, if any."""
+    if not (top / rel).exists():
+        return [Problem(shown, "append-only", f"existed at {base} and is gone; {why_kept}")]
+    old = _git(top, "show", f"{base}:{rel}").splitlines()
+    new = (top / rel).read_text().splitlines()
+    for tag, i1, i2, _, _ in difflib.SequenceMatcher(None, old, new, autojunk=False).get_opcodes():
+        if tag in ("replace", "delete"):
+            lines = f"line {i1 + 1}" if i2 - i1 == 1 else f"lines {i1 + 1}-{i2}"
+            return [Problem(shown, "append-only", f"changes {lines} as of {base}; {rule}", i1 + 1)]
+    return []
 
 
 # --- editing frontmatter ----------------------------------------------------
@@ -1240,6 +1264,20 @@ def cmd_close(rm: Roadmap, args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_decide(rm: Roadmap, args: argparse.Namespace) -> int:
+    title, body = args.title.strip(), args.body.strip()
+    if not title or "\n" in title:
+        raise UsageError("--title must be one non-empty line")
+    if not body:
+        raise UsageError("--body must say why: the reasoning is what the log is for")
+    path = rm.decisions
+    text = path.read_text() if path.exists() else DECISIONS_INTRO
+    rm.dir.mkdir(parents=True, exist_ok=True)
+    path.write_text(f"{text.rstrip()}\n\n## {_today(args)}: {title}\n\n{body}\n")
+    print(f"Recorded a decision in {path}.")
+    return 0
+
+
 def cmd_merge_driver(rm: Roadmap | None, args: argparse.Namespace) -> int:
     """A git merge driver for README.md and done.md. Git merges the hand-written
     text around the generated block as usual, and the block is taken from this
@@ -1429,6 +1467,13 @@ def build_parser() -> argparse.ArgumentParser:
         "--blocked-on", help="the undecided question (required for 'later', unless it depends on a 'later' item)"
     )
     p.set_defaults(run=cmd_move)
+
+    p = sub.add_parser(
+        "decide", parents=[common, dated], help="append a decision that belongs to no single item to decisions.md"
+    )
+    p.add_argument("--title", required=True, help="the decision, in one line")
+    p.add_argument("--body", required=True, help="why, and what it rules out")
+    p.set_defaults(run=cmd_decide)
 
     p = sub.add_parser("close", parents=[common, dated], help="archive an item that shipped or was declined")
     p.add_argument("id")

@@ -8,6 +8,15 @@ turn a passing `check` red.
 
 ## Unreleased
 
+- **Decisions log** — `roadmap/decisions.md` logs the decisions that belong
+  to no single item, such as a convention or something the project doesn't
+  do. `decide --title "..." --body "..."` appends a dated entry, and `init`
+  writes the file empty. `check --base` holds it append-only like the archive:
+  a decision is reversed by a new entry. SKILL.md searches it along with
+  done.md before proposing work. **Upgrade notes:** nothing to do for `check`.
+  To start a log, run `decide`, which creates the file. Add
+  `roadmap/decisions.md merge=union` to `.gitattributes` so two branches'
+  decisions merge cleanly.
 - **No chart without arrows** — The index leaves out its Mermaid chart when
   no open item depends on another or on a milestone, since it would only
   repeat the list as boxes. One line says so instead. Run `index` after

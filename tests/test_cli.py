@@ -384,6 +384,42 @@ def test_close_hints_at_as_when_shipped_without_it(valid: Path, args: list[str],
     assert ("No --as given" in result.stdout) == hinted
 
 
+def test_decide_creates_the_log_and_appends_dated_entries(valid: Path) -> None:
+    log = valid / "roadmap/decisions.md"
+    log.unlink()
+
+    first = run("decide", "--title", "Ship weekly", "--body", "Smaller releases.", "--date", "2026-10-01", cwd=valid)
+    second = run("decide", "--title", "No epics", "--body", "  Stay KISS.\n", "--date", "2026-10-02", cwd=valid)
+
+    assert first.returncode == 0, first.stderr
+    assert second.returncode == 0, second.stderr
+    assert first.stdout == f"Recorded a decision in {Path('roadmap/decisions.md')}.\n"
+    assert log.read_text() == (
+        roadmap.DECISIONS_INTRO
+        + "\n## 2026-10-01: Ship weekly\n\nSmaller releases.\n"
+        + "\n## 2026-10-02: No epics\n\nStay KISS.\n"
+    )
+    assert run("check", cwd=valid).returncode == 0
+
+
+@pytest.mark.parametrize(
+    ("args", "expected"),
+    [
+        (["--title", "Ship weekly"], "the following arguments are required: --body"),
+        (["--title", "Ship weekly", "--body", " "], "--body must say why"),
+        (["--title", "Two\nlines", "--body", "Why."], "--title must be one non-empty line"),
+    ],
+)
+def test_decide_needs_a_one_line_title_and_the_reasoning(valid: Path, args: list[str], expected: str) -> None:
+    before = (valid / "roadmap/decisions.md").read_text()
+
+    result = run("decide", *args, cwd=valid)
+
+    assert result.returncode == 2
+    assert expected in result.stderr
+    assert (valid / "roadmap/decisions.md").read_text() == before
+
+
 MILESTONES = '[milestones]\nbeta = { title = "Public beta", date = 2026-12-01 }\n'
 
 
