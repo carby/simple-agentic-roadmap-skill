@@ -41,7 +41,6 @@ flowchart LR
   subgraph b_now ["Now"]
     i_decisions_log["A decisions log for decisions that belong to no single item"]
     i_supersedes["Link a re-proposed item to the declined item it supersedes"]
-    i_rerank_within_bucket["Re-rank an item within its bucket"]
     i_agent_behaviour_evals["Evals for how an agent uses the skill, not just for the script"]
     i_review_command["A review command for upkeep that check deliberately skips"]
     i_list_and_split["list and split commands"]
@@ -59,11 +58,10 @@ flowchart LR
   class i_epics,i_gantt_scheduling later
 ```
 
-### Now (10)
+### Now (9)
 
 2. [A decisions log for decisions that belong to no single item](items/decisions-log.md) — filed 2026-10-22
 3. [Link a re-proposed item to the declined item it supersedes](items/supersedes.md) — filed 2026-10-22
-4. [Re-rank an item within its bucket](items/rerank-within-bucket.md) — filed 2026-10-22
 5. [Evals for how an agent uses the skill, not just for the script](items/agent-behaviour-evals.md) — filed 2026-09-25
 6. [A review command for upkeep that check deliberately skips](items/review-command.md) — filed 2026-10-22
 7. [list and split commands](items/list-and-split.md) — filed 2026-10-22
@@ -88,6 +86,7 @@ flowchart LR
 ```bash
 python scripts/roadmap.py new <id> --title "..." --bucket now   # file an item
 python scripts/roadmap.py move <id> --bucket now                # reprioritise (lands above its dependents, else at the bottom)
+python scripts/roadmap.py move <id> --rank 1                    # re-rank (or --above <id>); the items it passes shift
 python scripts/roadmap.py close <id> --outcome shipped --as <change-or-pr>   # in the same branch as the code
 python scripts/roadmap.py index                                 # regenerate this index and done.md
 python scripts/roadmap.py check                                 # what CI runs
