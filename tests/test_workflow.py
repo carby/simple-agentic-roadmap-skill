@@ -4,6 +4,7 @@ SKILL.md relies on."""
 
 from __future__ import annotations
 
+import datetime
 from pathlib import Path
 
 import pytest
@@ -65,7 +66,7 @@ def test_new_move_close(repo: Path) -> None:
        "--body", "Slow. Blocks [the split](split-module.md).", cwd=repo)  # fmt: skip
     ok(repo, "new", "split-module", "--title", "Split the module", "--bucket", "now", "--date", "2026-09-02",
        "--body", "Too big. Needs [the cache](add-cache.md) first.")  # fmt: skip
-    ok(repo, "move", "add-cache", "--bucket", "next")
+    ok(repo, "move", "add-cache", "--bucket", "next", "--date", "2026-09-05")
 
     moved = roadmap.parse(repo / "roadmap/items/add-cache.md")
     assert (moved.meta["bucket"], moved.meta["rank"]) == ("next", 1)
@@ -78,6 +79,7 @@ def test_new_move_close(repo: Path) -> None:
         "id": "add-cache",
         "title": "Add a cache",
         "filed": closed.meta["filed"],
+        "updated": datetime.date(2026, 9, 5),
         "closed": closed.meta["closed"],
         "outcome": "shipped",
         "shipped_as": "pr-7",
