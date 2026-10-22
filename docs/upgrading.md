@@ -17,9 +17,11 @@ git add .claude/skills/roadmap tools/roadmap.py
 git commit -m "chore: upgrade the roadmap skill to <tag>"
 ```
 
-`upgrade` replaces the vendored script, prints `old → new`, and leaves
-`roadmap/` alone. It then runs `check` with the new version, so any rule
-changes show up straight away. It refuses a downgrade, or a copy with local
+`upgrade` replaces the vendored script and prints `old → new`. If the new
+version renders the index differently, it regenerates the generated blocks in
+README.md and done.md and says so; it touches nothing else in `roadmap/`. It
+then runs `check` with the new version, so any rule changes show up straight
+away. It refuses a downgrade, or a copy with local
 edits, unless you pass `--force`.
 
 ## How drift shows up

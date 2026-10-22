@@ -145,21 +145,51 @@ def test_the_graph_boxes_buckets_in_order_and_draws_open_dependencies(tmp_path: 
         "```mermaid",
         "flowchart LR",
         '  subgraph b_now ["Now"]',
-        '    i_a["A"]',
+        '    i_a["1 · A"]',
         "  end",
         '  subgraph b_next ["Next"]',
-        '    i_end["End"]',
+        '    i_end["1 · End"]',
         "  end",
         '  subgraph b_later ["Later"]',
-        '    i_z_z["Z"]',
+        '    i_z_z["1 · Z"]',
         "  end",
         "  b_now ~~~ b_next ~~~ b_later",
         "  i_a --> i_end",
         "  i_end --> i_z_z",
+        "  classDef ready stroke-width: 3px",
+        "  class i_a ready",
         "  classDef later stroke-dasharray: 5 5",
         "  class i_z_z later",
         "```",
     ]
+
+
+def test_an_item_waiting_only_on_shipped_work_is_ready(tmp_path: Path) -> None:
+    rm = make_roadmap(
+        tmp_path,
+        {
+            "items/a.md": item_text(open_meta(id="a")),
+            "items/b.md": item_text(open_meta(id="b", rank=2, depends_on=["a"])),
+            "items/c.md": item_text(open_meta(id="c", rank=3, depends_on=["old"])),
+            "archive/old.md": item_text(closed_meta(id="old")),
+        },
+    )
+    items, _, _ = roadmap.load(rm)
+
+    assert "  class i_a,i_c ready" in roadmap.render_graph(items)
+
+
+@pytest.mark.parametrize(
+    ("title", "short"),
+    [
+        ("Short enough", "Short enough"),
+        ("Evals for how an agent uses the skill, not just for the script", "Evals for how an agent uses the skill…"),
+        ("x" * 50, "x" * 39 + "…"),
+    ],
+)
+def test_long_titles_are_shortened_at_a_word_break(title: str, short: str) -> None:
+    assert roadmap._short(title) == short
+    assert len(roadmap._short(title)) <= 40
 
 
 def test_the_graph_leaves_out_a_chart_with_no_arrows(tmp_path: Path) -> None:
@@ -190,7 +220,7 @@ def test_the_graph_escapes_titles(tmp_path: Path) -> None:
     )
     items, _, _ = roadmap.load(rm)
 
-    assert '    i_a["Fix #35;12: #quot;#lt;b#gt;#quot; in #96;x#96;"]' in roadmap.render_graph(items)
+    assert '    i_a["1 · Fix #35;12: #quot;#lt;b#gt;#quot; in #96;x#96;"]' in roadmap.render_graph(items)
 
 
 MILESTONES = (
@@ -229,10 +259,12 @@ def test_the_graph_draws_the_milestones_open_items_name_as_hexagons(tmp_path: Pa
 
     graph = roadmap.render_graph(items, rm.milestones)
 
-    assert graph[-4:] == [
+    assert graph[-6:] == [
         '  m_beta{{"Public beta (2026-12-01)"}}',
         "  i_a --> m_beta",
         "  m_beta --> i_b",
+        "  classDef ready stroke-width: 3px",
+        "  class i_a ready",  # b waits on the milestone, so it is not ready
         "```",
     ]
     assert not any("m_unused" in line for line in graph)

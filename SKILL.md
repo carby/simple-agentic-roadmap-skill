@@ -97,7 +97,7 @@ link the two attempts.
 | Read the queue without README.md, or script against it | `python tools/roadmap.py list [--bucket now] [--json]` |
 | Verify | `python tools/roadmap.py check` |
 | Spot upkeep: passed milestones, stale Now/Next items | `python tools/roadmap.py review [--days 60]`. It uses today's date and git history, so it is never for CI, and it always exits 0. |
-| Upgrade the vendored script, once the user says yes | `python <skill>/scripts/roadmap.py upgrade`. It replaces `tools/roadmap.py` with the skill's copy and runs `check`. Fix or report what the new rules reject. |
+| Upgrade the vendored script, once the user says yes | `python <skill>/scripts/roadmap.py upgrade`. It replaces `tools/roadmap.py` with the skill's copy, regenerates the index if the new version renders it differently, and runs `check`. Fix or report what the new rules reject. |
 
 **Always finish a roadmap edit with `python tools/roadmap.py check`,** and fix
 every problem it reports. Each problem ends with a rule tag in brackets, such
