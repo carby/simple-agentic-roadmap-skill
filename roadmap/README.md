@@ -42,9 +42,9 @@ work is done. **Close it in the same branch as the code**, so it moves to
 ```mermaid
 flowchart LR
   subgraph b_now ["Now"]
-    i_agent_behaviour_evals["5 · Evals for how an agent uses the skill…"]
-    i_milestone_timeline["11 · A milestone timeline in the roadmap…"]
-    i_npm_installer["12 · Install and upgrade the skill through…"]
+    i_npm_installer["1 · Install and upgrade the skill through…"]
+    i_agent_behaviour_evals["6 · Evals for how an agent uses the skill…"]
+    i_milestone_timeline["12 · A milestone timeline in the roadmap…"]
   end
   subgraph b_next ["Next"]
     i_openspec_command_parity["1 · Survey OpenSpec's CLI commands for…"]
@@ -57,16 +57,16 @@ flowchart LR
   b_now ~~~ b_next ~~~ b_later
   i_npm_installer --> i_openspec_command_parity
   classDef ready stroke-width: 3px
-  class i_agent_behaviour_evals,i_milestone_timeline,i_npm_installer,i_explore_command ready
+  class i_npm_installer,i_agent_behaviour_evals,i_milestone_timeline,i_explore_command ready
   classDef later stroke-dasharray: 5 5
   class i_epics,i_gantt_scheduling later
 ```
 
 ### Now (3)
 
-5. [Evals for how an agent uses the skill, not just for the script](items/agent-behaviour-evals.md) — filed 2026-09-25
-11. [A milestone timeline in the roadmap index](items/milestone-timeline.md) — filed 2026-10-22
-12. [Install and upgrade the skill through an npm package, like OpenSpec](items/npm-installer.md) — filed 2026-10-23
+1. [Install and upgrade the skill through an npm package, like OpenSpec](items/npm-installer.md) — filed 2026-10-23
+6. [Evals for how an agent uses the skill, not just for the script](items/agent-behaviour-evals.md) — filed 2026-09-25
+12. [A milestone timeline in the roadmap index](items/milestone-timeline.md) — filed 2026-10-22
 
 ### Next (2)
 

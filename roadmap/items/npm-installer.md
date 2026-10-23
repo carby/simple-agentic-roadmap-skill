@@ -2,7 +2,7 @@
 id = "npm-installer"
 title = "Install and upgrade the skill through an npm package, like OpenSpec"
 bucket = "now"
-rank = 12
+rank = 1
 filed = 2026-10-23
 
 [refs]
