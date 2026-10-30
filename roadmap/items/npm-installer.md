@@ -18,7 +18,7 @@ It also moves version pinning into `package.json`. A repo lists the package as a
 
 **2026-10-30:** the open questions are answered, and the work is split three ways:
 - **Package name:** `simple-agentic-roadmap-skill`, unscoped, because `roadmap-skill` is taken on npm. The bin is `roadmap`.
-- **Runtime:** TypeScript, one runtime as in OpenSpec. The port is [typescript-port](typescript-port.md), which this item depends on.
+- **Runtime:** TypeScript, one runtime as in OpenSpec. The port is [typescript-port](../archive/typescript-port.md), which this item depends on.
 - **Tools, first:** Claude Code (`.claude/skills/roadmap`) and the shared `.agents/skills/roadmap`, which OpenSpec 1.14.3 uses for Codex, Amp, Antigravity and GSD. More tools are one row each in the tool table.
 - **The vendored script and the migration from submodules** are [npx-ci-migration](npx-ci-migration.md).
 
