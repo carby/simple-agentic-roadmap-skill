@@ -6,6 +6,17 @@ pin. **Upgrade notes** say what you have to do after `upgrade`. Where a release
 changes the rules `check` enforces, it says so there, because a stricter rule can
 turn a passing `check` red.
 
+## Unreleased
+
+- **Milestone history** — A milestone stays in roadmap.toml after its date
+  passes, instead of being deleted. done.md lists each milestone the archive
+  names, newest first, with how many items shipped or were declined for it,
+  and each closed line names its milestone. `review` flags a passed milestone
+  only while an open item still names it. An archived item naming a milestone
+  roadmap.toml no longer declares shows the bare id, and `check` accepts it.
+  **Upgrade notes:** `upgrade` regenerates done.md if the archive names
+  milestones. Nothing changes for `check`.
+
 ## 1.4.0 — 2026-10-22
 
 - **Chart** — Each item's box in the roadmap chart starts with its rank, and

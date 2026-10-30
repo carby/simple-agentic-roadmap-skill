@@ -64,9 +64,11 @@ it is due for, and it can't depend on an item that is due for a later
 milestone than its own. A `later` item due for a milestone makes the items
 waiting on it `later` too, without a `blocked_on` of their own. Dates order
 milestones against each other, never against today, so `check` gives the same
-answer every day. Once a milestone has passed, drop the `depends_on` entries
-that name it and then delete it from roadmap.toml. Archived items may still
-name it, because they are history. Milestones need roadmap.py 1.3.0 or later,
+answer every day. Once a milestone has passed, keep it in roadmap.toml as
+history: done.md lists it with the archived items due for it. Re-date it, or
+re-target the open items still due for it, and drop the `depends_on` entries
+that name it. An archived item may name a milestone roadmap.toml no longer
+declares; done.md then shows the bare id. Milestones need roadmap.py 1.3.0 or later,
 because older versions reject the `[milestones]` table.
 
 **People decide the bucket.** When filing an item, suggest a bucket and ask

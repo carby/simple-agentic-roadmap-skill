@@ -36,6 +36,7 @@ import shutil
 import subprocess
 import sys
 import tomllib
+from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
 from urllib.parse import unquote
@@ -841,12 +842,22 @@ def _dependency(dep_id: str, by_id: dict[str, Item], milestones: dict[str, Miles
     return f"[{dep.title}](items/{dep.path.name})"
 
 
-def render_done(archived: list[Item], items: list[Item] | tuple[Item, ...] = ()) -> str:
+def render_done(
+    archived: list[Item],
+    items: list[Item] | tuple[Item, ...] = (),
+    milestones: dict[str, Milestone] | None = None,
+) -> str:
     """done.md's block: one line per closed item, newest first, grouped by the
     month it closed. Each line is short enough to grep, and it links to the full
     entry. A declined item that another item tries again links to it, so a
     search that finds the old idea finds the new attempt too. `items` are the
-    open items, consulted only for that."""
+    open items, consulted only for that.
+
+    Milestones the archive names are listed first, newest first, with what
+    shipped for them, and each closed line names its milestone, so a passed
+    milestone stays readable as history. One roadmap.toml no longer declares
+    shows as its bare id, after the declared ones."""
+    milestones = milestones or {}
     retries: dict[str, list[Item]] = {}
     for other in [*items, *archived]:
         if isinstance(old_id := other.meta.get("supersedes"), str):
@@ -854,6 +865,14 @@ def render_done(archived: list[Item], items: list[Item] | tuple[Item, ...] = ())
     lines = [DONE_BEGIN, ""]
     if not archived:
         lines += ["*Empty.*", ""]
+    if named := _done_milestones(archived, milestones):
+        lines += [f"### Milestones ({len(named)})", ""]
+        for mid, group in named.items():
+            outcomes = Counter(str(i.meta.get("outcome")) for i in group)
+            counts = ", ".join(f"{outcomes[o]} {o}" for o in ("shipped", "declined") if outcomes[o])
+            m = milestones.get(mid)
+            lines.append(f"- **{m.title if m else mid}**" + (f" — {m.date}" if m else "") + f": {counts}")
+        lines.append("")
     groups: dict[str, list[Item]] = {}
     for item in archived:
         groups.setdefault(str(item.meta.get("closed", "undated"))[:7], []).append(item)
@@ -865,13 +884,29 @@ def render_done(archived: list[Item], items: list[Item] | tuple[Item, ...] = ())
             if item.meta.get("outcome") == "declined" and (by := retries.get(item.id)):
                 links = (f"[{o.title}]({'archive' if o.archived else 'items'}/{o.path.name})" for o in by)
                 superseded = f" — superseded by {', '.join(links)}"
+            due = ""
+            if isinstance(mid := item.meta.get("milestone"), str):
+                due = f" — for {milestones.get(mid, mid)}"
             lines.append(
                 f"- **{item.meta.get('outcome')}** [{item.title}](archive/{item.path.name})"
-                f" — closed {item.meta.get('closed')}{shipped_as}{superseded}"
+                f" — closed {item.meta.get('closed')}{shipped_as}{due}{superseded}"
             )
         lines.append("")
     lines.append(DONE_END)
     return "\n".join(lines)
+
+
+def _done_milestones(archived: list[Item], milestones: dict[str, Milestone]) -> dict[str, list[Item]]:
+    """The milestones closed items were due for, each with those items: the
+    declared ones newest first, then any roadmap.toml no longer declares, by id."""
+    named: dict[str, list[Item]] = {}
+    for item in archived:
+        if isinstance(mid := item.meta.get("milestone"), str):
+            named.setdefault(mid, []).append(item)
+    declared = sorted(
+        (mid for mid in named if mid in milestones), key=lambda mid: (milestones[mid].date, mid), reverse=True
+    )
+    return {mid: named[mid] for mid in [*declared, *sorted(mid for mid in named if mid not in milestones)]}
 
 
 def _block_span(text: str, begin: str, end: str) -> tuple[int, int] | None:
@@ -895,7 +930,7 @@ def splice(text: str, begin: str, end: str, block: str, path: Path) -> str:
 def _generated_targets(rm: Roadmap, items: list[Item], archived: list[Item]) -> list[tuple[Path, str, str, str]]:
     return [
         (rm.readme, INDEX_BEGIN, INDEX_END, render_index(items, archived, rm.milestones)),
-        (rm.done, DONE_BEGIN, DONE_END, render_done(archived, items)),
+        (rm.done, DONE_BEGIN, DONE_END, render_done(archived, items, rm.milestones)),
     ]
 
 
@@ -1139,11 +1174,16 @@ def cmd_review(rm: Roadmap, args: argparse.Namespace) -> int:
     found = False
 
     for m in sorted((m for m in rm.milestones.values() if m.date < today), key=lambda m: (m.date, m.id)):
-        if not found:
-            print("Milestones that have passed (move the date, or drop it and the references to it):")
-            found = True
         due = [i.id for i in items if _due(i, rm.milestones) == m]
         waiting = [i.id for i in items if m in _awaited(i, by_id, rm.milestones)]
+        if not (due or waiting):
+            continue  # history: done.md lists it with what shipped for it
+        if not found:
+            print(
+                "Milestones that have passed but open items still name (re-date them, or re-target the items"
+                " due for them and drop them from depends_on):"
+            )
+            found = True
         names = (["due: " + ", ".join(due)] if due else []) + (["waiting: " + ", ".join(waiting)] if waiting else [])
         print(f"  {m.id}: {m}, {(today - m.date).days} days ago" + (f"; {'; '.join(names)}" if names else ""))
 

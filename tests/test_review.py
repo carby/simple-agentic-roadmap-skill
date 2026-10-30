@@ -9,7 +9,7 @@ import os
 import subprocess
 from pathlib import Path
 
-from conftest import item_text, make_roadmap, open_meta, run
+from conftest import closed_meta, item_text, make_roadmap, open_meta, run
 
 D = datetime.date
 MILESTONES = (
@@ -52,9 +52,21 @@ def test_passed_milestones_are_listed_with_the_items_that_name_them(tmp_path: Pa
 
     lines = review(tmp_path, "--date", "2026-11-11")
 
-    assert lines[0].startswith("Milestones that have passed")
+    assert lines[0].startswith("Milestones that have passed but open items still name")
     assert lines[1] == "  alpha: Alpha (2026-11-01), 10 days ago; due: a; waiting: b"
     assert not any("beta" in line for line in lines)
+
+
+def test_a_passed_milestone_nothing_open_names_is_history(tmp_path: Path) -> None:
+    make_roadmap(
+        tmp_path,
+        {
+            "roadmap.toml": MILESTONES,
+            "archive/a.md": item_text(closed_meta(id="a", milestone="alpha")),
+        },
+    )
+
+    assert review(tmp_path, "--date", "2026-12-15")[-1] == "Nothing to review."
 
 
 def test_a_milestone_due_today_has_not_passed(tmp_path: Path) -> None:
