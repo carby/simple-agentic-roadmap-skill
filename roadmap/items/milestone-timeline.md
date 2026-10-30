@@ -2,7 +2,7 @@
 id = "milestone-timeline"
 title = "A milestone timeline in the roadmap index"
 bucket = "now"
-rank = 13
+rank = 15
 filed = 2026-10-22
 
 [refs]

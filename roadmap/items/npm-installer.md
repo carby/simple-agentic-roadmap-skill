@@ -2,8 +2,9 @@
 id = "npm-installer"
 title = "Install and upgrade the skill through an npm package, like OpenSpec"
 bucket = "now"
-rank = 1
+rank = 2
 filed = 2026-10-23
+depends_on = ["typescript-port"]
 
 [refs]
 files = ["docs/install.md"]
@@ -15,10 +16,16 @@ The skill is installed as a git submodule at `.claude/skills/roadmap`, with the 
 
 It also moves version pinning into `package.json`. A repo lists the package as a dev dependency next to `@fission-ai/openspec`, the lockfile pins the version, and `update` writes that version's skill. Every developer then gets the same version, upgrades go through the repo's normal dependency updates, and one manifest controls both tools. Today that pin is the submodule's commit.
 
-Done looks like an npm package whose `init` and `update` commands install and upgrade the skill into the AI tools a developer chooses, with `.claude/skills/` gitignored in the repo and the install docs rewritten around it. Open questions the work has to answer:
+**2026-10-30:** the open questions are answered, and the work is split three ways:
+- **Package name:** `simple-agentic-roadmap-skill`, unscoped, because `roadmap-skill` is taken on npm. The bin is `roadmap`.
+- **Runtime:** TypeScript, one runtime as in OpenSpec. The port is [typescript-port](typescript-port.md), which this item depends on.
+- **Tools, first:** Claude Code (`.claude/skills/roadmap`) and the shared `.agents/skills/roadmap`, which OpenSpec 1.14.3 uses for Codex, Amp, Antigravity and GSD. More tools are one row each in the tool table.
+- **The vendored script and the migration from submodules** are [npx-ci-migration](npx-ci-migration.md).
 
-- the package name;
-- whether `tools/roadmap.py` stays vendored, since `check` in CI (`action.yml`) runs it and must not depend on each developer's install. With the version pinned in `package.json`, CI could run the pinned package instead (e.g. via `npx`), which would make the vendored copy unnecessary;
-- which runtime the CLI uses. OpenSpec is all TypeScript (no Python in the repo), so its skills can count on the `openspec` CLI that npm installed. Ours is Python, so the options are: ship `roadmap.py` in the npm package behind a Node `bin` (developers and CI need both Node and Python); rewrite the CLI in TypeScript (one runtime, but the script, tests and `action.yml` are rewritten); or have npm install only the skill files and keep `tools/roadmap.py` vendored for CI (Python stays the only runtime for `check`, but the version is pinned in two places). This decides the vendored-script question above;
-- which AI tools are supported first, and where each one expects skills;
-- how existing submodule installs migrate.
+Done looks like:
+- The package is published.
+- `roadmap init [--tools claude,agents]` writes `roadmap/` and copies SKILL.md, `references/` and `assets/` into each tool's `skills/roadmap/`.
+- `roadmap update` refreshes every tool directory that already has the skill, and regenerates the index if the new version renders it differently, as `upgrade` does today.
+- SKILL.md's commands run through the package's bin.
+- `.claude/skills/` is gitignored in the repo.
+- The install docs are rewritten around the package.

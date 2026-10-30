@@ -42,9 +42,11 @@ work is done. **Close it in the same branch as the code**, so it moves to
 ```mermaid
 flowchart LR
   subgraph b_now ["Now"]
-    i_npm_installer["1 · Install and upgrade the skill through…"]
-    i_agent_behaviour_evals["6 · Evals for how an agent uses the skill…"]
-    i_milestone_timeline["13 · A milestone timeline in the roadmap…"]
+    i_typescript_port["1 · Port roadmap.py to TypeScript with…"]
+    i_npm_installer["2 · Install and upgrade the skill through…"]
+    i_npx_ci_migration["3 · Run check in CI through the npm…"]
+    i_agent_behaviour_evals["8 · Evals for how an agent uses the skill…"]
+    i_milestone_timeline["15 · A milestone timeline in the roadmap…"]
   end
   subgraph b_next ["Next"]
     i_openspec_command_parity["1 · Survey OpenSpec's CLI commands for…"]
@@ -55,18 +57,22 @@ flowchart LR
     i_gantt_scheduling["4 · Gantt scheduling: estimates and dates…"]
   end
   b_now ~~~ b_next ~~~ b_later
+  i_typescript_port --> i_npm_installer
+  i_npm_installer --> i_npx_ci_migration
   i_npm_installer --> i_openspec_command_parity
   classDef ready stroke-width: 3px
-  class i_npm_installer,i_agent_behaviour_evals,i_milestone_timeline,i_explore_command ready
+  class i_typescript_port,i_agent_behaviour_evals,i_milestone_timeline,i_explore_command ready
   classDef later stroke-dasharray: 5 5
   class i_epics,i_gantt_scheduling later
 ```
 
-### Now (3)
+### Now (5)
 
-1. [Install and upgrade the skill through an npm package, like OpenSpec](items/npm-installer.md) — filed 2026-10-23
-6. [Evals for how an agent uses the skill, not just for the script](items/agent-behaviour-evals.md) — filed 2026-09-25
-13. [A milestone timeline in the roadmap index](items/milestone-timeline.md) — filed 2026-10-22
+1. [Port roadmap.py to TypeScript with byte-identical output](items/typescript-port.md) — filed 2026-10-30
+2. [Install and upgrade the skill through an npm package, like OpenSpec](items/npm-installer.md) — filed 2026-10-23<br>  **Depends on:** [Port roadmap.py to TypeScript with byte-identical output](items/typescript-port.md)
+3. [Run check in CI through the npm package, and migrate submodule installs](items/npx-ci-migration.md) — filed 2026-10-30<br>  **Depends on:** [Install and upgrade the skill through an npm package, like OpenSpec](items/npm-installer.md)
+8. [Evals for how an agent uses the skill, not just for the script](items/agent-behaviour-evals.md) — filed 2026-09-25
+15. [A milestone timeline in the roadmap index](items/milestone-timeline.md) — filed 2026-10-22
 
 ### Next (2)
 
