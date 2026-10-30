@@ -8,19 +8,20 @@ import datetime
 from pathlib import Path
 
 import pytest
-from conftest import SCRIPT, roadmap, run
+from conftest import IMPL, SCRIPT, roadmap, run
 
 
 @pytest.fixture
 def repo(tmp_path: Path) -> Path:
-    result = run("init", cwd=tmp_path)
+    result = run("init", cwd=tmp_path, python=True)
     assert result.returncode == 0, result.stderr
     return tmp_path
 
 
 def ok(repo: Path, *args: str) -> str:
-    """Run a command through the *vendored* copy, then require a clean check."""
-    vendored = repo / "tools/roadmap.py"
+    """Run a command through the *vendored* copy, then require a clean check.
+    Under ROADMAP_IMPL=ts, through the TypeScript bin instead."""
+    vendored = SCRIPT if IMPL == "ts" else repo / "tools/roadmap.py"
     result = run(*args, cwd=repo, script=vendored)
     assert result.returncode == 0, result.stderr
     checked = run("check", cwd=repo, script=vendored)
@@ -28,6 +29,7 @@ def ok(repo: Path, *args: str) -> str:
     return result.stdout
 
 
+@pytest.mark.python_only
 def test_init_creates_a_valid_roadmap_and_vendors_the_script(repo: Path) -> None:
     assert (repo / "tools/roadmap.py").read_bytes() == SCRIPT.read_bytes()
     for name in ("README.md", "done.md", "decisions.md", "roadmap.toml", "items/.gitkeep", "archive/.gitkeep"):
@@ -37,12 +39,14 @@ def test_init_creates_a_valid_roadmap_and_vendors_the_script(repo: Path) -> None
     assert run("check", cwd=repo).returncode == 0
 
 
+@pytest.mark.python_only
 def test_the_vendored_copy_logs_a_decision(repo: Path) -> None:
     ok(repo, "decide", "--title", "Ship weekly", "--body", "Smaller releases.")
 
     assert "## " in (repo / "roadmap/decisions.md").read_text()
 
 
+@pytest.mark.python_only
 def test_init_only_initialises(tmp_path: Path) -> None:
     """CI setup is the README's job. init says what it created and nothing else."""
     result = run("init", "--script", "bin/roadmap.py", cwd=tmp_path)
@@ -51,6 +55,7 @@ def test_init_only_initialises(tmp_path: Path) -> None:
     assert (tmp_path / "bin/roadmap.py").exists()
 
 
+@pytest.mark.python_only
 def test_init_refuses_to_overwrite_a_roadmap(repo: Path) -> None:
     result = run("init", cwd=repo)
 
@@ -58,6 +63,7 @@ def test_init_refuses_to_overwrite_a_roadmap(repo: Path) -> None:
     assert "refusing to overwrite" in result.stderr
 
 
+@pytest.mark.python_only
 def test_init_needs_the_skills_copy(repo: Path) -> None:
     """The vendored copy has no template next to it."""
     result = run("init", "--dir", "other", cwd=repo, script=repo / "tools/roadmap.py")
@@ -160,6 +166,7 @@ def vendor_as(repo: Path, version: str) -> Path:
     return vendored
 
 
+@pytest.mark.python_only
 def test_upgrade_replaces_an_older_vendored_copy_and_leaves_the_roadmap_alone(repo: Path) -> None:
     vendored = vendor_as(repo, "0.9.0")
     before = {p: p.read_bytes() for p in (repo / "roadmap").rglob("*") if p.is_file()}
@@ -173,6 +180,7 @@ def test_upgrade_replaces_an_older_vendored_copy_and_leaves_the_roadmap_alone(re
     assert {p: p.read_bytes() for p in (repo / "roadmap").rglob("*") if p.is_file()} == before
 
 
+@pytest.mark.python_only
 def test_upgrade_regenerates_an_index_the_old_script_rendered(repo: Path) -> None:
     vendor_as(repo, "0.9.0")
     ok(repo, "new", "some-work", "--title", "T", "--bucket", "now", "--body", "Why.")
@@ -186,6 +194,7 @@ def test_upgrade_regenerates_an_index_the_old_script_rendered(repo: Path) -> Non
     assert "1. [T](items/some-work.md)" in readme.read_text()
 
 
+@pytest.mark.python_only
 def test_upgrade_refuses_a_downgrade_unless_forced(repo: Path) -> None:
     vendored = vendor_as(repo, "99.0.0")
 
@@ -199,6 +208,7 @@ def test_upgrade_refuses_a_downgrade_unless_forced(repo: Path) -> None:
     assert vendored.read_bytes() == SCRIPT.read_bytes()
 
 
+@pytest.mark.python_only
 def test_upgrade_to_the_same_version_is_a_no_op(repo: Path) -> None:
     result = run("upgrade", cwd=repo)
 
@@ -206,6 +216,7 @@ def test_upgrade_to_the_same_version_is_a_no_op(repo: Path) -> None:
     assert result.stdout == f"tools/roadmap.py is already roadmap.py {roadmap.__version__}.\n"
 
 
+@pytest.mark.python_only
 def test_upgrade_keeps_local_edits_unless_forced(repo: Path) -> None:
     vendored = repo / "tools/roadmap.py"
     vendored.write_text(vendored.read_text() + "# a local patch\n")
@@ -217,6 +228,7 @@ def test_upgrade_keeps_local_edits_unless_forced(repo: Path) -> None:
     assert vendored.read_text().endswith("# a local patch\n")
 
 
+@pytest.mark.python_only
 def test_upgrade_needs_the_skills_copy_and_a_vendored_one(repo: Path) -> None:
     itself = run("upgrade", cwd=repo, script=repo / "tools/roadmap.py")
     missing = run("upgrade", "--script", "bin/roadmap.py", cwd=repo)
@@ -225,6 +237,7 @@ def test_upgrade_needs_the_skills_copy_and_a_vendored_one(repo: Path) -> None:
     assert missing.returncode == 2 and "bin/roadmap.py does not exist" in missing.stderr
 
 
+@pytest.mark.python_only
 def test_upgrade_reports_what_the_new_rules_reject(repo: Path) -> None:
     vendor_as(repo, "0.9.0")
     ok(repo, "new", "some-work", "--title", "T", "--bucket", "now", "--body", "Why.")
@@ -238,6 +251,7 @@ def test_upgrade_reports_what_the_new_rules_reject(repo: Path) -> None:
     assert "[body]" in result.stderr and "the release notes say what changed" in result.stderr
 
 
+@pytest.mark.python_only
 def test_the_skills_copy_warns_when_the_vendored_copy_is_older(repo: Path) -> None:
     assert "warning" not in run("check", cwd=repo).stderr
     vendor_as(repo, "0.9.0")
