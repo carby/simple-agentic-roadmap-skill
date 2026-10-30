@@ -13,6 +13,7 @@ dev = ["pytest>=8", "ruff>=0.6"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = ["python_only: needs scripts/roadmap.py itself (init, upgrade, vendoring); skipped with ROADMAP_IMPL=ts"]
 
 [tool.ruff]
 line-length = 120
