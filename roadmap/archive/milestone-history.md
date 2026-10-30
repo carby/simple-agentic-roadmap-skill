@@ -1,9 +1,10 @@
 +++
 id = "milestone-history"
 title = "Keep passed milestones, and show what shipped for them"
-bucket = "now"
-rank = 12
 filed = 2026-10-30
+closed = 2026-10-30
+outcome = "shipped"
+shipped_as = "#15"
 
 [refs]
 files = ["scripts/roadmap.py", "references/conventions.md"]
@@ -18,3 +19,5 @@ Done looks like:
 - `review` flags a passed milestone only while an open item still names it.
 - `done.md` lists each milestone that archived items name, with its date and how many shipped or were declined. Each closed line that names a milestone says which one, so `grep beta done.md` finds everything that shipped for it.
 - An archived item naming a milestone that is no longer declared shows the bare id and isn't a `check` failure, so roadmaps that followed the old convention stay green.
+
+**Outcome (2026-10-30):** shipped in #15, as planned. `done.md` puts a `### Milestones` list at the top of its block, newest first, with shipped and declined counts, and tags each closed line ` — for <Milestone> (<date>)`. A roadmap with no milestones renders exactly as before, so `upgrade` rewrites nothing for it. The milestone list gives counts and doesn't link the items: the tagged lines below it are what `grep` finds. `milestone-timeline` can now draw passed milestones too.
