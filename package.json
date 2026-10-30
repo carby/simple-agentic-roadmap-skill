@@ -1,0 +1,34 @@
+{
+  "name": "simple-agentic-roadmap-skill",
+  "version": "1.5.0",
+  "private": true,
+  "description": "A Now/Next/Later roadmap kept as one Markdown file per item, checked in CI.",
+  "license": "MIT",
+  "author": "Tommy Derngren",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/carby/simple-agentic-roadmap-skill.git"
+  },
+  "type": "module",
+  "bin": {
+    "roadmap": "bin/roadmap.js"
+  },
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "lint": "biome ci ."
+  },
+  "dependencies": {
+    "smol-toml": "^1.6.1"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.3.8",
+    "@types/node": "^22.19.1",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}

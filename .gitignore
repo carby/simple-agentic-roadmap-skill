@@ -6,3 +6,7 @@ __pycache__/
 # Obsidian: only docs/.obsidian/app.json is shared
 docs/.obsidian/*
 !docs/.obsidian/app.json
+
+# Node
+node_modules/
+dist/
