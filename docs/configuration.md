@@ -28,6 +28,10 @@ Declare each one with a title and a date, then file items with
 beta = { title = "Public beta", date = 2026-12-01 }
 ```
 
+Keep a milestone after its date passes. `done.md` lists it, with the
+archived items that were due for it. `review` flags it only while an open
+item still names it.
+
 How milestones relate to buckets and `depends_on` is in [Concepts](concepts.md).
 
 ---
