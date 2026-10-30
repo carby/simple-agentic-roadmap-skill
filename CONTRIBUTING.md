@@ -28,6 +28,22 @@ uv run pytest tests/test_rules.py -k bucket    # one rule's cases
 uv run ruff check . && uv run ruff format --check .
 ```
 
+### The TypeScript port
+
+`src/` is a TypeScript port of `scripts/roadmap.py`, on its way to replacing
+it (see [typescript-port](roadmap/archive/typescript-port.md)). Until then the
+Python suite is its spec: with `ROADMAP_IMPL=ts`, every test that runs the
+script as a subprocess runs the built `bin/roadmap.js` instead, and every
+in-process `check` is repeated through it and has to report the same
+problems. Tests marked `python_only` cover what the port leaves out (`init`,
+`upgrade`). vitest covers the TypeScript-only parts.
+
+```bash
+npm ci
+npx biome ci . && npx tsc --noEmit && npx vitest run
+npm run build && ROADMAP_IMPL=ts uv run pytest
+```
+
 | File | Covers |
 |---|---|
 | `tests/test_rules.py` | one failing case per rule tag, plus what the rules deliberately allow. `test_every_rule_has_a_failing_case` fails if a tag in `RULES` has no case. |

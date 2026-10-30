@@ -6,6 +6,14 @@ pin. **Upgrade notes** say what you have to do after `upgrade`. Where a release
 changes the rules `check` enforces, it says so there, because a stricter rule can
 turn a passing `check` red.
 
+## Unreleased
+
+- **TypeScript port** — `src/` holds a TypeScript port of `roadmap.py`: every
+  command except `init` and `upgrade`, with the same messages and
+  byte-identical generated blocks. It isn't published or used by the action
+  yet, so nothing changes for a repo using the skill. It's the first step
+  towards installing through npm.
+
 ## 1.5.0 — 2026-10-30
 
 - **Milestone history** — A milestone stays in roadmap.toml after its date
