@@ -6,7 +6,7 @@ pin. **Upgrade notes** say what you have to do after `upgrade`. Where a release
 changes the rules `check` enforces, it says so there, because a stricter rule can
 turn a passing `check` red.
 
-## Unreleased
+## 1.5.0 — 2026-10-30
 
 - **Milestone history** — A milestone stays in roadmap.toml after its date
   passes, instead of being deleted. done.md lists each milestone the archive
