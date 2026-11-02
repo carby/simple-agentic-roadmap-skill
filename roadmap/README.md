@@ -46,10 +46,11 @@ work is done. **Close it in the same branch as the code**, so it moves to
 9. [Evals for how an agent uses the skill, not just for the script](items/agent-behaviour-evals.md) — filed 2026-09-25
 16. [A milestone timeline in the roadmap index](items/milestone-timeline.md) — filed 2026-10-22
 
-### Next (2)
+### Next (3)
 
 1. [Survey OpenSpec's CLI commands for ones the roadmap lacks](items/openspec-command-parity.md) — filed 2026-10-23<br>  **Depends on:** [Install and upgrade the skill through an npm package, like OpenSpec](archive/npm-installer.md) (shipped)
 2. [An explore command that turns a fuzzy problem into roadmap items](items/explore-command.md) — filed 2026-10-23
+3. [Test with node:test instead of vitest](items/node-test-runner.md) — filed 2026-11-02
 
 ### Later (2)
 
