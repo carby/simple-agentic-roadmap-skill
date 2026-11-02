@@ -6,7 +6,7 @@ rank = 16
 filed = 2026-10-22
 
 [refs]
-files = ["scripts/roadmap.py"]
+files = ["src/render.ts"]
 +++
 
 Milestones have dates, but the index only shows them as hexagons in the flowchart, with nothing placing them in time. Since [milestone-history](../archive/milestone-history.md), passed milestones stay in roadmap.toml, and done.md lists them with what shipped for them, but no view puts past and coming milestones on one line.
