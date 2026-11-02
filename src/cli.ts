@@ -17,6 +17,7 @@ import {
   err,
   out,
 } from "./commands.ts";
+import { cmdInit, cmdUpdate, TOOLS } from "./install.ts";
 import { BUCKETS, OUTCOMES, openRoadmap, type Roadmap, UsageError, VERSION } from "./model.ts";
 import { Day, repr } from "./py.ts";
 
@@ -72,6 +73,25 @@ const BLOCKED_ON: Option = {
 };
 
 export const COMMANDS: Record<string, Command> = {
+  init: {
+    help: "set up a roadmap, and install the skill into each tool's skills directory",
+    run: (rm, args) => cmdInit(rm as Roadmap, args),
+    options: [
+      DIR,
+      {
+        flag: "--tools",
+        dest: "tools",
+        default: "claude",
+        metavar: "TOOL,...",
+        help: `comma-separated, from ${Object.keys(TOOLS).join(", ")} (default: claude)`,
+      },
+    ],
+  },
+  update: {
+    help: "refresh every installed copy of the skill from this package, then regenerate and check",
+    run: (rm, args) => cmdUpdate(rm as Roadmap, args),
+    options: [DIR, { flag: "--force", dest: "force", kind: "flag", help: "overwrite a copy newer than this package" }],
+  },
   check: {
     help: "validate everything; exit 1 on any problem (for CI)",
     run: (rm, args) => cmdCheck(rm as Roadmap, args),

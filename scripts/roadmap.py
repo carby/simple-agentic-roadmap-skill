@@ -1542,7 +1542,11 @@ def cmd_init(rm: Roadmap, args: argparse.Namespace) -> int:
     for src, dest in targets.items():
         dest.parent.mkdir(parents=True, exist_ok=True)
         if src.suffix in (".md", ".toml"):
-            dest.write_text(src.read_text().replace("{{script}}", script.as_posix()))
+            dest.write_text(
+                src.read_text()
+                .replace("{{command}}", f"python {script.as_posix()}")
+                .replace("{{script}}", script.as_posix())
+            )
         else:
             shutil.copyfile(src, dest)
     if not (script.exists() and script.resolve() == Path(__file__).resolve()):
