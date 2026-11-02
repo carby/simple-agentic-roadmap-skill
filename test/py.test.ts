@@ -1,9 +1,10 @@
 // The Python behaviours the port reproduces. Each expected value was printed
 // by CPython 3.12, so these hold the helpers to the real thing.
 
+import { parse as parseToml } from "smol-toml";
 import { describe, expect, test } from "vitest";
 import { opcodes } from "../src/git.ts";
-import { Day, Float, jsonDumps, repr, splitlines, str, unquote } from "../src/py.ts";
+import { Day, Float, fromToml, isDict, jsonDumps, repr, splitlines, str, unquote } from "../src/py.ts";
 
 describe("repr", () => {
   test.each([
@@ -88,5 +89,19 @@ describe("opcodes matches difflib.SequenceMatcher", () => {
       ["equal", 0, 2, 3, 5],
       ["delete", 2, 5, 5, 5],
     ]);
+  });
+});
+
+test("a TOML table is a dict, whatever prototype the parser gives it", () => {
+  // smol-toml 1.9 returns tables with a null prototype; 1.6 returned plain objects.
+  const parsed = parseToml('[refs]\nspecs = "specs/{}"\n[milestones]\nbeta = { title = "B", date = 2026-12-01 }\n');
+
+  expect(isDict(parsed.refs)).toBe(true);
+  expect(isDict(Object.create(null))).toBe(true);
+  expect(isDict({})).toBe(true);
+  for (const value of [null, [], "x", 1, new Day(2026, 1, 1), new Float(1.5)]) expect(isDict(value)).toBe(false);
+  expect(fromToml(parsed)).toEqual({
+    refs: { specs: "specs/{}" },
+    milestones: { beta: { title: "B", date: new Day(2026, 12, 1) } },
   });
 });
