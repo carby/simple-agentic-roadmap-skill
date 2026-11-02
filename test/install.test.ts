@@ -124,3 +124,10 @@ test("stamping replaces an existing version and keeps the rest", () => {
   expect(stamped(once, "2.0.0")).toBe(stamped(skill, "2.0.0"));
   expect(once.replace('  version: "1.2.3"\n', "")).toBe(skill);
 });
+
+test("stamping is linear on long runs of indented whitespace", () => {
+  const skill = `---\nname: x\nmetadata:\n${"\t\t\n".repeat(50_000)}---\n`;
+  const start = performance.now();
+  expect(stamped(skill, "1.0.0")).toBe(skill.replace("metadata:\n", 'metadata:\n  version: "1.0.0"\n'));
+  expect(performance.now() - start).toBeLessThan(1000);
+});
