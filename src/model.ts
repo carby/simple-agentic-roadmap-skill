@@ -13,7 +13,7 @@ import { parse as parseToml, TomlError } from "smol-toml";
 import { join, normpath, stem } from "./pathlib.ts";
 import { cmp, Day, fromToml, isDict, isInt, readText, repr, str } from "./py.ts";
 
-export const VERSION = "2.0.0";
+export const VERSION = "2.0.1";
 
 export const BUCKETS = ["now", "next", "later"] as const;
 export type Bucket = (typeof BUCKETS)[number];

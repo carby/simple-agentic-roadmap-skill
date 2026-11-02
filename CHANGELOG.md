@@ -7,7 +7,7 @@ notes** say what you have to do after `update`. Where a release changes the
 rules `check` enforces, it says so there, because a stricter rule can turn a
 passing `check` red.
 
-## Unreleased
+## 2.0.1 — 2026-11-02
 
 - **`init` hints only at steps still to do** — after setting up a roadmap,
   `init` used to tell you to gitignore the tool directories and pin the
