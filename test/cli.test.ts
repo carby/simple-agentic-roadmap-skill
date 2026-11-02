@@ -3,6 +3,7 @@
 import { existsSync, readdirSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, test } from "vitest";
+import { COMMANDS } from "../src/cli.ts";
 import { DECISIONS_INTRO, load, openRoadmap, parse, VERSION } from "../src/model.ts";
 import { D, itemText, makeRoadmap, openMeta, type Result, run, snapshot, tempDir, validCopy } from "./helpers.ts";
 
@@ -97,6 +98,25 @@ test("a broken config is a usage error", () => {
   expect(result.status).toBe(2);
   expect(result.stderr.startsWith("error: ")).toBe(true);
   expect(result.stderr).toContain("[config]");
+});
+
+test("the CLI has exactly these commands", () => {
+  expect(Object.keys(COMMANDS).sort()).toEqual(
+    [
+      "check",
+      "close",
+      "decide",
+      "index",
+      "init",
+      "list",
+      "merge-driver",
+      "move",
+      "new",
+      "review",
+      "split",
+      "update",
+    ].sort(),
+  );
 });
 
 test("--version", () => {

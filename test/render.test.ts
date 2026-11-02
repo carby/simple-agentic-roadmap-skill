@@ -4,8 +4,8 @@
 import { join } from "node:path";
 import { describe, expect, test } from "vitest";
 import { check } from "../src/commands.ts";
-import { INDEX_BEGIN, INDEX_END, load, openRoadmap, UsageError } from "../src/model.ts";
-import { len } from "../src/py.ts";
+import { DONE_BEGIN, DONE_END, INDEX_BEGIN, INDEX_END, load, openRoadmap, UsageError } from "../src/model.ts";
+import { len, readText } from "../src/py.ts";
 import { renderDone, renderGraph, renderIndex, short, splice } from "../src/render.ts";
 import { closedMeta, D, FIXTURES, itemText, makeRoadmap, openMeta, tempDir } from "./helpers.ts";
 
@@ -15,7 +15,12 @@ test("the committed fixture is what the renderer produces", () => {
   // The fixture's README.md and done.md are the golden files. To regenerate
   // them, run `node bin/roadmap.js index --dir test/fixtures/valid/roadmap`.
   const rm = openRoadmap(join(FIXTURES, "valid", "roadmap"));
+  const [items, archived] = load(rm);
+  const block = (text: string, begin: string, end: string) =>
+    text.slice(text.indexOf(begin), text.indexOf(end) + end.length);
 
+  expect(renderIndex(items, archived, rm.milestones)).toBe(block(readText(rm.readme), INDEX_BEGIN, INDEX_END));
+  expect(renderDone(archived, items, rm.milestones)).toBe(block(readText(rm.done), DONE_BEGIN, DONE_END));
   expect(strings(check(rm))).toEqual([]);
 });
 

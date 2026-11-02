@@ -33,7 +33,7 @@ agents do, so `test/global-setup.ts` runs `npm run build` before the suite.
 | File | Covers |
 |---|---|
 | `test/rules.test.ts` | one failing case per rule tag, plus what the rules deliberately allow. "every rule has a failing case" fails if a tag in `RULES` has no case. |
-| `test/render.test.ts` | the generated index and done.md: order, grouping, splicing, the chart |
+| `test/render.test.ts` | the generated index and done.md: order, grouping, splicing, the chart, and the golden fixture rendered in-process |
 | `test/cli.test.ts` | the CLI as a subprocess: exit codes, stderr, `--dir`, usage errors, `new`, `move`, `close`, `decide`, `index --renumber` |
 | `test/list-split.test.ts` | `list` and `split` |
 | `test/workflow.test.ts` | `init → new → move → close` in a fresh repo, with `check` required to pass after every step, and link rewriting |
@@ -42,7 +42,8 @@ agents do, so `test/global-setup.ts` runs `npm run build` before the suite.
 | `test/merge.test.ts` | two branches merged, with and without the merge driver |
 | `test/review.test.ts` | `review`: passed milestones and stale items |
 | `test/docs.test.ts` | SKILL.md, README.md, the `docs/` vault and this file: they name real commands and Action inputs, document every rule tag, and every relative link resolves |
-| `test/py.test.ts`, `test/port.test.ts` | the Python-compatible helpers the output depends on, and the golden fixture rendered in-process |
+| `test/py.test.ts` | the Python-compatible helpers the output depends on, with expected values printed by CPython |
+| `test/action-spec.test.ts` | which package the GitHub Action runs: its input, the lockfile pin, the `package.json` range, its own version |
 
 `test/fixtures/valid/` is a complete example roadmap. Its README.md and
 done.md are the golden output of the renderer. If you change the rendering on
