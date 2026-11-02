@@ -25,3 +25,8 @@ Done looks like:
 - **The action** runs `npx --yes simple-agentic-roadmap-skill@<pin>`, with the exact version from the repo's `package-lock.json`. Without one it runs the action's own version from npm, so nothing built is committed. Its inputs change, so it moves to a `v2` tag.
 - **Publishing** is npm trusted publishing (OIDC, provenance) from `release.yml`. The first publish is by hand, because npm only lets you configure a trusted publisher for a package that exists.
 - **`update` never overwrites a submodule.** It skips the tool, and prints the removal commands.
+
+**2026-11-02, from the plan review:**
+- **`npx --no -- roadmap` everywhere.** The bin stays `roadmap`, but there is an unrelated `roadmap` package on npm, and in a non-interactive shell (CI, an agent's Bash tool) a bare `npx roadmap` installs and runs it when ours is missing. Every documented command, the template, CI, pre-commit and the merge driver use `npx --no -- roadmap`, which never fetches. Renaming the bin was ruled out: `agentic-roadmap` is taken by a similar tool whose bins include `roadmap` too.
+- **First publish by hand needs no provenance.** `publishConfig` sets only `access`, since trusted publishing adds provenance itself and `provenance: true` fails outside CI. A `prepack` script builds `dist/`.
+- **CodeQL's default setup** drops Python once the script is gone.
