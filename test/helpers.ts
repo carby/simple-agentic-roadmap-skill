@@ -2,11 +2,12 @@
 // roadmaps in temp directories, and the built bin run as a subprocess, the
 // way CI and agents run it.
 
+import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { cpSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { onTestFinished } from "vitest";
+import { after, type TestContext, test } from "node:test";
 import { toml } from "../src/edit.ts";
 import { DONE_BEGIN, DONE_END, INDEX_BEGIN, INDEX_END, openRoadmap, type Roadmap } from "../src/model.ts";
 import { Day } from "../src/py.ts";
@@ -89,9 +90,11 @@ export function makeRoadmap(root: string, files: Record<string, string>, { sync 
 
 export type Result = { status: number; stdout: string; stderr: string };
 
-/** Run the built bin in `cwd`, as a subprocess. */
+/** Run the built bin in `cwd`, as a subprocess. ROADMAP_TEST_NODE names
+ * another Node to run it with: CI sets it to the oldest Node that `engines`
+ * allows, which can't load the .ts test files themselves. */
 export function run(args: string[], cwd: string, env: Record<string, string> = {}): Result {
-  const result = spawnSync(process.execPath, [BIN, ...args], {
+  const result = spawnSync(process.env.ROADMAP_TEST_NODE ?? process.execPath, [BIN, ...args], {
     cwd,
     encoding: "utf8",
     env: { ...process.env, ...env },
@@ -99,10 +102,17 @@ export function run(args: string[], cwd: string, env: Record<string, string> = {
   return { status: result.status ?? -1, stdout: result.stdout, stderr: result.stderr };
 }
 
-/** A fresh temp directory, removed when the test finishes. Call it inside a test. */
+const temps: string[] = [];
+// node --test runs each test file in its own process, so this runs once per
+// file, after all of that file's tests.
+after(() => {
+  for (const dir of temps) rmSync(dir, { recursive: true, force: true });
+});
+
+/** A fresh temp directory, removed after the file's tests. Call it inside a test. */
 export function tempDir(): string {
   const dir = mkdtempSync(join(tmpdir(), "roadmap-test-"));
-  onTestFinished(() => rmSync(dir, { recursive: true, force: true }));
+  temps.push(dir);
   return dir;
 }
 
@@ -138,4 +148,66 @@ export function snapshot(root: string): Record<string, string> {
       .sort()
       .map((p) => [p, readFileSync(join(dir, p), "utf8")]),
   );
+}
+
+function has(haystack: string | Iterable<unknown>, needle: unknown): boolean {
+  return typeof haystack === "string" ? haystack.includes(String(needle)) : [...haystack].includes(needle);
+}
+
+/** Assert that a string, an array or a set includes `needle`, showing both on failure. */
+export function contains(haystack: string | Iterable<unknown>, needle: unknown, message?: string): void {
+  if (!has(haystack, needle)) {
+    const actual = typeof haystack === "string" ? haystack : [...haystack];
+    throw new assert.AssertionError({ actual, expected: needle, operator: "includes", message });
+  }
+}
+
+/** Assert that a string, an array or a set does not include `needle`. */
+export function excludes(haystack: string | Iterable<unknown>, needle: unknown, message?: string): void {
+  if (has(haystack, needle)) {
+    const actual = typeof haystack === "string" ? haystack : [...haystack];
+    throw new assert.AssertionError({ actual, expected: needle, operator: "excludes", message });
+  }
+}
+
+/** Assert that `fn` throws an instance of `cls` whose message includes `part`. */
+export function throwsWith(fn: () => unknown, cls: new (...args: never[]) => Error, part: string): void {
+  assert.throws(fn, (exc: unknown) => {
+    assert.ok(exc instanceof cls, `expected ${cls.name}, got ${String(exc)}`);
+    contains(exc.message, part);
+    return true;
+  });
+}
+
+/** Collect what the code under test writes to stdout and stderr, in-process.
+ * Call it first in the test body, never in a hook: the test runner reports
+ * through stdout too, and a mock set in a hook can swallow its output. */
+export function capture(t: TestContext): string[] {
+  const output: string[] = [];
+  const write = (chunk: unknown) => {
+    output.push(String(chunk));
+    return true;
+  };
+  t.mock.method(process.stdout, "write", write);
+  t.mock.method(process.stderr, "write", write);
+  return output;
+}
+
+/** `test.each` as vitest had it: one test per row, named by `format` with
+ * %s as String(), %d as a number and %j as JSON, so the names stay as they were. */
+export function each(rows: readonly (readonly unknown[])[]) {
+  // biome-ignore lint/suspicious/noExplicitAny: rows are heterogeneous tuples, as test.each's were
+  return (format: string, fn: (...args: any[]) => void | Promise<void>): void => {
+    for (const row of rows) {
+      let next = 0;
+      const name = format.replace(/%[sdj%]/g, (spec) => {
+        if (spec === "%%") return "%";
+        const value = row[next++];
+        if (spec === "%d") return String(Number(value));
+        if (spec === "%j") return JSON.stringify(value);
+        return String(value);
+      });
+      test(name, () => fn(...row));
+    }
+  };
 }

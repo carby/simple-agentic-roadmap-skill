@@ -1,10 +1,11 @@
 // `check --base` holds archive/ and decisions.md append-only against a git
 // ref: an entry may gain lines, but it may not lose, change or move any.
 
+import assert from "node:assert/strict";
 import { readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { expect, test } from "vitest";
-import { git, gitRepo, run, tempDir, validCopy } from "./helpers.ts";
+import { test } from "node:test";
+import { contains, git, gitRepo, run, tempDir, validCopy } from "./helpers.ts";
 
 const ENTRY = "roadmap/archive/rewrite-in-rust.md";
 const DECISIONS = "roadmap/decisions.md";
@@ -20,7 +21,7 @@ function repo(): string {
 }
 
 test("an unchanged archive passes", () => {
-  expect(checkBase(repo()).status).toBe(0);
+  assert.equal(checkBase(repo()).status, 0);
 });
 
 test("an appended dated annotation passes", () => {
@@ -30,16 +31,16 @@ test("an appended dated annotation passes", () => {
 
   const result = checkBase(root);
 
-  expect(result.status, result.stderr).toBe(0);
+  assert.equal(result.status, 0, result.stderr);
 });
 
 test("a newly closed item passes", () => {
   const root = repo();
-  expect(run(["close", "cache-tokens", "--outcome", "shipped"], root).status).toBe(0);
+  assert.equal(run(["close", "cache-tokens", "--outcome", "shipped"], root).status, 0);
 
   const result = checkBase(root);
 
-  expect(result.status, result.stderr).toBe(0);
+  assert.equal(result.status, 0, result.stderr);
 });
 
 test("a changed line fails", () => {
@@ -49,10 +50,10 @@ test("a changed line fails", () => {
 
   const result = checkBase(root);
 
-  expect(result.status).toBe(1);
-  expect(result.stderr).toContain("archived entries only take added lines");
-  expect(result.stderr).toContain(`${ENTRY}:`);
-  expect(result.stderr).toContain("[append-only]");
+  assert.equal(result.status, 1);
+  contains(result.stderr, "archived entries only take added lines");
+  contains(result.stderr, `${ENTRY}:`);
+  contains(result.stderr, "[append-only]");
 });
 
 test("a deleted entry fails", () => {
@@ -62,23 +63,23 @@ test("a deleted entry fails", () => {
 
   const result = checkBase(root);
 
-  expect(result.status).toBe(1);
-  expect(result.stderr).toContain("existed at HEAD and is gone");
+  assert.equal(result.status, 1);
+  contains(result.stderr, "existed at HEAD and is gone");
 });
 
 test("an entry moved back to items fails", () => {
   const root = repo();
   renameSync(join(root, ENTRY), join(root, "roadmap/items/rewrite-in-rust.md"));
 
-  expect(checkBase(root).stderr).toContain("existed at HEAD and is gone");
+  contains(checkBase(root).stderr, "existed at HEAD and is gone");
 });
 
 test("a new decision passes", () => {
   const root = repo();
   const result = run(["decide", "--title", "Ship weekly", "--body", "Smaller releases."], root);
-  expect(result.status, result.stderr).toBe(0);
+  assert.equal(result.status, 0, result.stderr);
 
-  expect(checkBase(root).status).toBe(0);
+  assert.equal(checkBase(root).status, 0);
 });
 
 test("an edited decision fails", () => {
@@ -88,10 +89,10 @@ test("an edited decision fails", () => {
 
   const result = checkBase(root);
 
-  expect(result.status).toBe(1);
-  expect(result.stderr).toContain("decisions.md only takes added lines");
-  expect(result.stderr).toContain(`${DECISIONS}:`);
-  expect(result.stderr).toContain("[append-only]");
+  assert.equal(result.status, 1);
+  contains(result.stderr, "decisions.md only takes added lines");
+  contains(result.stderr, `${DECISIONS}:`);
+  contains(result.stderr, "[append-only]");
 });
 
 test("a deleted decisions log fails", () => {
@@ -100,22 +101,22 @@ test("a deleted decisions log fails", () => {
 
   const result = checkBase(root);
 
-  expect(result.status).toBe(1);
-  expect(result.stderr).toContain("existed at HEAD and is gone; a decision is reversed by a new entry");
+  assert.equal(result.status, 1);
+  contains(result.stderr, "existed at HEAD and is gone; a decision is reversed by a new entry");
 });
 
 test("a decisions log new since the base passes", () => {
   const root = repo();
   git(root, "rm", "-q", DECISIONS);
   git(root, "commit", "-qm", "no log");
-  expect(run(["decide", "--title", "Ship weekly", "--body", "Smaller releases."], root).status).toBe(0);
+  assert.equal(run(["decide", "--title", "Ship weekly", "--body", "Smaller releases."], root).status, 0);
 
-  expect(checkBase(root).status).toBe(0);
+  assert.equal(checkBase(root).status, 0);
 });
 
 test("an unknown base is a usage error", () => {
   const result = run(["check", "--base", "no-such-ref"], repo());
 
-  expect(result.status).toBe(2);
-  expect(result.stderr.startsWith("error: git ")).toBe(true);
+  assert.equal(result.status, 2);
+  assert.equal(result.stderr.startsWith("error: git "), true);
 });

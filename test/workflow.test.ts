@@ -2,27 +2,28 @@
 // to pass `check` after every step, because that is what an agent following
 // SKILL.md relies on.
 
+import assert from "node:assert/strict";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { expect, test } from "vitest";
+import { test } from "node:test";
 import { parse } from "../src/model.ts";
-import { D, run, tempDir } from "./helpers.ts";
+import { contains, D, excludes, run, tempDir } from "./helpers.ts";
 
 const read = (path: string) => readFileSync(path, "utf8");
 
 function repo(): string {
   const root = tempDir();
   const result = run(["init"], root);
-  expect(result.status, result.stderr).toBe(0);
+  assert.equal(result.status, 0, result.stderr);
   return root;
 }
 
 /** Run a command, then require a clean check. Returns its stdout. */
 function ok(root: string, ...args: string[]): string {
   const result = run(args, root);
-  expect(result.status, result.stderr).toBe(0);
+  assert.equal(result.status, 0, result.stderr);
   const checked = run(["check"], root);
-  expect(checked.status, checked.stderr).toBe(0);
+  assert.equal(checked.status, 0, checked.stderr);
   return result.stdout;
 }
 
@@ -30,11 +31,11 @@ test("init writes a roadmap that names npx --no -- roadmap and passes check", ()
   const root = repo();
 
   for (const name of ["README.md", "done.md", "decisions.md", "roadmap.toml", "items/.gitkeep", "archive/.gitkeep"]) {
-    expect(existsSync(join(root, "roadmap", name)), name).toBe(true);
+    assert.equal(existsSync(join(root, "roadmap", name)), true, name);
   }
-  expect(read(join(root, "roadmap/README.md"))).not.toContain("{{");
-  expect(read(join(root, "roadmap/README.md"))).toContain("npx --no -- roadmap check");
-  expect(run(["check"], root).status).toBe(0);
+  excludes(read(join(root, "roadmap/README.md")), "{{");
+  contains(read(join(root, "roadmap/README.md")), "npx --no -- roadmap check");
+  assert.equal(run(["check"], root).status, 0);
 });
 
 test("a decision can be logged right after init", () => {
@@ -42,7 +43,7 @@ test("a decision can be logged right after init", () => {
 
   ok(root, "decide", "--title", "Ship weekly", "--body", "Smaller releases.");
 
-  expect(read(join(root, "roadmap/decisions.md"))).toContain("## ");
+  contains(read(join(root, "roadmap/decisions.md")), "## ");
 });
 
 test("new, move, close", () => {
@@ -71,13 +72,13 @@ test("new, move, close", () => {
   ok(root, "move", "add-cache", "--bucket", "next", "--date", "2026-09-05");
 
   const moved = parse(join(root, "roadmap/items/add-cache.md"));
-  expect([moved.meta.bucket, moved.meta.rank]).toEqual(["next", 1]);
+  assert.deepEqual([moved.meta.bucket, moved.meta.rank], ["next", 1]);
 
   const out = ok(root, "close", "add-cache", "--outcome", "shipped", "--as", "pr-7", "--date", "2026-09-10");
 
-  expect(existsSync(join(root, "roadmap/items/add-cache.md"))).toBe(false);
+  assert.equal(existsSync(join(root, "roadmap/items/add-cache.md")), false);
   const closed = parse(join(root, "roadmap/archive/add-cache.md"), true);
-  expect(closed.meta).toEqual({
+  assert.deepEqual(closed.meta, {
     id: "add-cache",
     title: "Add a cache",
     filed: D(2026, 9, 1),
@@ -87,13 +88,14 @@ test("new, move, close", () => {
     shipped_as: "pr-7",
   });
   // Links follow the move both ways, and only hand-written edits are reported.
-  expect(closed.body).toContain("[the split](../items/split-module.md)");
-  expect(read(join(root, "roadmap/items/split-module.md"))).toContain("[the cache](../archive/add-cache.md)");
-  expect(out.split("\n").filter(Boolean)).toEqual([
+  contains(closed.body, "[the split](../items/split-module.md)");
+  contains(read(join(root, "roadmap/items/split-module.md")), "[the cache](../archive/add-cache.md)");
+  assert.deepEqual(out.split("\n").filter(Boolean), [
     "Updated links in roadmap/items/split-module.md.",
     "Closed add-cache as shipped: roadmap/archive/add-cache.md.",
   ]);
-  expect(read(join(root, "roadmap/done.md"))).toContain(
+  contains(
+    read(join(root, "roadmap/done.md")),
     "- **shipped** [Add a cache](archive/add-cache.md) — closed 2026-09-10 as `pr-7`",
   );
 });
@@ -121,7 +123,8 @@ test("close keeps comments and tables in the frontmatter", () => {
 
   ok(root, "close", "keep-layout", "--outcome", "declined", "--date", "2026-09-05");
 
-  expect(read(join(root, "roadmap/archive/keep-layout.md"))).toBe(
+  assert.equal(
+    read(join(root, "roadmap/archive/keep-layout.md")),
     "+++\n" +
       'id = "keep-layout"\n' +
       'title = "Keep layout"  # a comment\n' +
@@ -147,7 +150,7 @@ test("an edit the frontmatter editor cannot verify is refused", () => {
 
   const result = run(["close", "multi-line", "--outcome", "declined"], root);
 
-  expect(result.status).toBe(2);
-  expect(result.stderr).toContain("edit it by hand");
-  expect(read(item)).toBe(before);
+  assert.equal(result.status, 2);
+  contains(result.stderr, "edit it by hand");
+  assert.equal(read(item), before);
 });
