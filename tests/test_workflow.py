@@ -34,7 +34,7 @@ def test_init_creates_a_valid_roadmap_and_vendors_the_script(repo: Path) -> None
     assert (repo / "tools/roadmap.py").read_bytes() == SCRIPT.read_bytes()
     for name in ("README.md", "done.md", "decisions.md", "roadmap.toml", "items/.gitkeep", "archive/.gitkeep"):
         assert (repo / "roadmap" / name).exists(), name
-    assert "{{script}}" not in (repo / "roadmap/README.md").read_text()
+    assert "{{" not in (repo / "roadmap/README.md").read_text()
     assert "python tools/roadmap.py check" in (repo / "roadmap/README.md").read_text()
     assert run("check", cwd=repo).returncode == 0
 

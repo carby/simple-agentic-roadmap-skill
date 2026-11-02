@@ -26,9 +26,22 @@ test("this repo's own roadmap passes", () => {
   expect(check(openRoadmap("roadmap")).map(String)).toEqual([]);
 });
 
-test("every command but init and upgrade is ported", () => {
+test("every command but upgrade is ported, with update in its place", () => {
   expect(Object.keys(COMMANDS).sort()).toEqual(
-    ["check", "close", "decide", "index", "list", "merge-driver", "move", "new", "review", "split"].sort(),
+    [
+      "check",
+      "close",
+      "decide",
+      "index",
+      "init",
+      "list",
+      "merge-driver",
+      "move",
+      "new",
+      "review",
+      "split",
+      "update",
+    ].sort(),
   );
 });
 

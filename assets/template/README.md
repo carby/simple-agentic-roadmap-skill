@@ -42,16 +42,16 @@ work is done. **Close it in the same branch as the code**, so it moves to
 ## Working on this
 
 ```bash
-python {{script}} new <id> --title "..." --bucket now   # file an item
-python {{script}} move <id> --bucket now                # reprioritise (lands above its dependents, else at the bottom)
-python {{script}} move <id> --rank 1                    # re-rank (or --above <id>); the items it passes shift
-python {{script}} close <id> --outcome shipped --as <change-or-pr>   # in the same branch as the code
-python {{script}} decide --title "..." --body "..."      # log a decision that belongs to no single item
-python {{script}} review                                # passed milestones and stale items (by hand, not in CI)
-python {{script}} split <id> <new-id> --title "..."      # an item that turned out to be two pieces of work
-python {{script}} list [--json]                         # the open items in queue order
-python {{script}} index                                 # regenerate this index and done.md
-python {{script}} check                                 # what CI runs
+{{command}} new <id> --title "..." --bucket now   # file an item
+{{command}} move <id> --bucket now                # reprioritise (lands above its dependents, else at the bottom)
+{{command}} move <id> --rank 1                    # re-rank (or --above <id>); the items it passes shift
+{{command}} close <id> --outcome shipped --as <change-or-pr>   # in the same branch as the code
+{{command}} decide --title "..." --body "..."      # log a decision that belongs to no single item
+{{command}} review                                # passed milestones and stale items (by hand, not in CI)
+{{command}} split <id> <new-id> --title "..."      # an item that turned out to be two pieces of work
+{{command}} list [--json]                         # the open items in queue order
+{{command}} index                                 # regenerate this index and done.md
+{{command}} check                                 # what CI runs
 ```
 
 `check` runs in CI, so a broken roadmap fails the build instead of rotting.
