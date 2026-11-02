@@ -1,9 +1,10 @@
 +++
 id = "node-test-runner"
 title = "Test with node:test instead of vitest"
-bucket = "next"
-rank = 3
 filed = 2026-11-02
+closed = 2026-11-02
+outcome = "shipped"
+shipped_as = "#25"
 
 [refs]
 files = ["test/helpers.ts", "package.json"]
@@ -18,3 +19,8 @@ Done looks like:
 - vitest, and with it vite and vite-node, are gone from `package.json` and the lockfile, along with `vitest.config.ts` and `test/global-setup.ts`.
 - The CI job on Node 22.0.0, which predates type stripping, still holds the `engines` floor by running the built CLI and the bundle; the suite itself runs on the newest 22.
 - Planted bugs still fail tests, as they did for [vitest-suite](../archive/vitest-suite.md).
+
+**Outcome:** shipped in #25. `npm test` runs `node --test`, vitest and its 55 packages are gone, and the 265 tests keep their names. What the work corrected:
+- Swapping vitest's stdout spy for subprocesses would have meant rewriting the install tests, whose every path is relative to their `chdir`. A JS-testing review measured instead that mocking stdout inside a test body is safe under `node --test`, while mocking it in a hook can lose the runner's own output. So `capture(t)` mocks in the body.
+- Node 22.0.0 can't load `.ts` tests, so CI's floor run keeps the suite on the newest 22 and points the CLI subprocesses at 22.0.0 (`ROADMAP_TEST_NODE`).
+- The planted rendering bug fails 12 tests, not the 14 noted in [vitest-suite](../archive/vitest-suite.md). vitest fails the same 12 on today's master, because #23 removed 2 duplicate tests.
