@@ -10,3 +10,6 @@ docs/.obsidian/*
 # Node
 node_modules/
 dist/
+
+# Installed by `roadmap init`/`update`, or by `npm run dogfood` here
+.claude/skills/

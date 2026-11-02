@@ -13,6 +13,16 @@
   "bin": {
     "roadmap": "bin/roadmap.js"
   },
+  "files": [
+    "dist",
+    "bin",
+    "SKILL.md",
+    "references",
+    "assets",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "engines": {
     "node": ">=22.18"
   },
@@ -20,7 +30,8 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "lint": "biome ci ."
+    "lint": "biome ci .",
+    "dogfood": "node scripts/dogfood.mjs"
   },
   "dependencies": {
     "smol-toml": "^1.6.1"
