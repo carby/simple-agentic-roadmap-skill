@@ -14,7 +14,7 @@ It runs the version your `package-lock.json` pins, so CI checks with the same
 rules as everyone's `npx --no -- roadmap`. Without a pin it falls back to a
 plain semver range in `package.json`, and then to the action's own version.
 It reads only npm's lockfile; with pnpm or yarn it uses the range in
-`package.json`. It sets up Node itself unless the runner already has 22.18 or
+`package.json`. It sets up Node itself unless the runner already has Node 22 or
 newer.
 
 ```yaml

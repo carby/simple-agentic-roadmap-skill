@@ -9,7 +9,7 @@ as an Obsidian vault.
 
 ## Quick start
 
-Once per repo, from its root (Node 22.18 or later). This pins the package as a
+Once per repo, from its root (Node 22 or later). This pins the package as a
 dev dependency, sets up `roadmap/`, and installs the skill for Claude Code and
 the tools that read `.agents/skills/`:
 
@@ -69,7 +69,7 @@ More in [Slash commands](docs/slash-commands.md).
 | Path | For |
 |---|---|
 | `SKILL.md`, `references/conventions.md` | the agent: when to use the roadmap, the workflows, the rules |
-| `src/`, `bin/roadmap.js` | the `roadmap` CLI: `init`, `update`, `new`, `move`, `close`, `index`, `check` (Node 22.18+) |
+| `src/`, `bin/roadmap.js` | the `roadmap` CLI: `init`, `update`, `new`, `move`, `close`, `index`, `check` (Node 22+) |
 | `assets/template/` | what `init` writes into your repo |
 | `action.yml` | a GitHub Action that runs `check` |
 | `docs/` | the documentation, as an Obsidian vault |
