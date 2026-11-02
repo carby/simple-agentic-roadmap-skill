@@ -38,12 +38,6 @@ export function stem(path: string): string {
   return dot > 0 ? base.slice(0, dot) : base;
 }
 
-export function suffix(path: string): string {
-  const base = name(path);
-  const dot = base.lastIndexOf(".");
-  return dot > 0 ? base.slice(dot) : "";
-}
-
 export function parent(path: string): string {
   const base = join(path);
   const slash = base.lastIndexOf("/");

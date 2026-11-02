@@ -68,10 +68,6 @@ export function isInt(value: unknown): value is number {
   return typeof value === "number" && Number.isInteger(value);
 }
 
-export function isDay(value: unknown): value is Day {
-  return value instanceof Day;
-}
-
 /** A plain object, as a TOML table parses to. smol-toml 1.9 returns tables
  * with a null prototype (so a `__proto__` key can't reach Object.prototype),
  * so both kinds count; class instances such as Day and TomlDate don't. */
