@@ -41,9 +41,8 @@ work is done. **Close it in the same branch as the code**, so it moves to
 
 *No open item depends on another or on a milestone, so there is no chart.*
 
-### Now (3)
+### Now (2)
 
-1. [init hints only at steps still to do](items/init-hints.md) — filed 2026-11-02
 10. [Evals for how an agent uses the skill, not just for the script](items/agent-behaviour-evals.md) — filed 2026-09-25
 17. [A milestone timeline in the roadmap index](items/milestone-timeline.md) — filed 2026-10-22
 
