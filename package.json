@@ -1,7 +1,6 @@
 {
   "name": "simple-agentic-roadmap-skill",
   "version": "1.5.0",
-  "private": true,
   "description": "A Now/Next/Later roadmap kept as one Markdown file per item, checked in CI.",
   "license": "MIT",
   "author": "Tommy Derngren",
@@ -26,12 +25,17 @@
   "engines": {
     "node": ">=22.18"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "lint": "biome ci .",
-    "dogfood": "node scripts/dogfood.mjs"
+    "dogfood": "node scripts/dogfood.mjs",
+    "prepack": "npm run build",
+    "bundle": "npm run build && esbuild bin/roadmap.js --bundle --platform=node --format=esm --outfile=build/roadmap.mjs --log-level=warning"
   },
   "dependencies": {
     "smol-toml": "^1.9.1"
@@ -39,6 +43,7 @@
   "devDependencies": {
     "@biomejs/biome": "^2.3.8",
     "@types/node": "^22.19.1",
+    "esbuild": "^0.25.12",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
   }

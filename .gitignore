@@ -8,3 +8,4 @@ dist/
 
 # Installed by `roadmap init`/`update`, or by `npm run dogfood` here
 .claude/skills/
+build/
