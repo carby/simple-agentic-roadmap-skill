@@ -10,7 +10,7 @@ the rules your agent follows, and the **CLI**, `roadmap`, which enforces them.
 Both come from one npm package, `simple-agentic-roadmap-skill`, so a single
 version in your `package.json` pins both, the way
 [OpenSpec](https://github.com/Fission-AI/OpenSpec/) is installed. Setting it up
-takes three steps, once per repo. It needs Node 22.18 or later.
+takes three steps, once per repo. It needs Node 22 or later.
 
 Other ways to install are in [Install alternatives](install-alternatives.md).
 

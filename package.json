@@ -2,11 +2,25 @@
   "name": "simple-agentic-roadmap-skill",
   "version": "1.5.0",
   "description": "A Now/Next/Later roadmap kept as one Markdown file per item, checked in CI.",
+  "keywords": [
+    "roadmap",
+    "agent",
+    "claude-code",
+    "skill",
+    "now-next-later",
+    "markdown",
+    "openspec",
+    "ci"
+  ],
   "license": "MIT",
   "author": "Tommy Derngren",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/carby/simple-agentic-roadmap-skill.git"
+  },
+  "homepage": "https://github.com/carby/simple-agentic-roadmap-skill#readme",
+  "bugs": {
+    "url": "https://github.com/carby/simple-agentic-roadmap-skill/issues"
   },
   "type": "module",
   "bin": {
@@ -23,7 +37,7 @@
     "CHANGELOG.md"
   ],
   "engines": {
-    "node": ">=22.18"
+    "node": ">=22"
   },
   "publishConfig": {
     "access": "public"

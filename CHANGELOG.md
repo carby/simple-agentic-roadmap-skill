@@ -34,6 +34,7 @@ frontmatter, and generated blocks byte for byte as 1.5.0 rendered them.
 - **Breaking: `upgrade` is now `update`** — it refreshes every installed copy
   of the skill from the package, `--tools` adds one, and like `upgrade` it
   regenerates the index and runs `check`.
+- **Needs Node 22 or later**, instead of Python 3.11.
 - **Claude app** — `roadmap.zip` carries the CLI bundled into
   `scripts/roadmap.mjs`, run with Node, instead of the Python script.
 - **Upgrade notes (from 1.x):**
