@@ -1,18 +1,31 @@
 // The CLI as CI runs it: a subprocess, an exit status, and problems printed to stderr.
 
+import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { describe, expect, test } from "vitest";
+import { describe, test } from "node:test";
 import { COMMANDS } from "../src/cli.ts";
 import { DECISIONS_INTRO, load, openRoadmap, parse, VERSION } from "../src/model.ts";
-import { D, itemText, makeRoadmap, openMeta, type Result, run, snapshot, tempDir, validCopy } from "./helpers.ts";
+import {
+  contains,
+  D,
+  each,
+  itemText,
+  makeRoadmap,
+  openMeta,
+  type Result,
+  run,
+  snapshot,
+  tempDir,
+  validCopy,
+} from "./helpers.ts";
 
 const read = (path: string) => readFileSync(path, "utf8");
 const valid = () => validCopy(tempDir());
 const meta = (path: string) => parse(path).meta;
 
 function ok(result: Result): void {
-  expect(result.status, result.stderr).toBe(0);
+  assert.equal(result.status, 0, result.stderr);
 }
 
 function checks(cwd: string): void {
@@ -27,7 +40,7 @@ test("check passes on the valid fixture", () => {
   const result = run(["check"], valid());
 
   ok(result);
-  expect(result.stdout).toBe("Roadmap OK: 3 open, 2 archived.\n");
+  assert.equal(result.stdout, "Roadmap OK: 3 open, 2 archived.\n");
 });
 
 test("check fails with one tagged line per problem", () => {
@@ -37,27 +50,37 @@ test("check fails with one tagged line per problem", () => {
 
   const result = run(["check"], root);
 
-  expect(result.status).toBe(1);
+  assert.equal(result.status, 1);
   const lines = result.stderr.split("\n").filter(Boolean);
-  expect(lines[0]).toBe("5 roadmap problem(s):");
-  expect(lines.some((l) => l.endsWith("or depend on another 'later' item [bucket]"))).toBe(true);
-  expect(lines.some((l) => l.includes("split-app.md: depends on 'cache-tokens' ('later', rank 1)"))).toBe(true);
-  expect(lines.some((l) => l.endsWith("refs.files 'src/app.py' does not exist [refs]"))).toBe(true);
-  expect(lines.filter((l) => l.endsWith("[generated]"))).toHaveLength(1); // the index now puts it under Later
-  expect(
+  assert.equal(lines[0], "5 roadmap problem(s):");
+  assert.equal(
+    lines.some((l) => l.endsWith("or depend on another 'later' item [bucket]")),
+    true,
+  );
+  assert.equal(
+    lines.some((l) => l.includes("split-app.md: depends on 'cache-tokens' ('later', rank 1)")),
+    true,
+  );
+  assert.equal(
+    lines.some((l) => l.endsWith("refs.files 'src/app.py' does not exist [refs]")),
+    true,
+  );
+  assert.equal(lines.filter((l) => l.endsWith("[generated]")).length, 1); // the index now puts it under Later
+  assert.equal(
     lines.some((l) => l.endsWith("rank 1 is already taken in 'later' by roadmap/items/cache-tokens.md [rank]")),
-  ).toBe(true);
+    true,
+  );
 });
 
 test("index repairs a stale index", () => {
   const root = valid();
   edit(join(root, "roadmap/items/cache-tokens.md"), "Cache auth tokens", "Cache the auth tokens");
-  expect(run(["check"], root).status).toBe(1);
+  assert.equal(run(["check"], root).status, 1);
 
   ok(run(["index"], root));
 
   checks(root);
-  expect(read(join(root, "roadmap/README.md"))).toContain("[Cache the auth tokens](items/cache-tokens.md)");
+  contains(read(join(root, "roadmap/README.md")), "[Cache the auth tokens](items/cache-tokens.md)");
 });
 
 test("index repairs the index after an item is deleted by hand", () => {
@@ -78,9 +101,9 @@ test("index refuses to render an invalid roadmap", () => {
 
   const result = run(["index"], root);
 
-  expect(result.status).toBe(1);
-  expect(result.stderr).toContain("[frontmatter]");
-  expect(read(join(root, "roadmap/README.md"))).toBe(readme);
+  assert.equal(result.status, 1);
+  contains(result.stderr, "[frontmatter]");
+  assert.equal(read(join(root, "roadmap/README.md")), readme);
 });
 
 test("--dir points at a roadmap elsewhere", () => {
@@ -95,13 +118,14 @@ test("a broken config is a usage error", () => {
 
   const result = run(["check"], root);
 
-  expect(result.status).toBe(2);
-  expect(result.stderr.startsWith("error: ")).toBe(true);
-  expect(result.stderr).toContain("[config]");
+  assert.equal(result.status, 2);
+  assert.equal(result.stderr.startsWith("error: "), true);
+  contains(result.stderr, "[config]");
 });
 
 test("the CLI has exactly these commands", () => {
-  expect(Object.keys(COMMANDS).sort()).toEqual(
+  assert.deepEqual(
+    Object.keys(COMMANDS).sort(),
     [
       "check",
       "close",
@@ -120,21 +144,21 @@ test("the CLI has exactly these commands", () => {
 });
 
 test("--version", () => {
-  expect(run(["--version"], process.cwd()).stdout.trim()).toBe(`roadmap ${VERSION}`);
+  assert.equal(run(["--version"], process.cwd()).stdout.trim(), `roadmap ${VERSION}`);
 });
 
 test("new refuses a reused id", () => {
   const result = run(["new", "rewrite-in-rust", "--title", "Again", "--bucket", "now"], valid());
 
-  expect(result.status).toBe(2);
-  expect(result.stderr).toContain("ids are never reused");
+  assert.equal(result.status, 2);
+  contains(result.stderr, "ids are never reused");
 });
 
 test("new enforces the bucket criterion up front", () => {
   const result = run(["new", "some-call", "--title", "T", "--bucket", "later"], valid());
 
-  expect(result.status).toBe(2);
-  expect(result.stderr).toContain("--blocked-on is required");
+  assert.equal(result.status, 2);
+  contains(result.stderr, "--blocked-on is required");
 });
 
 test("new takes the next free rank, and refs", () => {
@@ -143,8 +167,8 @@ test("new takes the next free rank, and refs", () => {
   ok(run(["new", "more-work", "--title", "More", "--bucket", "now", "--ref", "specs:auth", "--body", "Why."], root));
 
   const item = meta(join(root, "roadmap/items/more-work.md"));
-  expect(item.rank).toBe(2);
-  expect(item.refs).toEqual({ specs: ["auth"] });
+  assert.equal(item.rank, 2);
+  assert.deepEqual(item.refs, { specs: ["auth"] });
   checks(root);
 });
 
@@ -154,7 +178,7 @@ test("move goes to the bottom of the target bucket", () => {
   ok(run(["move", "rotate-keys", "--bucket", "next"], root));
 
   const moved = meta(join(root, "roadmap/items/rotate-keys.md"));
-  expect([moved.bucket, moved.rank]).toEqual(["next", 2]);
+  assert.deepEqual([moved.bucket, moved.rank], ["next", 2]);
   checks(root);
 });
 
@@ -164,11 +188,11 @@ test("move lands above its dependents and shifts them down", () => {
   const result = run(["move", "cache-tokens", "--bucket", "next"], root);
 
   ok(result);
-  expect(result.stdout.split("\n")[1]).toBe("Shifted split-app down a rank, below it.");
+  assert.equal(result.stdout.split("\n")[1], "Shifted split-app down a rank, below it.");
   const moved = meta(join(root, "roadmap/items/cache-tokens.md"));
   const shifted = meta(join(root, "roadmap/items/split-app.md"));
-  expect([moved.bucket, moved.rank]).toEqual(["next", 1]);
-  expect([shifted.bucket, shifted.rank]).toEqual(["next", 2]);
+  assert.deepEqual([moved.bucket, moved.rank], ["next", 1]);
+  assert.deepEqual([shifted.bucket, shifted.rank], ["next", 2]);
   checks(root);
 });
 
@@ -178,10 +202,10 @@ test("move refuses to put an item behind its dependents, and writes nothing", ()
 
   const result = run(["move", "cache-tokens", "--bucket", "later", "--blocked-on", "which cache"], root);
 
-  expect(result.status).toBe(2);
-  expect(result.stderr).toContain("moving cache-tokens would break the roadmap");
-  expect(result.stderr).toContain("split-app.md: depends on 'cache-tokens' ('later', rank 2)");
-  expect(snapshot(root)).toEqual(before);
+  assert.equal(result.status, 2);
+  contains(result.stderr, "moving cache-tokens would break the roadmap");
+  contains(result.stderr, "split-app.md: depends on 'cache-tokens' ('later', rank 2)");
+  assert.deepEqual(snapshot(root), before);
 });
 
 test("move out of later drops blocked_on and asks for the decision", () => {
@@ -190,8 +214,8 @@ test("move out of later drops blocked_on and asks for the decision", () => {
   const result = run(["move", "rotate-keys", "--bucket", "now"], root);
 
   ok(result);
-  expect(result.stdout).toContain("record in its prose what was decided");
-  expect(meta(join(root, "roadmap/items/rotate-keys.md"))).not.toHaveProperty("blocked_on");
+  contains(result.stdout, "record in its prose what was decided");
+  assert.ok(!("blocked_on" in meta(join(root, "roadmap/items/rotate-keys.md"))));
   checks(root);
 });
 
@@ -201,10 +225,10 @@ test("move into later needs the open question", () => {
   const refused = run(["move", "split-app", "--bucket", "later"], root);
   const moved = run(["move", "split-app", "--bucket", "later", "--blocked-on", "where to split"], root);
 
-  expect(refused.status).toBe(2);
-  expect(refused.stderr).toContain("--blocked-on is required");
+  assert.equal(refused.status, 2);
+  contains(refused.stderr, "--blocked-on is required");
   ok(moved);
-  expect(meta(join(root, "roadmap/items/split-app.md")).blocked_on).toBe("where to split");
+  assert.equal(meta(join(root, "roadmap/items/split-app.md")).blocked_on, "where to split");
   checks(root);
 });
 
@@ -234,17 +258,17 @@ test("move to another bucket sets updated, and a re-rank does not", () => {
 
   ok(moved);
   ok(reRanked);
-  expect(String(meta(a).updated)).toBe(String(D(2026, 10, 1)));
-  expect(read(a).split("updated =").length - 1).toBe(1);
-  for (const id of "bcde") expect(meta(join(root, `roadmap/items/${id}.md`))).not.toHaveProperty("updated");
+  assert.equal(String(meta(a).updated), String(D(2026, 10, 1)));
+  assert.equal(read(a).split("updated =").length - 1, 1);
+  for (const id of "bcde") assert.ok(!("updated" in meta(join(root, `roadmap/items/${id}.md`))));
   checks(root);
 });
 
 test("move refuses a no-op", () => {
   const result = run(["move", "split-app", "--bucket", "next"], valid());
 
-  expect(result.status).toBe(2);
-  expect(result.stderr).toContain("is already in 'next'");
+  assert.equal(result.status, 2);
+  contains(result.stderr, "is already in 'next'");
 });
 
 test("move --rank raises an item and shifts the ones it passes down", () => {
@@ -254,11 +278,11 @@ test("move --rank raises an item and shifts the ones it passes down", () => {
   const result = run(["move", "c", "--rank", "1"], root);
 
   ok(result);
-  expect(result.stdout.split("\n").filter(Boolean)).toEqual([
+  assert.deepEqual(result.stdout.split("\n").filter(Boolean), [
     "Moved roadmap/items/c.md to rank 1 in 'now'.",
     "Shifted a, b down a rank, below it.",
   ]);
-  expect(ranks(root)).toEqual({ c: ["now", 1], a: ["now", 2], b: ["now", 3], d: ["now", 4], e: ["next", 1] });
+  assert.deepEqual(ranks(root), { c: ["now", 1], a: ["now", 2], b: ["now", 3], d: ["now", 4], e: ["next", 1] });
   checks(root);
 });
 
@@ -269,13 +293,13 @@ test("move --rank lowers an item and shifts the ones it passes up", () => {
   const result = run(["move", "a", "--rank", "3"], root);
 
   ok(result);
-  expect(result.stdout.split("\n")[1]).toBe("Shifted b, c up a rank, above it.");
-  expect(ranks(root)).toEqual({ b: ["now", 1], c: ["now", 2], a: ["now", 3], d: ["now", 4], e: ["next", 1] });
+  assert.equal(result.stdout.split("\n")[1], "Shifted b, c up a rank, above it.");
+  assert.deepEqual(ranks(root), { b: ["now", 1], c: ["now", 2], a: ["now", 3], d: ["now", 4], e: ["next", 1] });
   checks(root);
 });
 
 describe("move --above lands directly above the other item", () => {
-  test.each([
+  each([
     ["d", "b", "adbc"],
     ["a", "d", "bcad"],
   ])("%s above %s", (item, above, order) => {
@@ -288,7 +312,7 @@ describe("move --above lands directly above the other item", () => {
       .filter(([, [bucket]]) => bucket === "now")
       .sort((x, y) => x[1][1] - y[1][1])
       .map(([id]) => id);
-    expect(now.join("")).toBe(order);
+    assert.equal(now.join(""), order);
     checks(root);
   });
 });
@@ -299,7 +323,7 @@ test("move --above takes the other item's bucket", () => {
 
   ok(run(["move", "e", "--above", "b"], root));
 
-  expect(ranks(root)).toEqual({ a: ["now", 1], e: ["now", 2], b: ["now", 3], c: ["now", 4], d: ["now", 5] });
+  assert.deepEqual(ranks(root), { a: ["now", 1], e: ["now", 2], b: ["now", 3], c: ["now", 4], d: ["now", 5] });
   checks(root);
 });
 
@@ -309,8 +333,8 @@ test("move --rank into another bucket shifts that bucket down", () => {
 
   ok(run(["move", "a", "--bucket", "next", "--rank", "1"], root));
 
-  expect(ranks(root).a).toEqual(["next", 1]);
-  expect(ranks(root).e).toEqual(["next", 2]);
+  assert.deepEqual(ranks(root).a, ["next", 1]);
+  assert.deepEqual(ranks(root).e, ["next", 2]);
   checks(root);
 });
 
@@ -321,13 +345,13 @@ test("move --rank refuses to put an item above its dependency, and writes nothin
 
   const result = run(["move", "c", "--rank", "1"], root);
 
-  expect(result.status).toBe(2);
-  expect(result.stderr).toContain("moving c would break the roadmap");
-  expect(snapshot(root)).toEqual(before);
+  assert.equal(result.status, 2);
+  contains(result.stderr, "moving c would break the roadmap");
+  assert.deepEqual(snapshot(root), before);
 });
 
 describe("move refuses a bad re-rank", () => {
-  test.each([
+  each([
     [["a", "--rank", "1"], "is already at rank 1 in 'now'"],
     [["a", "--above", "a"], "cannot go above itself"],
     [["a", "--above", "b", "--bucket", "next"], "--above b is in 'now', not 'next'"],
@@ -341,16 +365,16 @@ describe("move refuses a bad re-rank", () => {
 
     const result = run(["move", ...args], root);
 
-    expect(result.status).toBe(2);
-    expect(result.stderr).toContain(expected);
+    assert.equal(result.status, 2);
+    contains(result.stderr, expected);
   });
 });
 
 test("there is no WIP-tracking command", () => {
   const result = run(["claim", "cache-tokens"], valid());
 
-  expect(result.status).toBe(2);
-  expect(result.stderr).toContain("invalid choice: 'claim'");
+  assert.equal(result.status, 2);
+  contains(result.stderr, "invalid choice: 'claim'");
 });
 
 test("move and close refuse an archived item", () => {
@@ -361,8 +385,8 @@ test("move and close refuse an archived item", () => {
   ]) {
     const result = run(args, root);
 
-    expect(result.status).toBe(2);
-    expect(result.stderr).toContain("it is already closed");
+    assert.equal(result.status, 2);
+    contains(result.stderr, "it is already closed");
   }
 });
 
@@ -382,7 +406,7 @@ test("new records its dependencies", () => {
   );
 
   const item = meta(join(root, "roadmap/items/more-work.md"));
-  expect([item.rank, item.depends_on]).toEqual([2, ["split-app", "drop-legacy-login"]]);
+  assert.deepEqual([item.rank, item.depends_on], [2, ["split-app", "drop-legacy-login"]]);
   checks(root);
 });
 
@@ -391,10 +415,10 @@ test("new refuses to file an item ahead of its dependencies", () => {
 
   const result = run(["new", "too-soon", "--title", "T", "--bucket", "now", "--depends-on", "split-app"], root);
 
-  expect(result.status).toBe(2);
-  expect(result.stderr).toContain("filing too-soon would break the roadmap");
-  expect(result.stderr).toContain("which must come first");
-  expect(existsSync(join(root, "roadmap/items/too-soon.md"))).toBe(false);
+  assert.equal(result.status, 2);
+  contains(result.stderr, "filing too-soon would break the roadmap");
+  contains(result.stderr, "which must come first");
+  assert.equal(existsSync(join(root, "roadmap/items/too-soon.md")), false);
 });
 
 test("a later item may wait on another later item instead of naming a question", () => {
@@ -413,10 +437,10 @@ test("a later item may wait on another later item instead of naming a question",
   const closed = run(["close", "rotate-keys", "--outcome", "shipped"], root);
 
   for (const result of [moved, closed]) {
-    expect(result.status).toBe(2);
-    expect(result.stderr).toContain("after-rotation.md: a 'later' item must name what it is blocked_on");
+    assert.equal(result.status, 2);
+    contains(result.stderr, "after-rotation.md: a 'later' item must name what it is blocked_on");
   }
-  expect(snapshot(root)).toEqual(before);
+  assert.deepEqual(snapshot(root), before);
 });
 
 test("close refuses to decline an item others depend on", () => {
@@ -425,10 +449,10 @@ test("close refuses to decline an item others depend on", () => {
 
   const result = run(["close", "cache-tokens", "--outcome", "declined"], root);
 
-  expect(result.status).toBe(2);
-  expect(result.stderr).toContain("closing cache-tokens as declined would break the roadmap");
-  expect(result.stderr).toContain("split-app.md: depends on 'cache-tokens', which was declined");
-  expect(snapshot(root)).toEqual(before);
+  assert.equal(result.status, 2);
+  contains(result.stderr, "closing cache-tokens as declined would break the roadmap");
+  contains(result.stderr, "split-app.md: depends on 'cache-tokens', which was declined");
+  assert.deepEqual(snapshot(root), before);
 });
 
 test("close may ship an item others depend on", () => {
@@ -436,12 +460,12 @@ test("close may ship an item others depend on", () => {
 
   ok(run(["close", "cache-tokens", "--outcome", "shipped"], root));
 
-  expect(read(join(root, "roadmap/README.md"))).toContain("[Cache auth tokens](archive/cache-tokens.md) (shipped)");
+  contains(read(join(root, "roadmap/README.md")), "[Cache auth tokens](archive/cache-tokens.md) (shipped)");
   checks(root);
 });
 
 describe("close hints at --as when shipped without it", () => {
-  test.each([
+  each([
     [["--outcome", "shipped"], true],
     [["--outcome", "shipped", "--as", "pr-9"], false],
     [["--outcome", "declined"], false],
@@ -449,7 +473,7 @@ describe("close hints at --as when shipped without it", () => {
     const result = run(["close", "rotate-keys", ...args], valid());
 
     ok(result);
-    expect(result.stdout.includes("No --as given")).toBe(hinted);
+    assert.equal(result.stdout.includes("No --as given"), hinted);
   });
 });
 
@@ -463,15 +487,16 @@ test("decide creates the log and appends dated entries", () => {
 
   ok(first);
   ok(second);
-  expect(first.stdout).toBe("Recorded a decision in roadmap/decisions.md.\n");
-  expect(read(log)).toBe(
+  assert.equal(first.stdout, "Recorded a decision in roadmap/decisions.md.\n");
+  assert.equal(
+    read(log),
     `${DECISIONS_INTRO}\n## 2026-10-01: Ship weekly\n\nSmaller releases.\n\n## 2026-10-02: No epics\n\nStay KISS.\n`,
   );
   checks(root);
 });
 
 describe("decide needs a one-line title and the reasoning", () => {
-  test.each([
+  each([
     [["--title", "Ship weekly"], "the following arguments are required: --body"],
     [["--title", "Ship weekly", "--body", " "], "--body must say why"],
     [["--title", "Two\nlines", "--body", "Why."], "--title must be one non-empty line"],
@@ -481,9 +506,9 @@ describe("decide needs a one-line title and the reasoning", () => {
 
     const result = run(["decide", ...args], root);
 
-    expect(result.status).toBe(2);
-    expect(result.stderr).toContain(expected);
-    expect(read(join(root, "roadmap/decisions.md"))).toBe(before);
+    assert.equal(result.status, 2);
+    contains(result.stderr, expected);
+    assert.equal(read(join(root, "roadmap/decisions.md")), before);
   });
 });
 
@@ -501,13 +526,13 @@ test("new --supersedes links a retry, and close moves the link", () => {
     ),
   );
 
-  expect(meta(join(root, "roadmap/items/retry-rust.md")).supersedes).toBe("rewrite-in-rust");
-  expect(read(done)).toContain("superseded by [Rust, again](items/retry-rust.md)");
+  assert.equal(meta(join(root, "roadmap/items/retry-rust.md")).supersedes, "rewrite-in-rust");
+  contains(read(done), "superseded by [Rust, again](items/retry-rust.md)");
   checks(root);
 
   ok(run(["close", "retry-rust", "--outcome", "shipped", "--as", "pr-3"], root));
 
-  expect(read(done)).toContain("superseded by [Rust, again](archive/retry-rust.md)");
+  contains(read(done), "superseded by [Rust, again](archive/retry-rust.md)");
   checks(root);
 });
 
@@ -520,9 +545,9 @@ test("new refuses to supersede a shipped item, and writes nothing", () => {
     root,
   );
 
-  expect(result.status).toBe(2);
-  expect(result.stderr).toContain("supersedes 'drop-legacy-login', which shipped");
-  expect(snapshot(root)).toEqual(before);
+  assert.equal(result.status, 2);
+  contains(result.stderr, "supersedes 'drop-legacy-login', which shipped");
+  assert.deepEqual(snapshot(root), before);
 });
 
 const MILESTONES = '[milestones]\nbeta = { title = "Public beta", date = 2026-12-01 }\n';
@@ -533,13 +558,13 @@ test("new records the milestone an item is due for", () => {
 
   ok(run(["new", "ship-it", "--title", "T", "--bucket", "now", "--milestone", "beta", "--body", "Why."], root));
 
-  expect(meta(join(root, "roadmap/items/ship-it.md")).milestone).toBe("beta");
-  expect(read(join(root, "roadmap/README.md"))).toContain("**Due for:** Public beta (2026-12-01)");
+  assert.equal(meta(join(root, "roadmap/items/ship-it.md")).milestone, "beta");
+  contains(read(join(root, "roadmap/README.md")), "**Due for:** Public beta (2026-12-01)");
   checks(root);
 });
 
 describe("new refuses an unknown milestone, and a milestone's id", () => {
-  test.each([
+  each([
     [
       "unknown-milestone",
       ["ship-it", "--milestone", "gamma"],
@@ -552,9 +577,12 @@ describe("new refuses an unknown milestone, and a milestone's id", () => {
 
     const result = run(["new", ...args, "--title", "T", "--bucket", "now", "--body", "Why."], root);
 
-    expect(result.status).toBe(2);
-    expect(result.stderr).toContain(expected);
-    expect(readdirSync(join(root, "roadmap/items")).filter((p) => p.endsWith(".md"))).toEqual([]);
+    assert.equal(result.status, 2);
+    contains(result.stderr, expected);
+    assert.deepEqual(
+      readdirSync(join(root, "roadmap/items")).filter((p) => p.endsWith(".md")),
+      [],
+    );
   });
 });
 
@@ -572,8 +600,8 @@ test("move lands an item due for a milestone above the items waiting on it", () 
 
   ok(run(["move", "due", "--bucket", "next"], root));
 
-  expect(meta(join(root, "roadmap/items/due.md")).rank).toBe(1);
-  expect(meta(join(root, "roadmap/items/waits.md")).rank).toBe(2);
+  assert.equal(meta(join(root, "roadmap/items/due.md")).rank, 1);
+  assert.equal(meta(join(root, "roadmap/items/waits.md")).rank, 2);
   checks(root);
 });
 
@@ -583,8 +611,8 @@ test("move refuses to put an item behind the items waiting on its milestone", ()
 
   const result = run(["move", "due", "--bucket", "later", "--blocked-on", "a call"], root);
 
-  expect(result.status).toBe(2);
-  expect(result.stderr).toContain("waits.md: depends on milestone 'beta' (2026-12-01), but 'due' ('later', rank 1)");
+  assert.equal(result.status, 2);
+  contains(result.stderr, "waits.md: depends on milestone 'beta' (2026-12-01), but 'due' ('later', rank 1)");
 });
 
 test("index --renumber resolves a rank collision, oldest first", () => {
@@ -593,14 +621,14 @@ test("index --renumber resolves a rank collision, oldest first", () => {
     "items/newer.md": itemText(openMeta({ id: "newer", filed: D(2026, 9, 8) })),
     "items/older.md": itemText(openMeta({ id: "older" })),
   });
-  expect(run(["check"], root).stderr).toContain("[rank]");
+  contains(run(["check"], root).stderr, "[rank]");
 
   const result = run(["index", "--renumber"], root);
 
   ok(result);
-  expect(result.stdout.split("\n")[0]).toBe("Renumbered newer.");
-  expect(meta(join(root, "roadmap/items/older.md")).rank).toBe(1);
-  expect(meta(join(root, "roadmap/items/newer.md")).rank).toBe(2);
+  assert.equal(result.stdout.split("\n")[0], "Renumbered newer.");
+  assert.equal(meta(join(root, "roadmap/items/older.md")).rank, 1);
+  assert.equal(meta(join(root, "roadmap/items/newer.md")).rank, 2);
   checks(root);
 });
 
@@ -613,8 +641,8 @@ test("index --renumber puts a dependency first among tied items", () => {
 
   ok(run(["index", "--renumber"], root));
 
-  expect(meta(join(root, "roadmap/items/dependency.md")).rank).toBe(1);
-  expect(meta(join(root, "roadmap/items/dependent.md")).rank).toBe(2);
+  assert.equal(meta(join(root, "roadmap/items/dependency.md")).rank, 1);
+  assert.equal(meta(join(root, "roadmap/items/dependent.md")).rank, 2);
   checks(root);
 });
 
@@ -628,8 +656,8 @@ test("index --renumber closes gaps, and leaves ranks that hold alone", () => {
 
   ok(run(["index", "--renumber"], root));
 
-  expect(read(join(root, "roadmap/items/first.md"))).toBe(first);
-  expect(meta(join(root, "roadmap/items/third.md")).rank).toBe(2);
+  assert.equal(read(join(root, "roadmap/items/first.md")), first);
+  assert.equal(meta(join(root, "roadmap/items/third.md")).rank, 2);
 });
 
 test("index --renumber changes nothing on a clean roadmap", () => {
@@ -639,6 +667,6 @@ test("index --renumber changes nothing on a clean roadmap", () => {
   const result = run(["index", "--renumber"], root);
 
   ok(result);
-  expect(result.stdout).toBe("Index already up to date.\n");
-  expect(snapshot(root)).toEqual(before);
+  assert.equal(result.stdout, "Index already up to date.\n");
+  assert.deepEqual(snapshot(root), before);
 });

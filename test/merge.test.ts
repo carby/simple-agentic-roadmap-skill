@@ -2,11 +2,12 @@
 // README.md and done.md clash unless `merge-driver` takes them, and ranks that
 // both branches handed out collide until `index --renumber`.
 
+import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { expect, test } from "vitest";
-import { BIN, git, gitRepo, run, tempDir, validCopy } from "./helpers.ts";
+import { test } from "node:test";
+import { BIN, contains, git, gitRepo, run, tempDir, validCopy } from "./helpers.ts";
 
 const read = (path: string) => readFileSync(path, "utf8");
 
@@ -33,7 +34,7 @@ function useDriver(root: string): void {
 
 function onBranch(root: string, name: string, ...command: string[]): void {
   git(root, "switch", "-q", "-c", name, "base");
-  expect(run(command, root).status).toBe(0);
+  assert.equal(run(command, root).status, 0);
   git(root, "add", "-A");
   git(root, "commit", "-qm", name);
 }
@@ -47,9 +48,9 @@ function closeOneOnEachBranch(root: string) {
 test("without the driver, two closes conflict in the generated blocks", () => {
   const result = closeOneOnEachBranch(repo());
 
-  expect(result.status).not.toBe(0);
-  expect(result.stdout).toContain("CONFLICT");
-  expect(result.stdout).toContain("roadmap/done.md");
+  assert.notEqual(result.status, 0);
+  contains(result.stdout, "CONFLICT");
+  contains(result.stdout, "roadmap/done.md");
 });
 
 test("with the driver, two closes merge, and index makes check pass", () => {
@@ -58,13 +59,13 @@ test("with the driver, two closes merge, and index makes check pass", () => {
 
   const result = closeOneOnEachBranch(root);
 
-  expect(result.status, result.stdout + result.stderr).toBe(0);
-  expect(result.stderr).toContain("run `roadmap index` once the merge is done");
-  expect(run(["index"], root).status).toBe(0);
-  expect(run(["check", "--base", "base"], root).status).toBe(0);
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  contains(result.stderr, "run `roadmap index` once the merge is done");
+  assert.equal(run(["index"], root).status, 0);
+  assert.equal(run(["check", "--base", "base"], root).status, 0);
   const done = read(join(root, "roadmap/done.md"));
-  expect(done).toContain("archive/rotate-keys.md");
-  expect(done).toContain("archive/split-app.md");
+  contains(done, "archive/rotate-keys.md");
+  contains(done, "archive/split-app.md");
 });
 
 test("the driver leaves a clash in hand-written text as a conflict", () => {
@@ -82,10 +83,10 @@ test("the driver leaves a clash in hand-written text as a conflict", () => {
 
   const result = attempt(root, "merge", "-q", "a");
 
-  expect(result.status).not.toBe(0);
+  assert.notEqual(result.status, 0);
   const text = read(readme);
-  expect(text).toContain("<<<<<<<");
-  expect(text.split("<!-- BEGIN INDEX").length - 1).toBe(1);
+  contains(text, "<<<<<<<");
+  assert.equal(text.split("<!-- BEGIN INDEX").length - 1, 1);
 });
 
 test("two branches filing in one bucket collide until renumbered", () => {
@@ -95,10 +96,10 @@ test("two branches filing in one bucket collide until renumbered", () => {
     onBranch(root, name, "new", name, "--title", name, "--bucket", "now", "--body", "Prose.");
   }
 
-  expect(attempt(root, "merge", "-q", "first").status).toBe(0);
+  assert.equal(attempt(root, "merge", "-q", "first").status, 0);
   run(["index"], root);
-  expect(run(["check"], root).stderr).toContain("[rank]");
+  contains(run(["check"], root).stderr, "[rank]");
 
-  expect(run(["index", "--renumber"], root).status).toBe(0);
-  expect(run(["check"], root).status).toBe(0);
+  assert.equal(run(["index", "--renumber"], root).status, 0);
+  assert.equal(run(["check"], root).status, 0);
 });

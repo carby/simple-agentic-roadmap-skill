@@ -1,13 +1,26 @@
 // The generated blocks: what they render, their order, and how they are
 // spliced into README.md and done.md.
 
+import assert from "node:assert/strict";
 import { join } from "node:path";
-import { describe, expect, test } from "vitest";
+import { describe, test } from "node:test";
 import { check } from "../src/commands.ts";
 import { DONE_BEGIN, DONE_END, INDEX_BEGIN, INDEX_END, load, openRoadmap, UsageError } from "../src/model.ts";
 import { len, readText } from "../src/py.ts";
 import { renderDone, renderGraph, renderIndex, short, splice } from "../src/render.ts";
-import { closedMeta, D, FIXTURES, itemText, makeRoadmap, openMeta, tempDir } from "./helpers.ts";
+import {
+  closedMeta,
+  contains,
+  D,
+  each,
+  excludes,
+  FIXTURES,
+  itemText,
+  makeRoadmap,
+  openMeta,
+  tempDir,
+  throwsWith,
+} from "./helpers.ts";
 
 const strings = (problems: { toString(): string }[]) => problems.map(String);
 
@@ -19,15 +32,15 @@ test("the committed fixture is what the renderer produces", () => {
   const block = (text: string, begin: string, end: string) =>
     text.slice(text.indexOf(begin), text.indexOf(end) + end.length);
 
-  expect(renderIndex(items, archived, rm.milestones)).toBe(block(readText(rm.readme), INDEX_BEGIN, INDEX_END));
-  expect(renderDone(archived, items, rm.milestones)).toBe(block(readText(rm.done), DONE_BEGIN, DONE_END));
-  expect(strings(check(rm))).toEqual([]);
+  assert.equal(renderIndex(items, archived, rm.milestones), block(readText(rm.readme), INDEX_BEGIN, INDEX_END));
+  assert.equal(renderDone(archived, items, rm.milestones), block(readText(rm.done), DONE_BEGIN, DONE_END));
+  assert.deepEqual(strings(check(rm)), []);
 });
 
 test("empty blocks say so", () => {
-  expect(renderDone([])).toContain("*Empty.*");
-  expect(renderIndex([]).split("*Empty.*").length - 1).toBe(3);
-  expect(renderIndex([])).not.toContain("mermaid");
+  contains(renderDone([]), "*Empty.*");
+  assert.equal(renderIndex([]).split("*Empty.*").length - 1, 3);
+  excludes(renderIndex([]), "mermaid");
 });
 
 test("index orders by bucket then rank and shows the note", () => {
@@ -40,10 +53,10 @@ test("index orders by bucket then rank and shows the note", () => {
 
   const block = renderIndex(items);
 
-  expect(block.indexOf("[C]")).toBeLessThan(block.indexOf("[B]"));
-  expect(block.indexOf("[B]")).toBeLessThan(block.indexOf("[A]"));
-  expect(block).toContain("**Gate:** fast enough");
-  expect(block).toContain("**Blocked on:** a call");
+  assert.ok(block.indexOf("[C]") < block.indexOf("[B]"), `${block.indexOf("[C]")} < ${block.indexOf("[B]")}`);
+  assert.ok(block.indexOf("[B]") < block.indexOf("[A]"), `${block.indexOf("[B]")} < ${block.indexOf("[A]")}`);
+  contains(block, "**Gate:** fast enough");
+  contains(block, "**Blocked on:** a call");
 });
 
 test("done is newest first and grouped by month", () => {
@@ -57,10 +70,13 @@ test("done is newest first and grouped by month", () => {
   const block = renderDone(archived);
 
   const order = ["### 2026-09 (2)", "[New]", "[Mid]", "### 2026-07 (1)"].map((s) => block.indexOf(s));
-  expect(order).toEqual([...order].sort((a, b) => a - b));
-  expect(order).not.toContain(-1);
-  expect(block).toContain("- **shipped** [New](archive/new.md) — closed 2026-09-20 as `pr-9`");
-  expect(block).toContain("- **declined** [Mid](archive/mid.md) — closed 2026-09-02");
+  assert.deepEqual(
+    order,
+    [...order].sort((a, b) => a - b),
+  );
+  excludes(order, -1);
+  contains(block, "- **shipped** [New](archive/new.md) — closed 2026-09-20 as `pr-9`");
+  contains(block, "- **declined** [Mid](archive/mid.md) — closed 2026-09-02");
 });
 
 test("done lists the milestones the archive names", () => {
@@ -78,28 +94,31 @@ test("done lists the milestones the archive names", () => {
 
   const block = renderDone(archived, [], rm.milestones);
 
-  expect(block).toContain("### Milestones (3)");
+  contains(block, "### Milestones (3)");
   const order = [
     "- **Beta** — 2026-09-01: 1 shipped, 1 declined",
     "- **Alpha** — 2026-08-01: 1 shipped",
     "- **gone**: 1 shipped",
     "### 2026-09",
   ].map((s) => block.indexOf(s));
-  expect(order).not.toContain(-1);
-  expect(order).toEqual([...order].sort((a, b) => a - b));
-  expect(block).not.toContain("Unused");
-  expect(block).toContain("- **shipped** [A](archive/a.md) — closed 2026-09-10 — for Alpha (2026-08-01)");
-  expect(block).toContain("- **shipped** [D](archive/d.md) — closed 2026-09-10 — for gone");
-  expect(block).toContain("- **shipped** [E](archive/e.md) — closed 2026-09-10\n");
-  expect(strings(check(rm))).toEqual([]);
+  excludes(order, -1);
+  assert.deepEqual(
+    order,
+    [...order].sort((a, b) => a - b),
+  );
+  excludes(block, "Unused");
+  contains(block, "- **shipped** [A](archive/a.md) — closed 2026-09-10 — for Alpha (2026-08-01)");
+  contains(block, "- **shipped** [D](archive/d.md) — closed 2026-09-10 — for gone");
+  contains(block, "- **shipped** [E](archive/e.md) — closed 2026-09-10\n");
+  assert.deepEqual(strings(check(rm)), []);
 });
 
 test("done without milestones renders as before", () => {
   const rm = makeRoadmap(tempDir(), { "archive/a.md": itemText(closedMeta({ id: "a", title: "A" })) });
   const [, archived] = load(rm);
 
-  expect(renderDone(archived, [], rm.milestones)).toBe(renderDone(archived));
-  expect(renderDone(archived)).not.toContain("Milestones");
+  assert.equal(renderDone(archived, [], rm.milestones), renderDone(archived));
+  excludes(renderDone(archived), "Milestones");
 });
 
 test("a retry links to the declined item both ways", () => {
@@ -109,15 +128,15 @@ test("a retry links to the declined item both ways", () => {
   });
   const [items, archived] = load(rm);
 
-  expect(renderIndex(items, archived)).toContain("**Supersedes:** [Old](archive/old.md) (declined)");
-  expect(renderDone(archived, items)).toContain("closed 2026-09-10 — superseded by [Retry](items/retry.md)");
-  expect(strings(check(rm))).toEqual([]);
+  contains(renderIndex(items, archived), "**Supersedes:** [Old](archive/old.md) (declined)");
+  contains(renderDone(archived, items), "closed 2026-09-10 — superseded by [Retry](items/retry.md)");
+  assert.deepEqual(strings(check(rm)), []);
 });
 
 test("splice keeps the prose around the block", () => {
   const text = `before\n${INDEX_BEGIN}\nold\n${INDEX_END}\nafter\n`;
 
-  expect(splice(text, INDEX_BEGIN, INDEX_END, "NEW", "README.md")).toBe("before\nNEW\nafter\n");
+  assert.equal(splice(text, INDEX_BEGIN, INDEX_END, "NEW", "README.md"), "before\nNEW\nafter\n");
 });
 
 test("splice accepts an older marker wording", () => {
@@ -128,13 +147,11 @@ test("splice accepts an older marker wording", () => {
     "x\n" +
     "<!-- END INDEX -->";
 
-  expect(splice(text, INDEX_BEGIN, INDEX_END, "NEW", "README.md")).toBe("NEW");
+  assert.equal(splice(text, INDEX_BEGIN, INDEX_END, "NEW", "README.md"), "NEW");
 });
 
 test("splice refuses a file without markers", () => {
-  const attempt = () => splice("# Roadmap\n", INDEX_BEGIN, INDEX_END, "NEW", "README.md");
-  expect(attempt).toThrow(UsageError);
-  expect(attempt).toThrow("markers not found");
+  throwsWith(() => splice("# Roadmap\n", INDEX_BEGIN, INDEX_END, "NEW", "README.md"), UsageError, "markers not found");
 });
 
 test("index names dependencies open, closed and unknown", () => {
@@ -145,7 +162,8 @@ test("index names dependencies open, closed and unknown", () => {
   });
   const [items, archived] = load(rm);
 
-  expect(renderIndex(items, archived)).toContain(
+  contains(
+    renderIndex(items, archived),
     "2. [B](items/b.md) — filed 2026-09-06<br>  **Gate:** fast" +
       "<br>  **Depends on:** [A](items/a.md), [Old](archive/old.md) (shipped), gone",
   );
@@ -164,9 +182,12 @@ test("the graph boxes buckets in order and draws open dependencies", () => {
 
   const block = renderIndex(items, archived);
 
-  expect(block.indexOf("```mermaid")).toBeLessThan(block.indexOf("### Now"));
-  expect(block.indexOf("```mermaid")).not.toBe(-1);
-  expect(renderGraph(items)).toEqual([
+  assert.ok(
+    block.indexOf("```mermaid") < block.indexOf("### Now"),
+    `${block.indexOf("```mermaid")} < ${block.indexOf("### Now")}`,
+  );
+  assert.notEqual(block.indexOf("```mermaid"), -1);
+  assert.deepEqual(renderGraph(items), [
     "```mermaid",
     "flowchart LR",
     '  subgraph b_now ["Now"]',
@@ -198,17 +219,17 @@ test("an item waiting only on shipped work is ready", () => {
   });
   const [items] = load(rm);
 
-  expect(renderGraph(items)).toContain("  class i_a,i_c ready");
+  contains(renderGraph(items), "  class i_a,i_c ready");
 });
 
 describe("long titles are shortened at a word break", () => {
-  test.each([
+  each([
     ["Short enough", "Short enough"],
     ["Evals for how an agent uses the skill, not just for the script", "Evals for how an agent uses the skill…"],
     ["x".repeat(50), `${"x".repeat(39)}…`],
   ])("%s", (title, shortened) => {
-    expect(short(title)).toBe(shortened);
-    expect(len(short(title))).toBeLessThanOrEqual(40);
+    assert.equal(short(title), shortened);
+    assert.ok(len(short(title)) <= 40, `${len(short(title))} <= ${40}`);
   });
 });
 
@@ -221,10 +242,10 @@ test("the graph leaves out a chart with no arrows", () => {
 
   const block = renderIndex(items, archived);
 
-  expect(renderGraph(items)).toEqual([]);
-  expect(block).not.toContain("```mermaid");
-  expect(block).toContain("*No open item depends on another or on a milestone, so there is no chart.*");
-  expect(strings(check(rm))).toEqual([]);
+  assert.deepEqual(renderGraph(items), []);
+  excludes(block, "```mermaid");
+  contains(block, "*No open item depends on another or on a milestone, so there is no chart.*");
+  assert.deepEqual(strings(check(rm)), []);
 });
 
 test("the graph escapes titles", () => {
@@ -234,7 +255,7 @@ test("the graph escapes titles", () => {
   });
   const [items] = load(rm);
 
-  expect(renderGraph(items)).toContain('    i_a["1 · Fix #35;12: #quot;#lt;b#gt;#quot; in #96;x#96;"]');
+  contains(renderGraph(items), '    i_a["1 · Fix #35;12: #quot;#lt;b#gt;#quot; in #96;x#96;"]');
 });
 
 const MILESTONES =
@@ -250,9 +271,9 @@ test("the index names the milestones an item is due for and waits on", () => {
 
   const block = renderIndex(items, archived, rm.milestones);
 
-  expect(block).toContain("1. [A](items/a.md) — filed 2026-09-06<br>  **Due for:** Public beta (2026-12-01)");
-  expect(block).toContain("**Depends on:** Public beta (2026-12-01), [A](items/a.md)");
-  expect(strings(check(rm))).toEqual([]);
+  contains(block, "1. [A](items/a.md) — filed 2026-09-06<br>  **Due for:** Public beta (2026-12-01)");
+  contains(block, "**Depends on:** Public beta (2026-12-01), [A](items/a.md)");
+  assert.deepEqual(strings(check(rm)), []);
 });
 
 test("the graph draws the milestones open items name as hexagons", () => {
@@ -265,7 +286,7 @@ test("the graph draws the milestones open items name as hexagons", () => {
 
   const graph = renderGraph(items, rm.milestones);
 
-  expect(graph.slice(-6)).toEqual([
+  assert.deepEqual(graph.slice(-6), [
     '  m_beta{{"Public beta (2026-12-01)"}}',
     "  i_a --> m_beta",
     "  m_beta --> i_b",
@@ -273,5 +294,8 @@ test("the graph draws the milestones open items name as hexagons", () => {
     "  class i_a ready", // b waits on the milestone, so it is not ready
     "```",
   ]);
-  expect(graph.some((line) => line.includes("m_unused"))).toBe(false);
+  assert.equal(
+    graph.some((line) => line.includes("m_unused")),
+    false,
+  );
 });

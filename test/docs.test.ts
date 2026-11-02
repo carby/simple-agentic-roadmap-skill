@@ -3,10 +3,11 @@
 // and the docs/ vault name real commands and Action inputs, and their links
 // resolve.
 
+import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { test } from "node:test";
 import { parse as parseToml } from "smol-toml";
-import { expect, test } from "vitest";
 import { COMMANDS } from "../src/cli.ts";
 import { check } from "../src/commands.ts";
 import {
@@ -19,7 +20,7 @@ import {
   RULES,
   VERSION,
 } from "../src/model.ts";
-import { REPO } from "./helpers.ts";
+import { contains, excludes, REPO } from "./helpers.ts";
 
 const read = (path: string) => readFileSync(join(REPO, path), "utf8");
 const literal = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -48,7 +49,7 @@ function section(title: string): string {
 }
 
 function doc(name: string): string {
-  expect(existsSync(join(REPO, "docs", name)), `docs/${name} is missing`).toBe(true);
+  assert.equal(existsSync(join(REPO, "docs", name)), true, `docs/${name} is missing`);
   return read(`docs/${name}`);
 }
 
@@ -60,7 +61,7 @@ function unknown(named: Set<string>, known: Set<string>): string[] {
 
 test("SKILL.md's frontmatter names and describes the skill", () => {
   const match = /^---\n([\s\S]*?)\n---\n/.exec(read("SKILL.md"));
-  expect(match, "SKILL.md must open with ---fenced frontmatter").not.toBeNull();
+  assert.notEqual(match, null, "SKILL.md must open with ---fenced frontmatter");
   const meta = Object.fromEntries(
     (match?.[1] ?? "")
       .split("\n")
@@ -68,15 +69,15 @@ test("SKILL.md's frontmatter names and describes the skill", () => {
       .map((line) => [line.slice(0, line.indexOf(": ")), line.slice(line.indexOf(": ") + 2)]),
   );
 
-  expect(meta.name).toBe("roadmap");
-  expect(meta.description?.length ?? 0, "the description is what makes an agent load the skill").toBeGreaterThan(100);
+  assert.equal(meta.name, "roadmap");
+  assert.ok((meta.description?.length ?? 0) > 100, "the description is what makes an agent load the skill");
 });
 
 test("every command the agent docs name exists", () => {
   for (const name of AGENT_DOCS) {
     const named = new Set(matches(NAMED, read(name)));
-    if (name !== "references/conventions.md") expect(named.size, `${name} names no commands`).toBeGreaterThan(0);
-    expect(unknown(named, CLI_COMMANDS), `${name} names commands the CLI does not have`).toEqual([]);
+    if (name !== "references/conventions.md") assert.ok(named.size > 0, `${name} names no commands`);
+    assert.deepEqual(unknown(named, CLI_COMMANDS), [], `${name} names commands the CLI does not have`);
   }
 });
 
@@ -84,7 +85,7 @@ test("every rule tag is documented for agents", () => {
   const table = read("references/conventions.md");
 
   for (const tag of Object.keys(RULES)) {
-    expect(table.includes(`| \`${tag}\` |`), `references/conventions.md has no row for [${tag}]`).toBe(true);
+    assert.equal(table.includes(`| \`${tag}\` |`), true, `references/conventions.md has no row for [${tag}]`);
   }
 });
 
@@ -95,7 +96,7 @@ test("every documented frontmatter field is one the schema knows", () => {
   for (const name of AGENT_DOCS) {
     for (const block of matches(/```toml\n([\s\S]*?)```/g, read(name))) {
       const fields = matches(/^([a-z_]+) =/gm, block.replaceAll("+++", "")).filter((f) => !other.has(f));
-      expect(unknown(new Set(fields), known), `${name} documents unknown fields`).toEqual([]);
+      assert.deepEqual(unknown(new Set(fields), known), [], `${name} documents unknown fields`);
     }
   }
 });
@@ -103,19 +104,19 @@ test("every documented frontmatter field is one the schema knows", () => {
 test("the template config parses with its examples uncommented", () => {
   const uncommented = read("assets/template/roadmap.toml").replace(/^# (root|specs|changes|adrs|beta)/gm, "$1");
 
-  expect(parseToml(uncommented).milestones).toHaveProperty("beta");
+  assert.ok("beta" in (parseToml(uncommented).milestones as object));
 });
 
 test("the template decisions log is what decide writes", () => {
-  expect(read("assets/template/decisions.md")).toBe(DECISIONS_INTRO);
+  assert.equal(read("assets/template/decisions.md"), DECISIONS_INTRO);
 });
 
 test("the dogfood roadmap is clean", () => {
-  expect(check(openRoadmap(join(REPO, "roadmap"))).map(String)).toEqual([]);
+  assert.deepEqual(check(openRoadmap(join(REPO, "roadmap"))).map(String), []);
 });
 
 test("package.json and the CLI agree on the version", () => {
-  expect(JSON.parse(read("package.json")).version).toBe(VERSION);
+  assert.equal(JSON.parse(read("package.json")).version, VERSION);
 });
 
 // --- README.md, docs/ and CONTRIBUTING.md -------------------------------------
@@ -123,18 +124,18 @@ test("package.json and the CLI agree on the version", () => {
 test("client checks are in the user docs, and developer tests in CONTRIBUTING", () => {
   const contributing = read("CONTRIBUTING.md");
 
-  expect(doc("checking.md")).toMatch(/roadmap(\.py)? check/);
-  expect(contributing).toContain("npx vitest run");
-  expect(USER_DOCS).not.toContain("npx vitest");
-  expect(section("Contributing")).toContain("CONTRIBUTING.md");
+  assert.match(doc("checking.md"), /roadmap(\.py)? check/);
+  contains(contributing, "npm test");
+  excludes(USER_DOCS, "node --test");
+  contains(section("Contributing"), "CONTRIBUTING.md");
 });
 
 test("every command the docs and CONTRIBUTING name exists", () => {
   for (const [name, text] of Object.entries({ "user docs": USER_DOCS, "CONTRIBUTING.md": read("CONTRIBUTING.md") })) {
     const named = new Set(matches(NAMED, text));
 
-    expect(named.size, `${name} names no commands; the regex is out of date`).toBeGreaterThan(0);
-    expect(unknown(named, CLI_COMMANDS), `${name} names commands the CLI does not have`).toEqual([]);
+    assert.ok(named.size > 0, `${name} names no commands; the regex is out of date`);
+    assert.deepEqual(unknown(named, CLI_COMMANDS), [], `${name} names commands the CLI does not have`);
   }
 });
 
@@ -146,18 +147,18 @@ test("every Action input the docs use exists", () => {
     for (const input of matches(/^\s+([a-z-]+):/gm, block)) used.add(input);
   }
 
-  expect(used.size, "the docs show no `uses: ...roadmap-skill@...` step with inputs").toBeGreaterThan(0);
-  expect(unknown(used, inputs), "the docs use Action inputs that action.yml lacks").toEqual([]);
+  assert.ok(used.size > 0, "the docs show no `uses: ...roadmap-skill@...` step with inputs");
+  assert.deepEqual(unknown(used, inputs), [], "the docs use Action inputs that action.yml lacks");
 });
 
 test("the rule-tags note points at the rule table", () => {
-  expect(doc("rule-tags.md")).toContain("references/conventions.md");
+  contains(doc("rule-tags.md"), "references/conventions.md");
 });
 
 test("every rule tag is explained in the docs", () => {
   const tags = doc("rule-tags.md");
   for (const tag of Object.keys(RULES)) {
-    expect(tags.includes(`\`[${tag}]\``), `docs/rule-tags.md does not explain [${tag}]`).toBe(true);
+    assert.equal(tags.includes(`\`[${tag}]\``), true, `docs/rule-tags.md does not explain [${tag}]`);
   }
 });
 
@@ -165,8 +166,8 @@ test("every slash command the README advertises is handled by the skill", () => 
   const advertised = new Set(matches(/^\| `\/roadmap ([a-z]+)/gm, section("Slash commands")));
   const handled = new Set(matches(/^\| `([a-z]+)[` ]/gm, read("SKILL.md")));
 
-  expect(advertised.size, "README.md's slash-command table is empty or the regex is out of date").toBeGreaterThan(0);
-  expect(unknown(advertised, handled), "SKILL.md does not say what to do for these").toEqual([]);
+  assert.ok(advertised.size > 0, "README.md's slash-command table is empty or the regex is out of date");
+  assert.deepEqual(unknown(advertised, handled), [], "SKILL.md does not say what to do for these");
 });
 
 test("no doc or template runs a bare npx roadmap", () => {
@@ -182,7 +183,7 @@ test("no doc or template runs a bare npx roadmap", () => {
     ),
   };
   for (const [name, text] of Object.entries(sources)) {
-    expect(text.match(/npx roadmap\b/g) ?? [], `${name} has a bare \`npx roadmap\``).toEqual([]);
+    assert.deepEqual(text.match(/npx roadmap\b/g) ?? [], [], `${name} has a bare \`npx roadmap\``);
   }
 });
 
@@ -191,9 +192,11 @@ test("the docs tell users to make the skill a visible requirement", () => {
     "README.md": section("Quick start"),
     "docs/install.md": doc("install.md"),
   })) {
-    expect(install, name).toContain("CLAUDE.md");
-    expect(install, `${name}: the CLAUDE.md snippet must say what to do without the skill`).toContain(
+    contains(install, "CLAUDE.md", name);
+    contains(
+      install,
       "If the skill isn't available",
+      `${name}: the CLAUDE.md snippet must say what to do without the skill`,
     );
   }
 });
@@ -201,18 +204,18 @@ test("the docs tell users to make the skill a visible requirement", () => {
 test("the README links every note in the vault", () => {
   const linked = new Set(matches(/\]\(docs\/([^)#]+\.md)/g, README));
 
-  expect(unknown(new Set(DOC_NAMES), linked), "README.md does not link these notes").toEqual([]);
+  assert.deepEqual(unknown(new Set(DOC_NAMES), linked), [], "README.md does not link these notes");
 });
 
 test("every relative link in the docs resolves", () => {
   // Markdown links only: GitHub doesn't render Obsidian [[wikilinks]].
   for (const [name, text] of Object.entries(PAGES)) {
     const prose = text.replace(/```[\s\S]*?```/g, "");
-    expect(prose.includes("[["), `${name} uses a [[wikilink]]; use a Markdown link`).toBe(false);
+    assert.equal(prose.includes("[["), false, `${name} uses a [[wikilink]]; use a Markdown link`);
     for (const target of matches(/\]\(([^)\s]+)\)/g, prose)) {
       if (/^[a-z]+:/.test(target) || target.startsWith("#")) continue;
       const path = join(REPO, dirname(name), target.split("#")[0] as string);
-      expect(existsSync(path), `${name} links ${target}, which doesn't exist`).toBe(true);
+      assert.equal(existsSync(path), true, `${name} links ${target}, which doesn't exist`);
     }
   }
 });
@@ -220,5 +223,5 @@ test("every relative link in the docs resolves", () => {
 test("the CHANGELOG has an entry for the current version", () => {
   const entry = new RegExp(`^## ${literal(VERSION)} — \\d{4}-\\d{2}-\\d{2}$`, "m");
 
-  expect(entry.test(read("CHANGELOG.md")), `CHANGELOG.md has no '## ${VERSION} — <date>' entry`).toBe(true);
+  assert.equal(entry.test(read("CHANGELOG.md")), true, `CHANGELOG.md has no '## ${VERSION} — <date>' entry`);
 });

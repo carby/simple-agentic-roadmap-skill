@@ -2,11 +2,12 @@
 // milestones that have passed, and Now and Next items nobody has touched. It
 // is advice, so it always exits 0.
 
+import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { expect, test } from "vitest";
-import { closedMeta, D, gitRepo, itemText, makeRoadmap, openMeta, run, tempDir } from "./helpers.ts";
+import { test } from "node:test";
+import { closedMeta, contains, D, gitRepo, itemText, makeRoadmap, openMeta, run, tempDir } from "./helpers.ts";
 
 const MILESTONES =
   '[milestones]\nalpha = { title = "Alpha", date = 2026-11-01 }\nbeta = { title = "Beta", date = 2026-12-01 }\n';
@@ -24,7 +25,7 @@ function gitOn(root: string, date: string, ...args: string[]): void {
 
 function review(root: string, ...args: string[]): string[] {
   const result = run(["review", ...args], root);
-  expect(result.status, result.stderr).toBe(0);
+  assert.equal(result.status, 0, result.stderr);
   return result.stdout.split("\n").filter(Boolean);
 }
 
@@ -32,7 +33,7 @@ test("a clean roadmap has nothing to review", () => {
   const root = tempDir();
   makeRoadmap(root, { "items/a.md": itemText(openMeta({ id: "a", filed: D(2026, 10, 1) })) });
 
-  expect(review(root, "--date", "2026-10-22").at(-1)).toBe("Nothing to review.");
+  assert.equal(review(root, "--date", "2026-10-22").at(-1), "Nothing to review.");
 });
 
 test("passed milestones are listed with the items that name them", () => {
@@ -45,9 +46,12 @@ test("passed milestones are listed with the items that name them", () => {
 
   const lines = review(root, "--date", "2026-11-11");
 
-  expect(lines[0]?.startsWith("Milestones that have passed but open items still name")).toBe(true);
-  expect(lines[1]).toBe("  alpha: Alpha (2026-11-01), 10 days ago; due: a; waiting: b");
-  expect(lines.some((l) => l.includes("beta"))).toBe(false);
+  assert.equal(lines[0]?.startsWith("Milestones that have passed but open items still name"), true);
+  assert.equal(lines[1], "  alpha: Alpha (2026-11-01), 10 days ago; due: a; waiting: b");
+  assert.equal(
+    lines.some((l) => l.includes("beta")),
+    false,
+  );
 });
 
 test("a passed milestone nothing open names is history", () => {
@@ -57,14 +61,14 @@ test("a passed milestone nothing open names is history", () => {
     "archive/a.md": itemText(closedMeta({ id: "a", milestone: "alpha" })),
   });
 
-  expect(review(root, "--date", "2026-12-15").at(-1)).toBe("Nothing to review.");
+  assert.equal(review(root, "--date", "2026-12-15").at(-1), "Nothing to review.");
 });
 
 test("a milestone due today has not passed", () => {
   const root = tempDir();
   makeRoadmap(root, { "roadmap.toml": MILESTONES });
 
-  expect(review(root, "--date", "2026-11-01").at(-1)).toBe("Nothing to review.");
+  assert.equal(review(root, "--date", "2026-11-01").at(-1), "Nothing to review.");
 });
 
 test("Now and Next items untouched for 60 days are stale", () => {
@@ -81,9 +85,12 @@ test("Now and Next items untouched for 60 days are stale", () => {
 
   const lines = review(root, "--date", "2026-10-01");
 
-  expect(lines).toContain("  now 1  old-now  last touched 2026-08-01 (61 days ago)");
-  expect(lines.some((l) => l.includes("argued") || l.includes("old-later"))).toBe(false);
-  expect(lines.at(-1)).toContain("only filed and updated dates count");
+  contains(lines, "  now 1  old-now  last touched 2026-08-01 (61 days ago)");
+  assert.equal(
+    lines.some((l) => l.includes("argued") || l.includes("old-later")),
+    false,
+  );
+  contains(lines.at(-1) ?? "", "only filed and updated dates count");
 });
 
 test("--days sets the cutoff", () => {
@@ -92,8 +99,8 @@ test("--days sets the cutoff", () => {
   const stale = (days: string) =>
     review(root, "--date", "2026-10-22", "--days", days).some((l) => l.includes(" a  last touched"));
 
-  expect(stale("21")).toBe(true);
-  expect(stale("22")).toBe(false);
+  assert.equal(stale("21"), true);
+  assert.equal(stale("22"), false);
 });
 
 test("a recent commit to the item counts as a touch", () => {
@@ -111,7 +118,13 @@ test("a recent commit to the item counts as a touch", () => {
 
   const lines = review(root, "--date", "2026-10-22");
 
-  expect(lines).toContain("  now 2  left  last touched 2026-06-01 (143 days ago)");
-  expect(lines.some((l) => l.includes("edited"))).toBe(false);
-  expect(lines.some((l) => l.includes("only filed and updated"))).toBe(false);
+  contains(lines, "  now 2  left  last touched 2026-06-01 (143 days ago)");
+  assert.equal(
+    lines.some((l) => l.includes("edited")),
+    false,
+  );
+  assert.equal(
+    lines.some((l) => l.includes("only filed and updated")),
+    false,
+  );
 });

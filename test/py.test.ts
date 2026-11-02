@@ -1,13 +1,15 @@
 // The Python behaviours the port reproduces. Each expected value was printed
 // by CPython 3.12, so these hold the helpers to the real thing.
 
+import assert from "node:assert/strict";
+import { describe, test } from "node:test";
 import { parse as parseToml } from "smol-toml";
-import { describe, expect, test } from "vitest";
 import { opcodes } from "../src/git.ts";
 import { Day, Float, fromToml, isDict, jsonDumps, repr, splitlines, str, unquote } from "../src/py.ts";
+import { each } from "./helpers.ts";
 
 describe("repr", () => {
-  test.each([
+  each([
     ["it's", `"it's"`],
     ['say "hi"', `'say "hi"'`],
     [`both ' and "`, `'both \\' and "'`],
@@ -18,10 +20,10 @@ describe("repr", () => {
     ["back\\slash", "'back\\\\slash'"],
     ["😀", "'😀'"],
   ])("of the string %j", (value, expected) => {
-    expect(repr(value)).toBe(expected);
+    assert.equal(repr(value), expected);
   });
 
-  test.each([
+  each([
     [1.0, "1.0"],
     [1.5, "1.5"],
     [1e16, "1e+16"],
@@ -30,50 +32,51 @@ describe("repr", () => {
     [-0.0, "-0.0"],
     [123456789012345.0, "123456789012345.0"],
   ])("of the float %d", (value, expected) => {
-    expect(repr(new Float(value))).toBe(expected);
+    assert.equal(repr(new Float(value)), expected);
   });
 
   test("of a date, a list and a dict", () => {
-    expect(repr(new Day(2026, 9, 6))).toBe("datetime.date(2026, 9, 6)");
-    expect(repr([1, "a", true, null])).toBe("[1, 'a', True, None]");
-    expect(repr({ a: 1 })).toBe("{'a': 1}");
+    assert.equal(repr(new Day(2026, 9, 6)), "datetime.date(2026, 9, 6)");
+    assert.equal(repr([1, "a", true, null]), "[1, 'a', True, None]");
+    assert.equal(repr({ a: 1 }), "{'a': 1}");
   });
 });
 
 test("str of a date is ISO, of anything else its repr", () => {
-  expect(str(new Day(2026, 9, 6))).toBe("2026-09-06");
-  expect(str("plain")).toBe("plain");
-  expect(str(undefined)).toBe("None");
-  expect(str(true)).toBe("True");
+  assert.equal(str(new Day(2026, 9, 6)), "2026-09-06");
+  assert.equal(str("plain"), "plain");
+  assert.equal(str(undefined), "None");
+  assert.equal(str(true), "True");
 });
 
 test("json.dumps with indent=2 escapes non-ASCII", () => {
   const value = [{ path: "x", t: "é😀", d: new Day(2026, 9, 6), n: [], o: {} }];
-  expect(jsonDumps(value)).toBe(
+  assert.equal(
+    jsonDumps(value),
     '[\n  {\n    "path": "x",\n    "t": "\\u00e9\\ud83d\\ude00",\n    "d": "2026-09-06",\n    "n": [],\n    "o": {}\n  }\n]',
   );
 });
 
 test("splitlines breaks on every line boundary Python knows", () => {
-  expect(splitlines("a\nb\rc\x0bd\x0ce\x1cf g")).toEqual(["a", "b", "c", "d", "e", "f", "g"]);
-  expect(splitlines("a\nb\n", true)).toEqual(["a\n", "b\n"]);
+  assert.deepEqual(splitlines("a\nb\rc\x0bd\x0ce\x1cf g"), ["a", "b", "c", "d", "e", "f", "g"]);
+  assert.deepEqual(splitlines("a\nb\n", true), ["a\n", "b\n"]);
 });
 
 test("unquote leaves malformed escapes alone", () => {
-  expect(unquote("a%20b%C3%A9%zz%")).toBe("a bé%zz%");
+  assert.equal(unquote("a%20b%C3%A9%zz%"), "a bé%zz%");
 });
 
 test("Day parses only real ISO dates", () => {
-  expect(String(Day.fromIso("2026-09-06"))).toBe("2026-09-06");
-  expect(String(Day.fromIso("20260906"))).toBe("2026-09-06");
-  expect(Day.fromIso("2026-02-30")).toBeNull();
-  expect(Day.fromIso("2026-0906")).toBeNull();
-  expect((Day.fromIso("2026-03-01") as Day).ordinal - (Day.fromIso("2026-02-28") as Day).ordinal).toBe(1);
+  assert.equal(String(Day.fromIso("2026-09-06")), "2026-09-06");
+  assert.equal(String(Day.fromIso("20260906")), "2026-09-06");
+  assert.equal(Day.fromIso("2026-02-30"), null);
+  assert.equal(Day.fromIso("2026-0906"), null);
+  assert.equal((Day.fromIso("2026-03-01") as Day).ordinal - (Day.fromIso("2026-02-28") as Day).ordinal, 1);
 });
 
 describe("opcodes matches difflib.SequenceMatcher", () => {
   test("an edit with a deletion and insertions", () => {
-    expect(opcodes(["x", "y", "z", "q"], ["x", "z", "new", "q", "tail"])).toEqual([
+    assert.deepEqual(opcodes(["x", "y", "z", "q"], ["x", "z", "new", "q", "tail"]), [
       ["equal", 0, 1, 0, 1],
       ["delete", 1, 2, 1, 1],
       ["equal", 2, 3, 1, 2],
@@ -84,7 +87,7 @@ describe("opcodes matches difflib.SequenceMatcher", () => {
   });
 
   test("repeated lines, where the longest match decides", () => {
-    expect(opcodes(["a", "b", "a", "b", "c"], ["b", "a", "c", "a", "b"])).toEqual([
+    assert.deepEqual(opcodes(["a", "b", "a", "b", "c"], ["b", "a", "c", "a", "b"]), [
       ["insert", 0, 0, 0, 3],
       ["equal", 0, 2, 3, 5],
       ["delete", 2, 5, 5, 5],
@@ -96,11 +99,11 @@ test("a TOML table is a dict, whatever prototype the parser gives it", () => {
   // smol-toml 1.9 returns tables with a null prototype; 1.6 returned plain objects.
   const parsed = parseToml('[refs]\nspecs = "specs/{}"\n[milestones]\nbeta = { title = "B", date = 2026-12-01 }\n');
 
-  expect(isDict(parsed.refs)).toBe(true);
-  expect(isDict(Object.create(null))).toBe(true);
-  expect(isDict({})).toBe(true);
-  for (const value of [null, [], "x", 1, new Day(2026, 1, 1), new Float(1.5)]) expect(isDict(value)).toBe(false);
-  expect(fromToml(parsed)).toEqual({
+  assert.equal(isDict(parsed.refs), true);
+  assert.equal(isDict(Object.create(null)), true);
+  assert.equal(isDict({}), true);
+  for (const value of [null, [], "x", 1, new Day(2026, 1, 1), new Float(1.5)]) assert.equal(isDict(value), false);
+  assert.deepEqual(fromToml(parsed), {
     refs: { specs: "specs/{}" },
     milestones: { beta: { title: "B", date: new Day(2026, 12, 1) } },
   });

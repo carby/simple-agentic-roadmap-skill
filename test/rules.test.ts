@@ -2,13 +2,27 @@
 // to be covered either here or in append-only.test.ts, so a new rule cannot
 // land untested.
 
+import assert from "node:assert/strict";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { describe, expect, test } from "vitest";
+import { describe, test } from "node:test";
 import { check } from "../src/commands.ts";
 import { ConfigError, openRoadmap, PLACEHOLDER, RULES } from "../src/model.ts";
 import { join as pathJoin } from "../src/pathlib.ts";
-import { closedMeta, D, DONE, itemText, makeRoadmap, openMeta, Raw, README, tempDir } from "./helpers.ts";
+import {
+  closedMeta,
+  contains,
+  D,
+  DONE,
+  each,
+  itemText,
+  makeRoadmap,
+  openMeta,
+  Raw,
+  README,
+  tempDir,
+  throwsWith,
+} from "./helpers.ts";
 
 const MILESTONES =
   '[milestones]\nalpha = { title = "Alpha", date = 2026-11-01 }\nbeta = { title = "Beta", date = 2026-12-01 }\n';
@@ -363,35 +377,37 @@ const CASES: Case[] = [
 const strings = (problems: { toString(): string }[]) => problems.map(String);
 
 describe("each rule rejects what breaks it", () => {
-  test.each(CASES)("%s", (_id, rule, expected, files) => {
+  each(CASES)("%s", (_id, rule, expected, files) => {
     const rm = makeRoadmap(tempDir(), files);
 
     const problems = check(rm);
 
-    expect(
+    assert.equal(
       problems.some((p) => p.rule === rule && p.message.includes(expected)),
+      true,
       strings(problems).join("\n"),
-    ).toBe(true);
+    );
   });
 });
 
 describe("generated files must match the items", () => {
-  test.each([
+  each([
     ["stale-index", "generated block is stale", { "items/sample.md": itemText(openMeta()) }],
     ["no-markers", "markers not found", { "done.md": "# Done\n" }],
   ] as const)("%s", (_id, expected, files) => {
     const rm = makeRoadmap(tempDir(), {}, { sync: true });
-    for (const [name, text] of Object.entries(files)) {
+    for (const [name, text] of Object.entries(files as Record<string, string>)) {
       mkdirSync(join(rm.dir, name, ".."), { recursive: true });
       writeFileSync(join(rm.dir, name), text);
     }
 
     const problems = check(rm);
 
-    expect(
+    assert.equal(
       problems.some((p) => p.rule === "generated" && p.message.includes(expected)),
+      true,
       strings(problems).join("\n"),
-    ).toBe(true);
+    );
   });
 });
 
@@ -399,11 +415,14 @@ test("a missing done.md is reported", () => {
   const rm = makeRoadmap(tempDir(), {});
   rmSync(rm.done);
 
-  expect(check(rm).some((p) => p.rule === "generated" && p.message.includes("is missing"))).toBe(true);
+  assert.equal(
+    check(rm).some((p) => p.rule === "generated" && p.message.includes("is missing")),
+    true,
+  );
 });
 
 describe("a broken config is refused", () => {
-  test.each([
+  each([
     ['[refs\nspecs = "x"', "malformed TOML"],
     ['[refs]\nspecs = "specs/"', "must be a path template containing {}"],
     ['owner = "me"', "unknown key(s) owner"],
@@ -419,8 +438,7 @@ describe("a broken config is refused", () => {
     mkdirSync(join(tmp, "roadmap"));
     writeFileSync(join(tmp, "roadmap", "roadmap.toml"), toml);
 
-    expect(() => openRoadmap(join(tmp, "roadmap"))).toThrow(ConfigError);
-    expect(() => openRoadmap(join(tmp, "roadmap"))).toThrow(expected);
+    throwsWith(() => openRoadmap(join(tmp, "roadmap")), ConfigError, expected);
   });
 });
 
@@ -428,7 +446,7 @@ test("every rule has a failing case", () => {
   // The last three are tested separately.
   const covered = new Set([...CASES.map((c) => c[1]), "generated", "config", "append-only"]);
 
-  expect([...covered].sort()).toEqual(Object.keys(RULES).sort());
+  assert.deepEqual([...covered].sort(), Object.keys(RULES).sort());
 });
 
 // --- what the rules deliberately allow -------------------------------------
@@ -450,7 +468,7 @@ test("a clean roadmap has no problems", () => {
     "archive/history.md": itemText(closedMeta({ id: "history", supersedes: "shipped-one" })),
   });
 
-  expect(strings(check(rm))).toEqual([]);
+  assert.deepEqual(strings(check(rm)), []);
 });
 
 test("archived refs and links may go stale", () => {
@@ -462,7 +480,7 @@ test("archived refs and links may go stale", () => {
     }),
   });
 
-  expect(strings(check(rm))).toEqual([]);
+  assert.deepEqual(strings(check(rm)), []);
 });
 
 test("links that are not relative paths are not checked", () => {
@@ -476,7 +494,7 @@ test("links that are not relative paths are not checked", () => {
   ].join("\n");
   const rm = makeRoadmap(tempDir(), { "items/sample.md": itemText(openMeta(), body) });
 
-  expect(strings(check(rm))).toEqual([]);
+  assert.deepEqual(strings(check(rm)), []);
 });
 
 test("a declared ref kind may use several templates and globs", () => {
@@ -487,7 +505,7 @@ test("a declared ref kind may use several templates and globs", () => {
     "items/sample.md": itemText(openMeta(), "Prose.", { changes: ["add-cache"] }),
   });
 
-  expect(strings(check(rm))).toEqual([]);
+  assert.deepEqual(strings(check(rm)), []);
 });
 
 test("a broken file does not hide the others", () => {
@@ -498,8 +516,8 @@ test("a broken file does not hide the others", () => {
 
   const rules = new Set(check(rm).map((p) => p.rule));
 
-  expect(rules).toContain("frontmatter");
-  expect(rules).toContain("bucket");
+  contains(rules, "frontmatter");
+  contains(rules, "bucket");
 });
 
 test("problems render with path, line and tag", () => {
@@ -507,7 +525,7 @@ test("problems render with path, line and tag", () => {
 
   const problems = check(rm);
 
-  expect(strings(problems)).toEqual([
+  assert.deepEqual(strings(problems), [
     `${pathJoin(rm.itemsDir, "sample.md")}:10: links to 'gone.md', which does not exist [links]`,
   ]);
 });
@@ -515,7 +533,7 @@ test("problems render with path, line and tag", () => {
 test("README and done templates are valid without items", () => {
   const rm = makeRoadmap(tempDir(), { "README.md": README, "done.md": DONE });
 
-  expect(strings(check(rm))).toEqual([]);
+  assert.deepEqual(strings(check(rm)), []);
 });
 
 test("dependencies may be shipped or ahead, and a later item may wait on one", () => {
@@ -530,7 +548,7 @@ test("dependencies may be shipped or ahead, and a later item may wait on one", (
     "archive/shipped.md": itemText(closedMeta({ id: "shipped" })),
   });
 
-  expect(strings(check(rm))).toEqual([]);
+  assert.deepEqual(strings(check(rm)), []);
 });
 
 test("a malformed dependency does not crash the other rules", () => {
@@ -541,8 +559,8 @@ test("a malformed dependency does not crash the other rules", () => {
 
   const rules = new Set(check(rm).map((p) => p.rule));
 
-  expect(rules).toContain("bucket");
-  expect(rules).toContain("rank");
+  contains(rules, "bucket");
+  contains(rules, "rank");
 });
 
 test("milestones order the items due for them ahead of the items waiting on them", () => {
@@ -561,5 +579,5 @@ test("milestones order the items due for them ahead of the items waiting on them
     "archive/old.md": itemText(closedMeta({ id: "old", milestone: "retired", depends_on: ["retired"] })),
   });
 
-  expect(strings(check(rm))).toEqual([]);
+  assert.deepEqual(strings(check(rm)), []);
 });
