@@ -1,10 +1,11 @@
 +++
 id = "npx-ci-migration"
 title = "Run check in CI through the npm package, and migrate submodule installs"
-bucket = "now"
-rank = 4
 filed = 2026-10-30
 depends_on = ["vitest-suite"]
+closed = 2026-11-02
+outcome = "shipped"
+shipped_as = "#22"
 
 [refs]
 files = ["action.yml", "docs/install.md", "docs/upgrading.md"]
@@ -30,3 +31,8 @@ Done looks like:
 - **`npx --no -- roadmap` everywhere.** The bin stays `roadmap`, but there is an unrelated `roadmap` package on npm, and in a non-interactive shell (CI, an agent's Bash tool) a bare `npx roadmap` installs and runs it when ours is missing. Every documented command, the template, CI, pre-commit and the merge driver use `npx --no -- roadmap`, which never fetches. Renaming the bin was ruled out: `agentic-roadmap` is taken by a similar tool whose bins include `roadmap` too.
 - **First publish by hand needs no provenance.** `publishConfig` sets only `access`, since trusted publishing adds provenance itself and `provenance: true` fails outside CI. A `prepack` script builds `dist/`.
 - **CodeQL's default setup** drops Python once the script is gone.
+
+**Outcome:** shipped in #22. The Action runs the package version pinned in the repo's lockfile, `scripts/roadmap.py` is gone, `roadmap.zip` carries the bundled CLI, `update` prints how to migrate a 1.x install, and `release.yml` publishes to npm. The package itself is first published by hand with the 2.0.0 release, after this merges. What the work corrected:
+- A plan review caught that a bare `npx roadmap` is unsafe in any non-interactive shell, not just in CI, which led to `npx --no -- roadmap` everywhere and a docs test that enforces it.
+- The migration needed `update --tools`: once the submodule is removed, `init` refuses because `roadmap/` exists, so nothing else could install the skill into a repo that already has a roadmap.
+- `provenance` stays out of `publishConfig`, because it makes the first publish by hand fail outside CI. Trusted publishing adds provenance itself.
