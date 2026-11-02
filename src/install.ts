@@ -3,6 +3,7 @@
  * own. Nothing is vendored: every command runs through the package's bin, so
  * the version is pinned once, in the repo's package.json. */
 
+import { spawnSync } from "node:child_process";
 import { cpSync, lstatSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join as joinPath, relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -26,6 +27,9 @@ export const TOOLS: Record<string, string> = {
 
 /** What a tool's copy of the skill holds. No scripts: commands go through the bin. */
 const PAYLOAD = ["SKILL.md", "references", "assets"];
+
+/** The npm package this CLI ships in. */
+export const PACKAGE_NAME = "simple-agentic-roadmap-skill";
 
 /** How the generated files and the template name the CLI. */
 export const COMMAND = "npx --no -- roadmap";
@@ -157,8 +161,37 @@ export function cmdInit(rm: Roadmap, args: Args): number {
   for (const dir of skillDirs) installSkill(dir);
   writeGenerated(rm);
   out(`Created ${rm.dir}/ and ${skillDirs.join(", ")} (roadmap ${VERSION}).`);
-  out(`Add ${skillDirs.join(" and ")} to .gitignore, and pin the package: npm install -D simple-agentic-roadmap-skill`);
+  for (const hint of initHints(skillDirs)) out(hint);
   return 0;
+}
+
+/** What is left to do after `init`, for the steps the README's quick start
+ * may already have done: gitignoring the tool directories and pinning the
+ * package. */
+function initHints(skillDirs: string[]): string[] {
+  const hints: string[] = [];
+  const unignored = skillDirs.filter((dir) => !gitIgnored(dir));
+  if (unignored.length) hints.push(`Add ${unignored.join(" and ")} to .gitignore.`);
+  if (!pinned()) hints.push(`Pin the package: npm install -D ${PACKAGE_NAME}`);
+  return hints;
+}
+
+/** Whether git ignores `path`. Outside a repo, or without git, it doesn't. */
+function gitIgnored(path: string): boolean {
+  return spawnSync("git", ["check-ignore", "-q", path], { stdio: "ignore" }).status === 0;
+}
+
+/** Whether ./package.json lists the package as a dependency. */
+function pinned(): boolean {
+  if (!isFile("package.json")) return false;
+  try {
+    const manifest = JSON.parse(readText("package.json"));
+    return [manifest.dependencies, manifest.devDependencies].some(
+      (deps) => typeof deps === "object" && deps !== null && PACKAGE_NAME in deps,
+    );
+  } catch {
+    return false;
+  }
 }
 
 const VENDORED = "tools/roadmap.py";
