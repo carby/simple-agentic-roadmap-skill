@@ -34,7 +34,7 @@ What the roadmap is, and what it isn't.
 - **Decisions:** a decision that belongs to no single item, such as a
   convention or something the project doesn't do, is logged in
   `roadmap/decisions.md`. Like the archive, it is only ever added to.
-- **Checking:** one dependency-free script, `check`, catches mistakes in CI.
+- **Checking:** one command, `check`, catches mistakes in CI.
   See [Checking your roadmap](checking.md).
 
 An item can list the items that must come first (`depends_on`), and `check`
