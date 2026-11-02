@@ -16,19 +16,29 @@ merge driver; turn it on in your clone with
 
 ## Running the tests
 
-The vitest suite tests the CLI, the template, SKILL.md and the docs. It never
+The test suite tests the CLI, the template, SKILL.md and the docs. It never
 runs in a client's CI. Clients only run `check`, as described in
 [Checking your roadmap](docs/checking.md).
+
+It runs on Node's own test runner, `node:test`, with `node:assert`: no test
+framework to install. The test files are TypeScript, which Node runs directly
+from 22.18, so working on the skill needs Node 22.18 or later, though the CLI
+itself runs on 22.0.
 
 ```bash
 npm ci
 npx biome ci . && npx tsc --noEmit
-npx vitest run                         # the full suite; it builds dist/ first
-npx vitest run test/rules.test.ts -t bucket   # one rule's cases
+npm test                               # the full suite; it builds dist/ first
+npm run build && node --test --test-name-pattern bucket test/rules.test.ts   # one rule's cases
 ```
 
 Most tests run the built `bin/roadmap.js` as a subprocess, the way CI and
-agents do, so `test/global-setup.ts` runs `npm run build` before the suite.
+agents do, which is why `npm test` builds `dist/` first (`pretest`). Set
+`ROADMAP_TEST_NODE` to another `node` binary to run those subprocesses on it.
+Assertions come from `node:assert/strict`, plus `contains`, `excludes`,
+`throwsWith` and `each` in `test/helpers.ts`. Code that writes to stdout is
+tested in-process with `capture(t)`, called first in the test body, never in
+a hook.
 
 | File | Covers |
 |---|---|
@@ -65,8 +75,11 @@ The tests fail until all four are done.
 ## CI
 
 `.github/workflows/ci.yml` has two jobs:
-- `node`: lint, types and the vitest suite above, then the CLI bundled the way
+- `node`: lint, types and the test suite above, then the CLI bundled the way
   `roadmap.zip` carries it, run against this repo's roadmap and the fixture.
+  It runs twice: `latest` on the newest Node 22, and `floor`, where the tests
+  that run the CLI as a subprocess, and the bundle, run on Node 22.0.0, the
+  oldest that `engines` allows.
 - `action`: runs the client-side check the way a consuming repo does, through
   `uses: ./`, with this commit packed into a tarball and passed as the action's
   `package` input. It checks the fixture, and it checks this repo's own
@@ -89,7 +102,7 @@ the exact version.
 #    if those two differ).
 #    Rename CHANGELOG.md's "Unreleased" heading to "2.0.1 — <date>" (a test
 #    fails if the current version has no entry).
-npx vitest run && git commit -am "chore: release 2.0.1"
+npm test && git commit -am "chore: release 2.0.1"
 
 # 2. Tag the release and push it
 git tag v2.0.1
