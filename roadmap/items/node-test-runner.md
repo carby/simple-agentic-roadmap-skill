@@ -6,7 +6,7 @@ rank = 3
 filed = 2026-11-02
 
 [refs]
-files = ["test/helpers.ts", "vitest.config.ts"]
+files = ["test/helpers.ts", "package.json"]
 +++
 
 The suite runs on vitest, which puts a frontend build tool in the dev dependencies: vitest runs the `.ts` test files through vite (via `vite-node`). Nothing from it ships (the published package depends only on `smol-toml`), but the tree is about 60 packages for a CLI's tests, and it has already broken a dependency bump: Dependabot's #21 resolved vite 8, which wants a newer esbuild than the one the zip bundle uses, so `npm ci` failed. The bump went in by hand as #24.

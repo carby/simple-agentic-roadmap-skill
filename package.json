@@ -45,7 +45,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "pretest": "npm run build",
+    "test": "node --test --test-reporter=spec test/*.test.ts",
     "lint": "biome ci .",
     "dogfood": "node scripts/dogfood.mjs",
     "prepack": "npm run build",
@@ -58,7 +59,6 @@
     "@biomejs/biome": "^2.3.8",
     "@types/node": "^22.19.1",
     "esbuild": "^0.25.12",
-    "typescript": "^5.9.3",
-    "vitest": "^3.2.6"
+    "typescript": "^5.9.3"
   }
 }
