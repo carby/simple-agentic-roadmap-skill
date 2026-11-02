@@ -78,7 +78,7 @@ More in [Slash commands](docs/slash-commands.md).
 | `assets/template/` | what `init` writes into your repo |
 | `action.yml` | a GitHub Action that runs `check` |
 | `docs/` | the documentation, as an Obsidian vault |
-| `tests/`, `roadmap/`, `CONTRIBUTING.md` | for working on the skill: its test suite, its own roadmap, and how to develop and release |
+| `test/`, `roadmap/`, `CONTRIBUTING.md` | for working on the skill: its test suite, its own roadmap, and how to develop and release |
 
 Originally extracted from the roadmap of the snakestream project.
 
