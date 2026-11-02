@@ -44,26 +44,31 @@ A roadmap directory (default `roadmap/`) holds:
   Written by `decide`, and **append-only** like the archive.
 - `roadmap.toml`: optional; declares extra ref kinds, e.g. openspec specs.
 
-All commands go through `roadmap.py`. Use the repo's vendored copy
-(`tools/roadmap.py` by default) if there is one, otherwise this skill's
-`scripts/roadmap.py`. Run them from the repo root; pass `--dir` if the roadmap
-is somewhere other than `roadmap/`.
+All commands go through the `roadmap` CLI from the npm package
+`simple-agentic-roadmap-skill`, which the repo pins as a dev dependency: run
+them as `npx roadmap ...` from the repo root, and pass `--dir` if the roadmap is
+somewhere other than `roadmap/`. Before the first command in a session, run
+`npx --no -- roadmap --version`. If it fails, the package isn't installed: tell
+the user to run `npm install`, or to add it with
+`npm install -D simple-agentic-roadmap-skill`, and don't let npx fetch a
+package by that name, which is someone else's.
 
 If the roadmap is only readable, e.g. synced into a Claude app Project, answer
-from it as usual. For a change, copy `roadmap/` and the script into your
-working directory, run the command there, and give the user the changed files
-to commit, since you can't write to their repo.
+from it as usual. For a change, copy `roadmap/` and the CLI bundled with this
+skill (`scripts/`) into your working directory, run the command there, and give
+the user the changed files to commit, since you can't write to their repo.
 
-When both copies exist, compare their `--version` once per session:
+This SKILL.md's frontmatter names the release it was installed from
+(`metadata.version`). Compare it with the version that
+`npx --no -- roadmap --version` printed:
 
-- **Vendored copy older:** tell the user and offer to run
-  `python <skill>/scripts/roadmap.py upgrade`. Don't run it unasked.
-- **Skill's copy older:** the repo has moved ahead of the skill you loaded, so
-  you are following rules older than the ones `check` enforces. Tell the user to
-  update the skill (in a submodule: `git -C <skill> fetch --tags`, then check out
-  the release the repo's `tools/roadmap.py --version` names), and don't run
-  `upgrade`, which refuses a downgrade. Until then, rely on `check` and ask
-  before any change the older rules might get wrong.
+- **Skill older than the package:** someone upgraded the package without
+  refreshing the skill, so you are following older rules than `check` enforces.
+  Offer to run `npx roadmap update`, which copies the package's skill into every
+  tool directory that has one. Don't run it unasked.
+- **Skill newer than the package:** the skill came from somewhere else, e.g. a
+  global install. Tell the user, and follow the package's rules: rely on
+  `check`, and ask before any change the newer rules might get wrong.
 
 ## Before proposing work
 
@@ -84,22 +89,22 @@ link the two attempts.
 
 | Want to | Run |
 |---|---|
-| Set up a roadmap in a repo | `python <skill>/scripts/roadmap.py init`, where `<skill>` is the directory this SKILL.md was loaded from (e.g. `~/.claude/skills/roadmap` or `.claude/skills/roadmap`). It writes `roadmap/` and vendors the script to `tools/roadmap.py`. Every later command uses `tools/roadmap.py`. For CI setup, point the user at this skill's README. |
-| File an item | `python tools/roadmap.py new <id> --title "..." --bucket now [--gate "..."] [--depends-on <id>] [--milestone <id>] [--supersedes <declined-id>] [--ref files:path]`, then replace the placeholder body with the argument |
-| File an undecided item | `python tools/roadmap.py new <id> --title "..." --bucket later --blocked-on "the open question"` |
-| Reprioritise an item | `python tools/roadmap.py move <id> --bucket next` (add `--blocked-on "..."` for `later`). It lands just above the items there that depend on it, shifting them down, or else at the bottom. To place it elsewhere, or to re-rank it within its bucket, add `--rank <n>` or `--above <other-id>` (which also takes the other item's bucket); the items it passes shift a rank. It refuses a move that would put an item ahead of its dependencies. A move to another bucket sets `updated`. |
-| Close shipped work | `python tools/roadmap.py close <id> --outcome shipped --as <pr-or-change>`, **in the same branch as the code**, so it moves to done.md when that merges. Always pass `--as`: the archive is append-only, so it can't be added later |
-| Close declined work | `python tools/roadmap.py close <id> --outcome declined` |
-| Record a decision that belongs to no single item | `python tools/roadmap.py decide --title "..." --body "why, and what it rules out"`. A decision about one item goes in that item's prose. To reverse a decision, record a new one that says so. |
-| Regenerate the indexes after a hand edit | `python tools/roadmap.py index` |
+| Set up a roadmap in a repo | `npm install -D simple-agentic-roadmap-skill`, then `npx roadmap init [--tools claude,agents]`. It writes `roadmap/` and installs the skill into each tool's skills directory, which should be gitignored. For CI setup, point the user at this skill's README. |
+| File an item | `npx roadmap new <id> --title "..." --bucket now [--gate "..."] [--depends-on <id>] [--milestone <id>] [--supersedes <declined-id>] [--ref files:path]`, then replace the placeholder body with the argument |
+| File an undecided item | `npx roadmap new <id> --title "..." --bucket later --blocked-on "the open question"` |
+| Reprioritise an item | `npx roadmap move <id> --bucket next` (add `--blocked-on "..."` for `later`). It lands just above the items there that depend on it, shifting them down, or else at the bottom. To place it elsewhere, or to re-rank it within its bucket, add `--rank <n>` or `--above <other-id>` (which also takes the other item's bucket); the items it passes shift a rank. It refuses a move that would put an item ahead of its dependencies. A move to another bucket sets `updated`. |
+| Close shipped work | `npx roadmap close <id> --outcome shipped --as <pr-or-change>`, **in the same branch as the code**, so it moves to done.md when that merges. Always pass `--as`: the archive is append-only, so it can't be added later |
+| Close declined work | `npx roadmap close <id> --outcome declined` |
+| Record a decision that belongs to no single item | `npx roadmap decide --title "..." --body "why, and what it rules out"`. A decision about one item goes in that item's prose. To reverse a decision, record a new one that says so. |
+| Regenerate the indexes after a hand edit | `npx roadmap index` |
 | Resolve a merge of two roadmap branches | For a conflict in a generated block, take either side and run `index`. For `[rank]` (both branches filed into the same bucket), run `index --renumber`. A `merge-driver` can take the generated blocks automatically; see references/conventions.md. |
-| Split an item that turned out to be two pieces of work | `python tools/roadmap.py split <id> <new-id> --title "..." [--body "..."]`. The new item copies the bucket, gate, blocked_on, depends_on, milestone and refs, and lands directly below the original. The original keeps one part, so narrow its prose. |
-| Read the queue without README.md, or script against it | `python tools/roadmap.py list [--bucket now] [--json]` |
-| Verify | `python tools/roadmap.py check` |
-| Spot upkeep: passed milestones, stale Now/Next items | `python tools/roadmap.py review [--days 60]`. It uses today's date and git history, so it is never for CI, and it always exits 0. |
-| Upgrade the vendored script, once the user says yes | `python <skill>/scripts/roadmap.py upgrade`. It replaces `tools/roadmap.py` with the skill's copy, regenerates the index if the new version renders it differently, and runs `check`. Fix or report what the new rules reject. |
+| Split an item that turned out to be two pieces of work | `npx roadmap split <id> <new-id> --title "..." [--body "..."]`. The new item copies the bucket, gate, blocked_on, depends_on, milestone and refs, and lands directly below the original. The original keeps one part, so narrow its prose. |
+| Read the queue without README.md, or script against it | `npx roadmap list [--bucket now] [--json]` |
+| Verify | `npx roadmap check` |
+| Spot upkeep: passed milestones, stale Now/Next items | `npx roadmap review [--days 60]`. It uses today's date and git history, so it is never for CI, and it always exits 0. |
+| Refresh the skill after a package upgrade, once the user says yes | `npx roadmap update`. It copies the package's skill into every tool directory that already has one, regenerates the index if the new version renders it differently, and runs `check`. Fix or report what the new rules reject. |
 
-**Always finish a roadmap edit with `python tools/roadmap.py check`,** and fix
+**Always finish a roadmap edit with `npx roadmap check`,** and fix
 every problem it reports. Each problem ends with a rule tag in brackets, such
 as `[bucket]`. references/conventions.md explains every tag.
 

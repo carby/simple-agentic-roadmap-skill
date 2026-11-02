@@ -127,7 +127,7 @@ roadmap/done.md merge=roadmap
 and, in each clone (git doesn't take drivers from the repo):
 
 ```bash
-git config merge.roadmap.driver "python tools/roadmap.py merge-driver %O %A %B %P"
+git config merge.roadmap.driver "npx roadmap merge-driver %O %A %B %P"
 ```
 
 decisions.md needs no driver. Each branch only appends entries to it, so
