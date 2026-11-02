@@ -72,8 +72,13 @@ export function isDay(value: unknown): value is Day {
   return value instanceof Day;
 }
 
+/** A plain object, as a TOML table parses to. smol-toml 1.9 returns tables
+ * with a null prototype (so a `__proto__` key can't reach Object.prototype),
+ * so both kinds count; class instances such as Day and TomlDate don't. */
 export function isDict(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value) && value.constructor === Object;
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
 }
 
 /** A parsed TOML value in the types tomllib gives: integers as numbers,

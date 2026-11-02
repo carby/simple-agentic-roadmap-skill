@@ -34,7 +34,7 @@
     "dogfood": "node scripts/dogfood.mjs"
   },
   "dependencies": {
-    "smol-toml": "^1.6.1"
+    "smol-toml": "^1.9.1"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.3.8",
