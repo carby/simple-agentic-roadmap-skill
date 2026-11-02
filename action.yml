@@ -8,32 +8,40 @@ inputs:
   dir:
     description: The roadmap directory.
     default: roadmap
-  script:
-    description: The repo's vendored roadmap.py. If it is missing, the copy bundled with this action is used.
-    default: tools/roadmap.py
   base:
     description: A git ref to hold archive/ append-only against, e.g. origin/main. Needs actions/checkout with fetch-depth 0.
     default: ""
-  python-version:
-    description: Python to run it with (3.11 or newer).
-    default: "3.12"
+  package:
+    description: >-
+      The npm spec to run, e.g. simple-agentic-roadmap-skill@2.0.0 or a tarball path. By default it is the
+      version pinned in the repo's package-lock.json, then the range in its package.json, then this action's own.
+    default: ""
+  node-version:
+    description: Node to set up if the runner has no Node 22.18 or newer already.
+    default: "22"
 
 runs:
   using: composite
   steps:
-    - uses: actions/setup-python@v7
+    - id: node
+      shell: bash
+      run: |
+        if node -e 'const [a, b] = process.versions.node.split(".").map(Number); process.exit(a > 22 || (a === 22 && b >= 18) ? 0 : 1)' 2>/dev/null; then
+          echo "setup=false" >> "$GITHUB_OUTPUT"
+        else
+          echo "setup=true" >> "$GITHUB_OUTPUT"
+        fi
+    - if: steps.node.outputs.setup == 'true'
+      uses: actions/setup-node@v7
       with:
-        python-version: ${{ inputs.python-version }}
+        node-version: ${{ inputs.node-version }}
     - shell: bash
       env:
         ROADMAP_DIR: ${{ inputs.dir }}
-        ROADMAP_SCRIPT: ${{ inputs.script }}
         ROADMAP_BASE: ${{ inputs.base }}
-        BUNDLED: ${{ github.action_path }}/scripts/roadmap.py
+        ROADMAP_PACKAGE: ${{ inputs.package }}
+        ACTION_DIR: ${{ github.action_path }}
       run: |
-        script="$ROADMAP_SCRIPT"
-        if [ ! -f "$script" ]; then
-          echo "::notice::$script not found; using the roadmap.py bundled with this action"
-          script="$BUNDLED"
-        fi
-        python "$script" check --dir "$ROADMAP_DIR" ${ROADMAP_BASE:+--base "$ROADMAP_BASE"}
+        spec="$(node "$ACTION_DIR/scripts/action-spec.mjs" . "$ACTION_DIR" "$ROADMAP_PACKAGE")"
+        echo "Running $spec"
+        npx --yes --package="$spec" -- roadmap check --dir "$ROADMAP_DIR" ${ROADMAP_BASE:+--base "$ROADMAP_BASE"}
