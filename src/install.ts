@@ -30,23 +30,50 @@ const PAYLOAD = ["SKILL.md", "references", "assets"];
 /** How the generated files and the template name the CLI. */
 export const COMMAND = "npx roadmap";
 
-const STAMP = /^metadata:\n(?:[ \t]+.*\n)*?[ \t]+version:[ \t]*"?([^"\n]+)"?[ \t]*$/m;
+/** Where SKILL.md's frontmatter keeps the version: the index of its
+ * `metadata:` line, and of the `version:` line in that block, if any. Scanned
+ * line by line rather than with one regex, which backtracks badly on runs of
+ * indented whitespace. */
+function stampLines(lines: string[]): { metadata: number; version: number | null } | null {
+  if (lines[0] !== "---") return null;
+  const end = lines.indexOf("---", 1);
+  if (end < 0) return null;
+  const metadata = lines.indexOf("metadata:", 1);
+  if (metadata < 0 || metadata > end) return null;
+  for (let i = metadata + 1; i < end; i++) {
+    const line = lines[i] as string;
+    if (!(line.startsWith(" ") || line.startsWith("\t"))) break;
+    if (line.trimStart().startsWith("version:")) return { metadata, version: i };
+  }
+  return { metadata, version: null };
+}
+
+function versionValue(line: string): string {
+  const value = line.trimStart().slice("version:".length).trim();
+  return value.length >= 2 && value.startsWith('"') && value.endsWith('"') ? value.slice(1, -1) : value;
+}
 
 /** SKILL.md with the package version stamped into its frontmatter, so an
  * agent can compare the skill it loaded with `npx --no -- roadmap --version`. */
 export function stamped(skill: string, version = VERSION): string {
-  if (STAMP.test(skill)) return skill.replace(STAMP, (m, old: string) => m.replace(old, version));
-  if (!/^---\n[\s\S]*?^metadata:$/m.test(skill)) {
+  const lines = skill.split("\n");
+  const at = stampLines(lines);
+  if (at === null) {
     throw new UsageError("SKILL.md has no metadata: block in its frontmatter to stamp the version into");
   }
-  return skill.replace(/^metadata:$/m, `metadata:\n  version: "${version}"`);
+  const stamp = `  version: "${version}"`;
+  if (at.version === null) lines.splice(at.metadata + 1, 0, stamp);
+  else lines[at.version] = stamp;
+  return lines.join("\n");
 }
 
 /** The version a tool's copy of the skill was stamped with, if any. */
 export function stampedVersion(skillDir: string): string | null {
   const path = joinPath(skillDir, "SKILL.md");
   if (!isFile(path)) return null;
-  return STAMP.exec(readText(path))?.[1] ?? null;
+  const lines = readText(path).split("\n");
+  const at = stampLines(lines);
+  return at?.version == null ? null : versionValue(lines[at.version] as string);
 }
 
 function versionKey(version: string): number[] {
