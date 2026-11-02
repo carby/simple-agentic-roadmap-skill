@@ -9,7 +9,7 @@ import { DONE_BEGIN, DONE_END, INDEX_BEGIN, INDEX_END, load, openRoadmap } from 
 import { readText } from "../src/py.ts";
 import { renderDone, renderIndex, short } from "../src/render.ts";
 
-const VALID = "tests/fixtures/valid/roadmap";
+const VALID = "test/fixtures/valid/roadmap";
 
 test("the committed fixture is what the port renders", () => {
   const rm = openRoadmap(VALID);
