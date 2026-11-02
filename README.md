@@ -9,17 +9,13 @@ as an Obsidian vault.
 
 ## Quick start
 
-> **Until 2.0.0** the npm package isn't published; use the
-> [pinned submodule](docs/install-alternatives.md#a-pinned-submodule-until-200)
-> for now.
-
 Once per repo, from its root (Node 22.18 or later). This pins the package as a
 dev dependency, sets up `roadmap/`, and installs the skill for Claude Code and
 the tools that read `.agents/skills/`:
 
 ```bash
 npm install -D simple-agentic-roadmap-skill
-npx roadmap init --tools claude,agents
+npx --no -- roadmap init --tools claude,agents
 printf '.claude/skills/\n.agents/skills/\n' >> .gitignore
 git add package.json package-lock.json .gitignore roadmap
 ```
@@ -33,8 +29,8 @@ is a visible failure instead of an agent quietly improvising:
 The roadmap lives in `roadmap/` and is managed with the `roadmap` skill from
 the `simple-agentic-roadmap-skill` dev dependency. Use `/roadmap` for any
 change to it. If the skill isn't available, run `npm install` and
-`npx roadmap update`, or stop and tell the user. Don't edit `roadmap/items/` or
-`roadmap/archive/` by hand without it. Verify with `npx roadmap check`.
+`npx --no -- roadmap update`, or stop and tell the user. Don't edit `roadmap/items/` or
+`roadmap/archive/` by hand without it. Verify with `npx --no -- roadmap check`.
 ```
 
 Why each step matters, and other ways to install, are in
@@ -61,8 +57,8 @@ More in [Slash commands](docs/slash-commands.md).
 | [Concepts](docs/concepts.md) | items, buckets, closing, and what the roadmap deliberately leaves out |
 | [Slash commands](docs/slash-commands.md) | every `/roadmap` action, in detail |
 | [Install](docs/install.md) | the npm dev dependency, `init`, and the `CLAUDE.md` note |
-| [Install alternatives](docs/install-alternatives.md) | the submodule (until 2.0.0), global install, the Claude app zip, and why a plain clone isn't an install |
-| [Upgrading](docs/upgrading.md) | moving the pin and the vendored script together; spotting drift |
+| [Install alternatives](docs/install-alternatives.md) | global install, 1.x submodules, the Claude app zip, and why a plain clone isn't an install |
+| [Upgrading](docs/upgrading.md) | bumping the package and running `update`; spotting drift; migrating from 1.x |
 | [Checking your roadmap](docs/checking.md) | `check`, `index`, the `[generated]` failure, append-only archives |
 | [CI](docs/ci.md) | GitHub Actions, GitLab CI, pre-commit |
 | [Rule tags](docs/rule-tags.md) | reading a `check` failure |
@@ -74,7 +70,6 @@ More in [Slash commands](docs/slash-commands.md).
 |---|---|
 | `SKILL.md`, `references/conventions.md` | the agent: when to use the roadmap, the workflows, the rules |
 | `src/`, `bin/roadmap.js` | the `roadmap` CLI: `init`, `update`, `new`, `move`, `close`, `index`, `check` (Node 22.18+) |
-| `scripts/roadmap.py` | the Python CLI that releases before 2.0.0 vendor (Python 3.11+, no dependencies) |
 | `assets/template/` | what `init` writes into your repo |
 | `action.yml` | a GitHub Action that runs `check` |
 | `docs/` | the documentation, as an Obsidian vault |

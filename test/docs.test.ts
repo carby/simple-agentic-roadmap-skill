@@ -26,9 +26,6 @@ const literal = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const matches = (re: RegExp, text: string) => [...text.matchAll(re)].map((m) => m[1] as string);
 
 const CLI_COMMANDS = new Set(Object.keys(COMMANDS));
-// The docs for Python installs still name `upgrade` until npx-ci-migration
-// rewrites them; the TypeScript CLI's `update` replaces it.
-const DOCUMENTED_COMMANDS = new Set([...CLI_COMMANDS, "upgrade"]);
 const NAMED =
   /(?:roadmap\.(?:py|js|mjs)|npx (?:--no -- )?roadmap|\{\{command\}\}) (?:--dir \S+ )?([a-z]+(?:-[a-z]+)*)/g;
 
@@ -137,7 +134,7 @@ test("every command the docs and CONTRIBUTING name exists", () => {
     const named = new Set(matches(NAMED, text));
 
     expect(named.size, `${name} names no commands; the regex is out of date`).toBeGreaterThan(0);
-    expect(unknown(named, DOCUMENTED_COMMANDS), `${name} names commands the CLI does not have`).toEqual([]);
+    expect(unknown(named, CLI_COMMANDS), `${name} names commands the CLI does not have`).toEqual([]);
   }
 });
 
@@ -172,15 +169,20 @@ test("every slash command the README advertises is handled by the skill", () => 
   expect(unknown(advertised, handled), "SKILL.md does not say what to do for these").toEqual([]);
 });
 
-test("every git install snippet pins the skill to a release", () => {
-  // An unpinned clone is how a skill drifts, so no snippet may show one.
-  const installs = matches(/```bash\n([\s\S]*?)```/g, USER_DOCS).filter((b) =>
-    /git (clone|submodule add) \S*simple-agentic-roadmap-skill/.test(b),
-  );
-
-  expect(installs.length, "the docs show no git install snippet; the regex is out of date").toBeGreaterThan(0);
-  for (const block of installs) {
-    expect(block.includes("checkout") && block.includes("describe --tags"), `not pinned:\n${block}`).toBe(true);
+test("no doc or template runs a bare npx roadmap", () => {
+  // An unrelated package called \`roadmap\` is on npm. Without \`--no --\`, npx in
+  // a non-interactive shell installs and runs it when this one is missing.
+  const sources: Record<string, string> = {
+    ...PAGES,
+    ...Object.fromEntries(
+      [...AGENT_DOCS, "CONTRIBUTING.md", "CLAUDE.md", "action.yml", "assets/template/decisions.md"].map((n) => [
+        n,
+        read(n),
+      ]),
+    ),
+  };
+  for (const [name, text] of Object.entries(sources)) {
+    expect(text.match(/npx roadmap\b/g) ?? [], `${name} has a bare \`npx roadmap\``).toEqual([]);
   }
 });
 

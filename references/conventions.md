@@ -68,7 +68,7 @@ answer every day. Once a milestone has passed, keep it in roadmap.toml as
 history: done.md lists it with the archived items due for it. Re-date it, or
 re-target the open items still due for it, and drop the `depends_on` entries
 that name it. An archived item may name a milestone roadmap.toml no longer
-declares; done.md then shows the bare id. Milestones need roadmap.py 1.3.0 or later,
+declares; done.md then shows the bare id. Milestones need roadmap 1.3.0 or later,
 because older versions reject the `[milestones]` table.
 
 **People decide the bucket.** When filing an item, suggest a bucket and ask
@@ -127,7 +127,7 @@ roadmap/done.md merge=roadmap
 and, in each clone (git doesn't take drivers from the repo):
 
 ```bash
-git config merge.roadmap.driver "npx roadmap merge-driver %O %A %B %P"
+git config merge.roadmap.driver "npx --no -- roadmap merge-driver %O %A %B %P"
 ```
 
 decisions.md needs no driver. Each branch only appends entries to it, so

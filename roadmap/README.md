@@ -3,7 +3,7 @@
 The Now/Next/Later queue of open work, kept KISS: Markdown files in three
 buckets, and nothing more. Each item is one file under
 [`items/`](items/). The index below is **generated** from those files by
-`scripts/roadmap.py`, so don't edit it by hand.
+`node bin/roadmap.js` (this repo dogfoods its own CLI), so don't edit it by hand.
 
 Closed items, whether shipped or measured and declined, move to
 [`archive/`](archive/). [`done.md`](done.md) is their one-line-per-item index.
@@ -62,16 +62,16 @@ work is done. **Close it in the same branch as the code**, so it moves to
 ## Working on this
 
 ```bash
-python scripts/roadmap.py new <id> --title "..." --bucket now   # file an item
-python scripts/roadmap.py move <id> --bucket now                # reprioritise (lands above its dependents, else at the bottom)
-python scripts/roadmap.py move <id> --rank 1                    # re-rank (or --above <id>); the items it passes shift
-python scripts/roadmap.py close <id> --outcome shipped --as <change-or-pr>   # in the same branch as the code
-python scripts/roadmap.py decide --title "..." --body "..."      # log a decision that belongs to no single item
-python scripts/roadmap.py review                                # passed milestones and stale items (by hand, not in CI)
-python scripts/roadmap.py split <id> <new-id> --title "..."      # an item that turned out to be two pieces of work
-python scripts/roadmap.py list [--json]                         # the open items in queue order
-python scripts/roadmap.py index                                 # regenerate this index and done.md
-python scripts/roadmap.py check                                 # what CI runs
+node bin/roadmap.js new <id> --title "..." --bucket now   # file an item
+node bin/roadmap.js move <id> --bucket now                # reprioritise (lands above its dependents, else at the bottom)
+node bin/roadmap.js move <id> --rank 1                    # re-rank (or --above <id>); the items it passes shift
+node bin/roadmap.js close <id> --outcome shipped --as <change-or-pr>   # in the same branch as the code
+node bin/roadmap.js decide --title "..." --body "..."      # log a decision that belongs to no single item
+node bin/roadmap.js review                                # passed milestones and stale items (by hand, not in CI)
+node bin/roadmap.js split <id> <new-id> --title "..."      # an item that turned out to be two pieces of work
+node bin/roadmap.js list [--json]                         # the open items in queue order
+node bin/roadmap.js index                                 # regenerate this index and done.md
+node bin/roadmap.js check                                 # what CI runs
 ```
 
 `check` runs in CI, so a broken roadmap fails the build instead of rotting.

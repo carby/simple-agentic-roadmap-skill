@@ -14,11 +14,6 @@ merge driver; turn it on in your clone with
 `git config merge.roadmap.driver "node bin/roadmap.js merge-driver %O %A %B %P"`
 (after `npm run build`).
 
-`scripts/roadmap.py` is the Python CLI that 1.x releases vendor, and what the
-Action still runs. It is frozen: rules change only in `src/` until
-[npx-ci-migration](roadmap/items/npx-ci-migration.md) moves the Action to Node
-and deletes it.
-
 ## Running the tests
 
 The vitest suite tests the CLI, the template, SKILL.md and the docs. It never
@@ -69,53 +64,70 @@ The tests fail until all four are done.
 ## CI
 
 `.github/workflows/ci.yml` has two jobs:
-- `node`: lint, types and the vitest suite above.
+- `node`: lint, types and the vitest suite above, then the CLI bundled the way
+  `roadmap.zip` carries it, run against this repo's roadmap and the fixture.
 - `action`: runs the client-side check the way a consuming repo does, through
-  `uses: ./`. It checks the fixture, and it checks this repo's own `roadmap/`
-  with `--base`.
+  `uses: ./`, with this commit packed into a tarball and passed as the action's
+  `package` input. It checks the fixture, and it checks this repo's own
+  `roadmap/` with `--base`.
 
 ## Releasing
 
 Releases use two kinds of tag:
 - a fixed `vX.Y.Z` tag for each release, which never moves
-- a floating major tag, `v1`, which always points at the newest 1.x release
+- a floating major tag, `v2`, which always points at the newest 2.x release.
+  `v1` stays on the last 1.x release.
 
-The README tells users `uses: carby/simple-agentic-roadmap-skill@v1`, so every
-compatible release moves `v1` forward. It installs the skill itself differently:
-as a submodule pinned to the newest fixed `vX.Y.Z` tag, which `v1` must never
-stand in for, because a pin that moves is not a pin.
+The tags serve the GitHub Action (`uses: carby/simple-agentic-roadmap-skill@v2`).
+The skill and the CLI are installed from npm, where the repo's lockfile pins
+the exact version.
 
 ```bash
-# 1. Bump the version: `npm version 1.0.1 --no-git-tag-version` for
+# 1. Bump the version: `npm version 2.0.1 --no-git-tag-version` for
 #    package.json and its lockfile, and VERSION in src/model.ts (a test fails
-#    if those two differ). Until 2.0.0, also __version__ in
-#    scripts/roadmap.py, which the Action runs.
-#    Rename CHANGELOG.md's "Unreleased" heading to "1.0.1 — <date>" (a test
+#    if those two differ).
+#    Rename CHANGELOG.md's "Unreleased" heading to "2.0.1 — <date>" (a test
 #    fails if the current version has no entry).
-npx vitest run && git commit -am "chore: release 1.0.1"
+npx vitest run && git commit -am "chore: release 2.0.1"
 
-# 2. Tag the release and move the major tag onto it
-git tag v1.0.1
-git tag -f v1 v1.0.1
-git push github master v1.0.1
-git push -f github v1                  # force: v1 already exists on the remote
+# 2. Tag the release and push it
+git tag v2.0.1
+git push github master v2.0.1
+
+# 3. Publish the GitHub release; the workflow publishes to npm (see below)
+gh release create v2.0.1 --title "v2.0.1: <summary>" --notes-file <notes>
+
+# 4. Once the npm publish has finished, move the major tag, so a repo that
+#    doesn't pin the package never gets a version that isn't on npm yet
+git tag -f v2 v2.0.1
+git push -f github v2                  # force: v2 already exists on the remote
 ```
 
-Publishing the GitHub release runs `.github/workflows/release.yml`, which
-attaches `roadmap.zip`, the skill packaged for upload to the Claude app. It
-holds `SKILL.md`, `LICENSE`, `references/`, `scripts/` and `assets/`; if the
-skill gains a directory the agent needs, add it to the workflow's
-`git archive` line.
+Publishing the GitHub release runs `.github/workflows/release.yml`:
+- `npm-publish` publishes the package through npm trusted publishing: no
+  token, and npm adds provenance. It skips a version that is already on npm.
+- `skill-zip` attaches `roadmap.zip`, the skill packaged for upload to the
+  Claude app. `scripts/stage-zip.mjs` lays it out: a stamped `SKILL.md`,
+  `LICENSE`, `references/`, `assets/`, and the CLI bundled into
+  `scripts/roadmap.mjs` by `npm run bundle`. If the skill gains a directory
+  the agent needs, add it there.
 
-Bump the major version, e.g. to `v2.0.0` with a new `v2` tag, for any change
+**The first publish was by hand,** because npm only lets you set up a trusted
+publisher for a package that exists: `npm login && npm publish` (`prepack`
+builds `dist/`), then, on npmjs.com, the package's settings → Trusted
+publishing → GitHub Actions, with repository
+`carby/simple-agentic-roadmap-skill` and workflow `release.yml`.
+
+Bump the major version, e.g. to `v3.0.0` with a new `v3` tag, for any change
 that breaks existing users:
 - renaming or removing a command
 - changing the frontmatter schema
 - turning something `check` accepted into an error
+- removing or renaming an Action input
 
-Leave `v1` on the last 1.x release.
+Leave the old major tag on its last release.
 
-`upgrade` runs `check` straight after replacing a vendored copy, so a rule
-that got stricter shows up as soon as someone upgrades. Say what changed about
+`update` runs `check` straight after refreshing the skill, so a rule that
+got stricter shows up as soon as someone upgrades. Say what changed about
 the rules in CHANGELOG.md, under **Upgrade notes** or **Rules**, and in the
-release notes. People read it before they move their pin.
+release notes. People read it before they bump the package.

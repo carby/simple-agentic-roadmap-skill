@@ -8,25 +8,13 @@ aliases: [Alternatives, Claude app]
 The recommended install is the npm dev dependency in [Install](install.md).
 These are the other options, and one that only looks like an option.
 
-## A pinned submodule (until 2.0.0)
+## A submodule (1.x only)
 
-Until the package is published with 2.0.0, this is the install that works. It
-commits the skill into the repo as a submodule pinned to a release, and
-vendors the checker to `tools/roadmap.py`:
-
-```bash
-# from the root of the repo:
-git submodule add https://github.com/carby/simple-agentic-roadmap-skill.git .claude/skills/roadmap
-git -C .claude/skills/roadmap checkout "$(git -C .claude/skills/roadmap describe --tags --abbrev=0 --match 'v*.*.*')"
-python .claude/skills/roadmap/scripts/roadmap.py init
-git add .gitmodules .claude/skills/roadmap roadmap tools/roadmap.py
-```
-
-People who clone the repo need the submodule too: `git clone
---recurse-submodules`, or `git submodule update --init` afterwards. Every
-command then runs as `python tools/roadmap.py ...`, and the `CLAUDE.md` note
-from step 3 of [Install](install.md) should say so. 2.0.0 prints the commands
-that move a submodule install to the package.
+1.x was installed as a git submodule at `.claude/skills/roadmap`, with the
+Python CLI vendored to `tools/roadmap.py`. 2.x isn't installed that way: the
+skill ships in the npm package, and a submodule would pin a second copy of it.
+To move a 1.x install to the package, see
+[Migrating from 1.x](upgrading.md#migrating-from-1x-a-submodule-and-toolsroadmappy).
 
 ## Global, for yourself (every repo on your machine)
 
@@ -59,8 +47,8 @@ in the link with `download/<tag>`) and upload it in the app's Skills settings.
 To use it on a repo, add the repo to a Project and include the `roadmap/`
 folder in the files it syncs. The app reads that copy but can't write to your
 repo, so `/roadmap` and questions work as usual. `new`, `move` and `close` give
-you the changed files to download and commit yourself; run `npx roadmap
-index` and `check` locally afterwards.
+you the changed files to download and commit yourself; run
+`npx --no -- roadmap index` and `check` locally afterwards.
 
 ---
 
