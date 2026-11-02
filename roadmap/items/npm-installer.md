@@ -29,3 +29,9 @@ Done looks like:
 - SKILL.md's commands run through the package's bin.
 - `.claude/skills/` is gitignored in the repo.
 - The install docs are rewritten around the package.
+
+**2026-11-02:** before building:
+- **Command form:** `npx roadmap ...`, with the package as a dev dependency. SKILL.md checks `npx --no roadmap --version` first, so npx never fetches an unrelated `roadmap` package when this one isn't installed.
+- **Publishing moves to [npx-ci-migration](npx-ci-migration.md):** the package stays `private` here, publish-ready (`files`, `npm pack`), and is first published as 2.0.0. Until then Python stays the released implementation and no release is cut from this item.
+- **Version drift:** `init` and `update` stamp `metadata.version` into each copied SKILL.md, so the agent compares it with `npx roadmap --version`. That replaces comparing the skill's script with the vendored one.
+- **Dogfooding:** this repo gitignores `.claude/skills/` too, and `npm run dogfood` recreates the symlinks to the working copy, so edits stay live.

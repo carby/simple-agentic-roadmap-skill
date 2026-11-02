@@ -17,4 +17,5 @@ Done looks like:
 - The vendored `tools/roadmap.py`, `scripts/roadmap.py` and the Python tests are removed.
 - The Claude-app `roadmap.zip` carries a bundled `roadmap.mjs` instead of the Python script.
 - `update` detects a submodule at a tool's skill path, or a `tools/roadmap.py`, and prints the commands that remove them. It doesn't run those commands itself.
+- The package is published to npm (moved here from [npm-installer](npm-installer.md) on 2026-11-02).
 - It ships as 2.0.0, with migration steps from a submodule install in the CHANGELOG, and [Upgrading](../../docs/upgrading.md) rewritten.
