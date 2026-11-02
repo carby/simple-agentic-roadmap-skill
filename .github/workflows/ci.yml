@@ -8,26 +8,7 @@ permissions:
   contents: read
 
 jobs:
-  # This repo's own test suite: the script, the template, SKILL.md and the docs.
-  test:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.11", "3.12", "3.13", "3.14"]
-    steps:
-      - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.2.0
-        with:
-          python-version: ${{ matrix.python-version }}
-      - run: uv sync
-      - run: uv run ruff check .
-      - run: uv run ruff format --check .
-      - run: uv run pytest
-
-  # The TypeScript port: its own lint, types and tests, then the Python suite
-  # run against the built bin (ROADMAP_IMPL=ts), which holds the port to the
-  # script's behaviour until it replaces it.
+  # This repo's own test suite: the CLI, the template, SKILL.md and the docs.
   node:
     runs-on: ubuntu-latest
     steps:
@@ -36,18 +17,10 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - uses: astral-sh/setup-uv@v10.2.0
-        with:
-          python-version: "3.12"
       - run: npm ci
       - run: npx biome ci .
       - run: npx tsc --noEmit
       - run: npx vitest run
-      - run: npm run build
-      - run: uv sync
-      - run: uv run pytest
-        env:
-          ROADMAP_IMPL: ts
 
   # The client-side check, run the way a consuming repo runs it: through the
   # published action, against a fixture and against this repo's own roadmap.
@@ -60,7 +33,7 @@ jobs:
       - name: Fixture roadmap via the action
         uses: ./
         with:
-          dir: tests/fixtures/valid/roadmap
+          dir: test/fixtures/valid/roadmap
           script: scripts/roadmap.py
       - name: Pick the base for the append-only check
         id: base
