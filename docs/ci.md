@@ -10,34 +10,45 @@ Pick one of these.
 
 ## GitHub Actions, using this repo's action
 
-It runs your vendored `tools/roadmap.py`, or falls back to the copy bundled
-with the action:
+It runs the version your `package-lock.json` pins, so CI checks with the same
+rules as everyone's `npx --no -- roadmap`. Without a pin it falls back to a
+plain semver range in `package.json`, and then to the action's own version.
+It reads only npm's lockfile; with pnpm or yarn it uses the range in
+`package.json`. It sets up Node itself unless the runner already has 22.18 or
+newer.
 
 ```yaml
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0                       # only needed for `base`
-      - uses: carby/simple-agentic-roadmap-skill@v1
+      - uses: carby/simple-agentic-roadmap-skill@v2
         with:
           dir: roadmap
           base: origin/${{ github.base_ref }}  # PRs only: holds archive/ append-only
 ```
 
-The floating `@v1` tag follows new releases; see [Upgrading](upgrading.md).
+The floating `@v2` tag follows new 2.x releases of the action; the rules it
+checks with still come from your pin. See [Upgrading](upgrading.md).
 
 ## GitHub Actions without the action, or any other CI
 
+After `npm ci`:
+
 ```yaml
-      - run: python tools/roadmap.py check
+      - run: npx --no -- roadmap check
 ```
+
+The `--no --` keeps npx from installing the unrelated `roadmap` package on npm
+if this one is missing.
 
 ## GitLab CI
 
 ```yaml
 roadmap:
-  image: python:3.12-slim
+  image: node:22
   script:
-    - python tools/roadmap.py check
+    - npm ci
+    - npx --no -- roadmap check
 ```
 
 ## pre-commit
@@ -49,7 +60,7 @@ In `.pre-commit-config.yaml`:
     hooks:
       - id: roadmap
         name: roadmap check
-        entry: python tools/roadmap.py check
+        entry: npx --no -- roadmap check
         language: system
         pass_filenames: false
         files: ^roadmap/

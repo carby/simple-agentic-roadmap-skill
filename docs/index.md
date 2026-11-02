@@ -18,11 +18,12 @@ short version.
 
 ## Setting it up
 
-- [Install](install.md): the skill as a pinned submodule, `init`, and the
-  `CLAUDE.md` note
+- [Install](install.md): the npm dev dependency, `init`, and the `CLAUDE.md`
+  note
 - [Install alternatives](install-alternatives.md): global install, the Claude
   app, and why a plain clone isn't an install
-- [Upgrading](upgrading.md): moving the pin and the vendored script together
+- [Upgrading](upgrading.md): bumping the package, `update`, spotting drift,
+  and migrating from a 1.x submodule install
 
 ## Checking it
 

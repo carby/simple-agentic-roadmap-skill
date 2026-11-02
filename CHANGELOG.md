@@ -1,18 +1,50 @@
 # Changelog
 
-Each release has a fixed `vX.Y.Z` tag. The skill is installed pinned to one
-(see [Install](docs/install.md)), so read this before moving the
-pin. **Upgrade notes** say what you have to do after `upgrade`. Where a release
-changes the rules `check` enforces, it says so there, because a stricter rule can
-turn a passing `check` red.
+Each release has a fixed `vX.Y.Z` tag, and is published to npm as
+`simple-agentic-roadmap-skill` with the same version. Your lockfile pins it
+(see [Install](docs/install.md)), so read this before bumping it. **Upgrade
+notes** say what you have to do after `update`. Where a release changes the
+rules `check` enforces, it says so there, because a stricter rule can turn a
+passing `check` red.
 
-## Unreleased
+## Unreleased (2.0.0)
 
-- **TypeScript port** — `src/` holds a TypeScript port of `roadmap.py`: every
-  command except `init` and `upgrade`, with the same messages and
-  byte-identical generated blocks. It isn't published or used by the action
-  yet, so nothing changes for a repo using the skill. It's the first step
-  towards installing through npm.
+The skill and its CLI now ship as an npm package, the way
+[OpenSpec](https://github.com/Fission-AI/OpenSpec/) does, and the CLI is
+TypeScript. Nothing changes for the roadmap itself: the same rules, the same
+frontmatter, and generated blocks byte for byte as 1.5.0 rendered them.
+
+- **Breaking: installed through npm** — `npm install -D
+  simple-agentic-roadmap-skill`, then `npx --no -- roadmap init --tools
+  claude,agents`. `init` writes `roadmap/` and copies the skill into each AI
+  tool's skills directory (`.claude/skills/roadmap`, and
+  `.agents/skills/roadmap` for Codex, Amp and others), which you gitignore.
+  The lockfile pins the version for developers and CI alike. The git
+  submodule install and the vendored `tools/roadmap.py` are gone.
+- **Breaking: the CLI is `roadmap`** — run it as `npx --no -- roadmap
+  <command>`. The `--no --` keeps npx from installing an unrelated npm package
+  called `roadmap` when this one is missing. Usage, `--version` and messages
+  say `roadmap`; the generated-block markers still say `roadmap.py`, so
+  existing blocks don't change.
+- **Breaking: the Action is `@v2`** — `uses:
+  carby/simple-agentic-roadmap-skill@v2` runs the version your
+  `package-lock.json` pins, and sets up Node if the runner has none. The
+  `script` and `python-version` inputs are gone; `package` overrides what it
+  runs. `@v1` stays on 1.5.0 and keeps working.
+- **Breaking: `upgrade` is now `update`** — it refreshes every installed copy
+  of the skill from the package, `--tools` adds one, and like `upgrade` it
+  regenerates the index and runs `check`.
+- **Claude app** — `roadmap.zip` carries the CLI bundled into
+  `scripts/roadmap.mjs`, run with Node, instead of the Python script.
+- **Upgrade notes (from 1.x):**
+  1. `npm install -D simple-agentic-roadmap-skill`
+  2. `npx --no -- roadmap update`. It sees the submodule and
+     `tools/roadmap.py`, changes neither, and prints the commands that remove
+     them, gitignore the tool directories, repoint the merge driver and
+     install the skill with `update --tools`. Run them.
+  3. Switch your workflow to `@v2` and drop its `script:` input.
+  4. Update the `CLAUDE.md` note from [Install](docs/install.md), and commit.
+  Nothing changes for `check`.
 
 ## 1.5.0 — 2026-10-30
 

@@ -1,4 +1,4 @@
-# Roadmap configuration, read by roadmap.py.
+# Roadmap configuration, read by the roadmap CLI.
 
 # What refs resolve against, relative to this directory. Default: the repo root.
 # root = ".."

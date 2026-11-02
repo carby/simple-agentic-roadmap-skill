@@ -5,16 +5,16 @@ aliases: [Checking your roadmap, check]
 
 # Checking your roadmap
 
-This is about **your** repo's roadmap. `roadmap.py check` is the whole
-client-side test. It needs only Python 3.11+, exits `1` and prints one line per
+This is about **your** repo's roadmap. `roadmap check` is the whole
+client-side test. It runs on Node 22.18+, exits `1` and prints one line per
 problem when something is wrong, and exits `0` otherwise.
 
 ```bash
-python tools/roadmap.py check      # what CI runs
-python tools/roadmap.py index      # regenerates the index in roadmap/README.md and done.md
+npx --no -- roadmap check      # what CI runs
+npx --no -- roadmap index      # regenerates the index in roadmap/README.md and done.md
 ```
 
-`python tools/roadmap.py review` is the opposite: it lists milestones that
+`npx --no -- roadmap review` is the opposite: it lists milestones that
 have passed while open items still name them, and items nobody has touched
 for 60 days, so its answer changes
 with the date. Run it by hand, never in CI.
@@ -34,10 +34,10 @@ delete or move one. Those lists no longer match the files, and `check`
 reports:
 
 ```text
-roadmap/README.md: generated block is stale; run `roadmap.py index` [generated]
+roadmap/README.md: generated block is stale; run `roadmap index` [generated]
 ```
 
-To fix it, run `python tools/roadmap.py index` and commit the result. `new`,
+To fix it, run `npx --no -- roadmap index` and commit the result. `new`,
 `move` and `close` regenerate the lists themselves, so this only follows hand
 edits.
 
@@ -45,16 +45,16 @@ edits.
 
 Two branches that each file, move or close an item both rewrite the generated
 lists, and git reports a conflict there. Take either side, then run
-`python tools/roadmap.py index`. If both filed into the same bucket, they gave
+`npx --no -- roadmap index`. If both filed into the same bucket, they gave
 out the same rank and `check` reports `[rank]`; run
-`python tools/roadmap.py index --renumber`.
+`npx --no -- roadmap index --renumber`.
 
 To have git take the generated lists by itself, add a merge driver:
 
 ```bash
 printf 'roadmap/README.md merge=roadmap\nroadmap/done.md merge=roadmap\n' >> .gitattributes
 printf 'roadmap/decisions.md merge=union\n' >> .gitattributes
-git config merge.roadmap.driver "python tools/roadmap.py merge-driver %O %A %B %P"
+git config merge.roadmap.driver "npx --no -- roadmap merge-driver %O %A %B %P"
 ```
 
 Commit `.gitattributes`. The `git config` line is per clone, so each
@@ -64,7 +64,7 @@ both branches logged.
 
 ## Append-only archive
 
-Add `--base <ref>`, e.g. `python tools/roadmap.py check --base origin/main`, to
+Add `--base <ref>`, e.g. `npx --no -- roadmap check --base origin/main`, to
 fail when an archived entry is deleted, moved or has a line changed. Adding
 lines is still allowed, which is how dated annotations work. This needs git
 history, so use `fetch-depth: 0` in `actions/checkout`.

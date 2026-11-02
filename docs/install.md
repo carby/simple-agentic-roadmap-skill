@@ -5,10 +5,6 @@ aliases: [Install the skill]
 
 # Install
 
-> [!warning] Until 2.0.0
-> The npm package isn't published yet; it ships with 2.0.0. Until then, use the
-> [pinned submodule](install-alternatives.md#a-pinned-submodule-until-200).
-
 A roadmap leans on two things that can drift apart: the **skill**, which holds
 the rules your agent follows, and the **CLI**, `roadmap`, which enforces them.
 Both come from one npm package, `simple-agentic-roadmap-skill`, so a single
@@ -28,12 +24,12 @@ npm install -D simple-agentic-roadmap-skill
 The lockfile pins the exact version, so every developer, CI run and agent
 session gets the same rules, and upgrades go through your normal dependency
 updates (see [Upgrading](upgrading.md)). Every command runs as
-`npx roadmap ...`.
+`npx --no -- roadmap ...`.
 
 ## 2. Run `init`
 
 ```bash
-npx roadmap init --tools claude,agents
+npx --no -- roadmap init --tools claude,agents
 ```
 
 `init` creates:
@@ -65,13 +61,13 @@ or stale skill a visible failure instead of an agent quietly improvising:
 The roadmap lives in `roadmap/` and is managed with the `roadmap` skill from
 the `simple-agentic-roadmap-skill` dev dependency. Use `/roadmap` for any
 change to it. If the skill isn't available, run `npm install` and
-`npx roadmap update`, or stop and tell the user. Don't edit `roadmap/items/` or
-`roadmap/archive/` by hand without it. Verify with `npx roadmap check`.
+`npx --no -- roadmap update`, or stop and tell the user. Don't edit `roadmap/items/` or
+`roadmap/archive/` by hand without it. Verify with `npx --no -- roadmap check`.
 ```
 
 ## After `init`
 
-`npx roadmap update` refreshes every tool directory that already has the skill,
+`npx --no -- roadmap update` refreshes every tool directory that already has the skill,
 from whichever version `package.json` pins. Run it after `npm install` in a
 fresh clone, and after every upgrade of the package.
 
