@@ -3,6 +3,7 @@
 // the tool directories are relative to the working directory.
 
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -208,4 +209,65 @@ test("update --tools refuses a tool whose path is still a submodule", (t) => {
 
   assert.equal(main(["update", "--tools", "claude"]), 2);
   contains(read(".claude/skills/roadmap/SKILL.md"), "Old rules.");
+});
+
+const GITIGNORE_HINT = "to .gitignore.";
+const PIN_HINT = "Pin the package: npm install -D simple-agentic-roadmap-skill";
+
+/** A git repo whose .gitignore holds `ignored`, and a package.json that pins the package if `pin`. */
+function quickStart(ignored: string[], pin: boolean): void {
+  spawnSync("git", ["init", "-q"], { stdio: "ignore" });
+  if (ignored.length) writeFileSync(".gitignore", `${ignored.join("\n")}\n`);
+  const deps = pin ? { devDependencies: { "simple-agentic-roadmap-skill": "^2.0.0" } } : {};
+  writeFileSync("package.json", JSON.stringify({ name: "x", ...deps }));
+}
+
+test("init hints at both steps in a bare directory", (t) => {
+  output = capture(t);
+
+  assert.equal(main(["init"]), 0);
+
+  contains(output.join(""), `Add .claude/skills/roadmap ${GITIGNORE_HINT}`);
+  contains(output.join(""), PIN_HINT);
+});
+
+test("init hints at nothing once the README's steps are done", (t) => {
+  output = capture(t);
+  quickStart([".claude/skills/"], true);
+
+  assert.equal(main(["init"]), 0);
+
+  assert.deepEqual(output.join("").trim().split("\n"), [
+    `Created roadmap/ and .claude/skills/roadmap (roadmap ${VERSION}).`,
+  ]);
+});
+
+test("init hints only at the gitignore when the package is pinned", (t) => {
+  output = capture(t);
+  quickStart([], true);
+
+  assert.equal(main(["init"]), 0);
+
+  contains(output.join(""), GITIGNORE_HINT);
+  excludes(output.join(""), PIN_HINT);
+});
+
+test("init hints only at the pin when the tool directories are ignored", (t) => {
+  output = capture(t);
+  quickStart([".claude/skills/"], false);
+
+  assert.equal(main(["init"]), 0);
+
+  excludes(output.join(""), GITIGNORE_HINT);
+  contains(output.join(""), PIN_HINT);
+});
+
+test("init names only the tool directories git doesn't ignore yet", (t) => {
+  output = capture(t);
+  quickStart([".claude/skills/"], true);
+
+  assert.equal(main(["init", "--tools", "claude,agents"]), 0);
+
+  contains(output.join(""), `Add .agents/skills/roadmap ${GITIGNORE_HINT}`);
+  excludes(output.join(""), "Add .claude/skills/roadmap");
 });

@@ -7,6 +7,14 @@ notes** say what you have to do after `update`. Where a release changes the
 rules `check` enforces, it says so there, because a stricter rule can turn a
 passing `check` red.
 
+## Unreleased
+
+- **`init` hints only at steps still to do** — after setting up a roadmap,
+  `init` used to tell you to gitignore the tool directories and pin the
+  package even when the quick start had already done both. It now names
+  only the tool directories git doesn't ignore yet, and asks you to pin the
+  package only when `package.json` doesn't list it.
+
 ## 2.0.0 — 2026-11-02
 
 The skill and its CLI now ship as an npm package, the way
