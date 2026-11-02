@@ -37,7 +37,7 @@ const read = (path: string) => readFileSync(path, "utf8");
 test("init writes the roadmap and a stamped skill for each tool", () => {
   expect(main(["init", "--tools", "claude,agents"])).toBe(0);
   const readme = read("roadmap/README.md");
-  expect(readme).toContain("npx roadmap new <id>");
+  expect(readme).toContain("npx --no -- roadmap new <id>");
   expect(readme).not.toContain("{{");
   expect(readme).not.toContain("python");
   expect(readme).toContain(INDEX_BEGIN);

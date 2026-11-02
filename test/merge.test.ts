@@ -59,7 +59,7 @@ test("with the driver, two closes merge, and index makes check pass", () => {
   const result = closeOneOnEachBranch(root);
 
   expect(result.status, result.stdout + result.stderr).toBe(0);
-  expect(result.stderr).toContain("run `roadmap.py index` once the merge is done");
+  expect(result.stderr).toContain("run `roadmap index` once the merge is done");
   expect(run(["index"], root).status).toBe(0);
   expect(run(["check", "--base", "base"], root).status).toBe(0);
   const done = read(join(root, "roadmap/done.md"));

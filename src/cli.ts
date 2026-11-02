@@ -1,4 +1,4 @@
-/** The command line, parsed the way argparse parsed it for roadmap.py: the
+/** The command line, parsed the way argparse parsed it for the Python CLI (1.x): the
  * same commands, options, defaults and dests, unique-prefix abbreviations,
  * and errors printed after a usage line with exit status 2. */
 
@@ -21,7 +21,7 @@ import { cmdInit, cmdUpdate, TOOLS } from "./install.ts";
 import { BUCKETS, OUTCOMES, openRoadmap, type Roadmap, UsageError, VERSION } from "./model.ts";
 import { Day, repr } from "./py.ts";
 
-const PROG = "roadmap.py";
+const PROG = "roadmap";
 const DESCRIPTION = "A Now/Next/Later roadmap kept as one Markdown file per item, checked in CI.";
 
 type Option = {

@@ -5,7 +5,7 @@
  * It carries the fields a reader would otherwise have to infer from the prose.
  * The prose body is where the argument lives, and no schema tries to parse it.
  *
- * This is the TypeScript port of scripts/roadmap.py. Each function ports the
+ * This began as a port of the Python CLI of 1.x (scripts/roadmap.py). Each function ports the
  * Python function of the same name, and prints what it printed. */
 
 import { existsSync, readdirSync } from "node:fs";
@@ -65,9 +65,9 @@ Decisions that belong to no single item: conventions, architecture choices,
 things this project doesn't do. A decision about one item goes in that item's
 prose instead. **Search this file and \`done.md\` before proposing work.**
 
-Record a decision with \`roadmap.py decide\`. Entries are appended oldest first,
-and the file is **append-only**: \`check --base\` fails on a changed or removed
-line. To reverse a decision, record a new one that says so.
+Record a decision with \`npx --no -- roadmap decide\`. Entries are appended
+oldest first, and the file is **append-only**: \`check --base\` fails on a
+changed or removed line. To reverse a decision, record a new one that says so.
 `;
 
 // Every rule `check` enforces, keyed by the tag printed after each problem.

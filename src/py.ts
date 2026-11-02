@@ -1,5 +1,5 @@
 /** The few Python behaviours the CLI's output depends on. The TypeScript port
- * has to print what roadmap.py printed, byte for byte, because every message
+ * has to print what the Python CLI of 1.x printed, byte for byte, because every message
  * and generated block was written by it: `repr()` in messages, `str()` in
  * f-strings, `splitlines()`, universal newlines and `json.dumps`. */
 

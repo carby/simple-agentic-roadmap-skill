@@ -26,14 +26,14 @@ function ok(root: string, ...args: string[]): string {
   return result.stdout;
 }
 
-test("init writes a roadmap that names npx roadmap and passes check", () => {
+test("init writes a roadmap that names npx --no -- roadmap and passes check", () => {
   const root = repo();
 
   for (const name of ["README.md", "done.md", "decisions.md", "roadmap.toml", "items/.gitkeep", "archive/.gitkeep"]) {
     expect(existsSync(join(root, "roadmap", name)), name).toBe(true);
   }
   expect(read(join(root, "roadmap/README.md"))).not.toContain("{{");
-  expect(read(join(root, "roadmap/README.md"))).toContain("npx roadmap check");
+  expect(read(join(root, "roadmap/README.md"))).toContain("npx --no -- roadmap check");
   expect(run(["check"], root).status).toBe(0);
 });
 

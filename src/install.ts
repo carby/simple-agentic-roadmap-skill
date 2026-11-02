@@ -28,7 +28,7 @@ export const TOOLS: Record<string, string> = {
 const PAYLOAD = ["SKILL.md", "references", "assets"];
 
 /** How the generated files and the template name the CLI. */
-export const COMMAND = "npx roadmap";
+export const COMMAND = "npx --no -- roadmap";
 
 /** Where SKILL.md's frontmatter keeps the version: the index of its
  * `metadata:` line, and of the `version:` line in that block, if any. Scanned
