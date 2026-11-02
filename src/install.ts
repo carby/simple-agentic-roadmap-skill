@@ -161,11 +161,73 @@ export function cmdInit(rm: Roadmap, args: Args): number {
   return 0;
 }
 
+const VENDORED = "tools/roadmap.py";
+
+/** Whether `dir` is a git submodule: named in .gitmodules, or holding the
+ * `.git` file a submodule checkout has. */
+function submodule(dir: string): boolean {
+  if (exists(joinPath(dir, ".git"))) return true;
+  if (!isFile(".gitmodules")) return false;
+  return readText(".gitmodules")
+    .split("\n")
+    .some((line) => /^\s*path\s*=\s*(.+?)\s*$/.exec(line)?.[1] === dir);
+}
+
+/** What a 1.x install left behind: the skill as a submodule in a tool's
+ * directory, and the vendored Python CLI. */
+export function legacyInstalls(): { submodules: string[]; vendored: boolean } {
+  return { submodules: Object.values(TOOLS).filter(submodule), vendored: isFile(VENDORED) };
+}
+
+/** The commands that move a 1.x install to the package. `update` prints
+ * them and runs none: they delete files and rewrite git config. */
+function migrationSteps(submodules: string[], vendored: boolean): string[] {
+  const steps: string[] = [];
+  for (const dir of submodules) {
+    steps.push(`git submodule deinit -f ${dir}`, `git rm -f ${dir}`, `rm -rf .git/modules/${dir}`);
+  }
+  if (vendored) steps.push(`git rm ${VENDORED}`);
+  if (submodules.length) steps.push(`printf '.claude/skills/\\n.agents/skills/\\n' >> .gitignore`);
+  if (isFile(".gitattributes") && readText(".gitattributes").includes("merge=roadmap")) {
+    steps.push(`git config merge.roadmap.driver "${COMMAND} merge-driver %O %A %B %P"`);
+  }
+  const tools = Object.entries(TOOLS)
+    .filter(([, dir]) => submodules.includes(dir))
+    .map(([tool]) => tool);
+  if (tools.length) steps.push(`${COMMAND} update --tools ${tools.join(",")}`);
+  const workflows = isDir(".github/workflows")
+    ? readdirSync(".github/workflows")
+        .map((name) => joinPath(".github/workflows", name))
+        .filter((path) => isFile(path) && readText(path).includes("simple-agentic-roadmap-skill@v1"))
+    : [];
+  const lines = [
+    "This repo still has a 1.x install, which update leaves alone. To move it to the npm package, run:",
+    ...steps.map((step) => `  ${step}`),
+  ];
+  for (const path of workflows) {
+    lines.push(`In ${path}, use carby/simple-agentic-roadmap-skill@v2 and drop its \`script:\` input.`);
+  }
+  lines.push("Then commit. The CHANGELOG's 2.0.0 entry has the details.");
+  return lines;
+}
+
 export function cmdUpdate(rm: Roadmap, args: Args): number {
-  const installed = Object.values(TOOLS).filter((dir) => isFile(joinPath(dir, "SKILL.md")));
+  const legacy = legacyInstalls();
+  const requested = args.tools === null ? [] : parseTools(args.tools).map((t) => TOOLS[t] as string);
+  const clashing = requested.filter((dir) => legacy.submodules.includes(dir));
+  if (clashing.length) {
+    throw new UsageError(`${clashing.join(", ")} is a git submodule; remove it first (run \`update\` to see how)`);
+  }
+  const installed = Object.values(TOOLS).filter(
+    (dir) => requested.includes(dir) || (!legacy.submodules.includes(dir) && isFile(joinPath(dir, "SKILL.md"))),
+  );
+  const migrating = legacy.submodules.length > 0 || legacy.vendored;
+  if (migrating) for (const line of migrationSteps(legacy.submodules, legacy.vendored)) out(line);
   if (!installed.length) {
+    if (migrating) return 0;
     throw new UsageError(
-      `no installed skill in ${Object.values(TOOLS).join(" or ")}; run \`init --tools ${Object.keys(TOOLS).join(",")}\``,
+      `no installed skill in ${Object.values(TOOLS).join(" or ")}; run \`update --tools ${Object.keys(TOOLS).join(",")}\`` +
+        `, or \`init --tools …\` to set up a roadmap too`,
     );
   }
   for (const dir of installed) {
@@ -177,11 +239,14 @@ export function cmdUpdate(rm: Roadmap, args: Args): number {
     if (old !== null && newer(old, VERSION) && !args.force) {
       throw new UsageError(`${dir} is roadmap ${old}, newer than this ${VERSION}; pass --force to downgrade`);
     }
+    const fresh = !isFile(joinPath(dir, "SKILL.md"));
     installSkill(dir);
     out(
-      old === VERSION
-        ? `Refreshed ${dir}: roadmap ${VERSION}.`
-        : `Updated ${dir}: roadmap ${old ?? "unknown"} → ${VERSION}.`,
+      fresh
+        ? `Installed ${dir}: roadmap ${VERSION}.`
+        : old === VERSION
+          ? `Refreshed ${dir}: roadmap ${VERSION}.`
+          : `Updated ${dir}: roadmap ${old ?? "unknown"} → ${VERSION}.`,
     );
   }
   if (!isDir(rm.dir)) return 0;
