@@ -5,50 +5,54 @@ aliases: [Install the skill]
 
 # Install
 
+> [!warning] Until 2.0.0
+> The npm package isn't published yet; it ships with 2.0.0. Until then, use the
+> [pinned submodule](install-alternatives.md#a-pinned-submodule-until-200).
+
 A roadmap leans on two things that can drift apart: the **skill**, which holds
-the rules your agent follows, and the **vendored script**, `tools/roadmap.py`,
-which enforces them and lives in your repo. Install them so that both are
-pinned to a release and both are committed, and so the repo says what to do
-when the skill is missing. That takes three steps, once per repo. The commands
-are bash; on Windows use WSL or Git Bash.
+the rules your agent follows, and the **CLI**, `roadmap`, which enforces them.
+Both come from one npm package, `simple-agentic-roadmap-skill`, so a single
+version in your `package.json` pins both, the way
+[OpenSpec](https://github.com/Fission-AI/OpenSpec/) is installed. Setting it up
+takes three steps, once per repo. It needs Node 22.18 or later.
 
 Other ways to install are in [Install alternatives](install-alternatives.md).
 
-## 1. Add the skill as a pinned submodule
+## 1. Add the package as a dev dependency
 
 ```bash
 # from the root of the repo:
-git submodule add https://github.com/carby/simple-agentic-roadmap-skill.git .claude/skills/roadmap
-git -C .claude/skills/roadmap checkout "$(git -C .claude/skills/roadmap describe --tags --abbrev=0 --match 'v*.*.*')"
-git add .gitmodules .claude/skills/roadmap
+npm install -D simple-agentic-roadmap-skill
 ```
 
-That checks out the newest release tag. Commit it, and your repo records that
-exact commit of the skill. A submodule is pinned to a commit, not a branch, so
-every collaborator, CI run and agent session gets the same rules until someone
-deliberately moves the pin (see [Upgrading](upgrading.md)). Claude Code loads
-skills from `.claude/skills/`, so there is nothing else to configure.
-
-People who clone the repo need the submodule too: `git clone --recurse-submodules`,
-or `git submodule update --init` afterwards. If your CI or cloud agents check out
-the repo, make sure they fetch submodules. An empty `.claude/skills/roadmap`
-means no skill.
+The lockfile pins the exact version, so every developer, CI run and agent
+session gets the same rules, and upgrades go through your normal dependency
+updates (see [Upgrading](upgrading.md)). Every command runs as
+`npx roadmap ...`.
 
 ## 2. Run `init`
 
 ```bash
-python .claude/skills/roadmap/scripts/roadmap.py init
-git add roadmap tools/roadmap.py
+npx roadmap init --tools claude,agents
 ```
 
 `init` creates:
 - `roadmap/`, containing README.md, done.md, decisions.md, roadmap.toml,
   `items/` and `archive/`
-- `tools/roadmap.py`, a copy of the script
+- the skill, in each tool's skills directory: `.claude/skills/roadmap` for
+  Claude Code, and `.agents/skills/roadmap`, which Codex, Amp and others read.
+  `--tools` defaults to `claude`.
 
-Use `--dir` and `--script` to put them somewhere else. You can also ask the
-agent to "set up a roadmap here", and it will run `init` from wherever it
-loaded the skill.
+The skill copies are generated from the package, so don't commit them. Each
+developer runs `init` or `update` in their own clone:
+
+```bash
+printf '.claude/skills/\n.agents/skills/\n' >> .gitignore
+git add package.json package-lock.json .gitignore roadmap
+```
+
+Use `--dir` to put the roadmap somewhere other than `roadmap/`. You can also ask
+the agent to "set up a roadmap here".
 
 ## 3. Tell your agent the skill is required
 
@@ -58,20 +62,18 @@ or stale skill a visible failure instead of an agent quietly improvising:
 ```markdown
 ### Roadmap
 
-The roadmap lives in `roadmap/` and is managed with the `roadmap` skill, which
-this repo carries as a submodule at `.claude/skills/roadmap`. Use `/roadmap` for
-any change to it. If the skill isn't available (try `git submodule update
---init`), stop and tell the user. Don't edit `roadmap/items/` or `roadmap/archive/`
-by hand without it. Verify with `python tools/roadmap.py check`.
+The roadmap lives in `roadmap/` and is managed with the `roadmap` skill from
+the `simple-agentic-roadmap-skill` dev dependency. Use `/roadmap` for any
+change to it. If the skill isn't available, run `npm install` and
+`npx roadmap update`, or stop and tell the user. Don't edit `roadmap/items/` or
+`roadmap/archive/` by hand without it. Verify with `npx roadmap check`.
 ```
 
 ## After `init`
 
-**The tooling no longer depends on where the skill is installed.** Every
-command, in the docs, in CI and when the agent runs one, goes through the
-repo's own copy, `python tools/roadmap.py ...`, so the repo and its CI keep
-working on machines without the skill. What the skill still supplies is the
-agent's behaviour, which is why step 3 exists.
+`npx roadmap update` refreshes every tool directory that already has the skill,
+from whichever version `package.json` pins. Run it after `npm install` in a
+fresh clone, and after every upgrade of the package.
 
 Next: set up [CI](ci.md).
 

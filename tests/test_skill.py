@@ -10,6 +10,8 @@ import tomllib
 from conftest import REPO, roadmap
 
 COMMANDS = set(roadmap.build_parser()._subparsers._group_actions[0].choices)
+# The TypeScript CLI's `update` replaces `upgrade`; it has no Python twin.
+CLI_COMMANDS = COMMANDS | {"update"}
 AGENT_DOCS = [REPO / "SKILL.md", REPO / "references/conventions.md", REPO / "assets/template/README.md"]
 
 
@@ -29,10 +31,12 @@ def test_skill_frontmatter_names_and_describes_the_skill() -> None:
 
 def test_every_command_the_docs_name_exists() -> None:
     for doc in AGENT_DOCS:
-        named = set(re.findall(r"roadmap\.py (?:--dir \S+ )?([a-z]+(?:-[a-z]+)*)", doc.read_text()))
-        named |= set(re.findall(r"\{\{script\}\} ([a-z]+(?:-[a-z]+)*)", doc.read_text()))
+        text = doc.read_text()
+        named = set(
+            re.findall(r"(?:roadmap\.py|npx roadmap|\{\{command\}\}) (?:--dir \S+ )?([a-z]+(?:-[a-z]+)*)", text)
+        )
         assert named or doc.name == "conventions.md", f"{doc.name} names no commands; the regex is out of date"
-        assert named <= COMMANDS, f"{doc.name} names {named - COMMANDS}, which roadmap.py does not have"
+        assert named <= CLI_COMMANDS, f"{doc.name} names {named - CLI_COMMANDS}, which the CLI does not have"
 
 
 def test_every_rule_tag_is_documented_for_agents() -> None:
