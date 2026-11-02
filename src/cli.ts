@@ -90,7 +90,16 @@ export const COMMANDS: Record<string, Command> = {
   update: {
     help: "refresh every installed copy of the skill from this package, then regenerate and check",
     run: (rm, args) => cmdUpdate(rm as Roadmap, args),
-    options: [DIR, { flag: "--force", dest: "force", kind: "flag", help: "overwrite a copy newer than this package" }],
+    options: [
+      DIR,
+      {
+        flag: "--tools",
+        dest: "tools",
+        metavar: "TOOL,...",
+        help: `also install into these tools' directories, from ${Object.keys(TOOLS).join(", ")}`,
+      },
+      { flag: "--force", dest: "force", kind: "flag", help: "overwrite a copy newer than this package" },
+    ],
   },
   check: {
     help: "validate everything; exit 1 on any problem (for CI)",

@@ -131,3 +131,73 @@ test("stamping is linear on long runs of indented whitespace", () => {
   expect(stamped(skill, "1.0.0")).toBe(skill.replace("metadata:\n", 'metadata:\n  version: "1.0.0"\n'));
   expect(performance.now() - start).toBeLessThan(1000);
 });
+
+/** A 1.x install: the skill as a submodule at .claude/skills/roadmap, the
+ * vendored Python CLI, the merge driver and a workflow on @v1. */
+function legacy(): Record<string, string> {
+  const files: Record<string, string> = {
+    ".gitmodules":
+      '[submodule ".claude/skills/roadmap"]\n\tpath = .claude/skills/roadmap\n\turl = https://example.com\n',
+    ".claude/skills/roadmap/.git": "gitdir: ../../../.git/modules/.claude/skills/roadmap\n",
+    ".claude/skills/roadmap/SKILL.md": "---\nname: roadmap\nmetadata:\n  author: x\n---\nOld rules.\n",
+    "tools/roadmap.py": "# the 1.x script\n",
+    ".gitattributes": "roadmap/README.md merge=roadmap\n",
+    ".github/workflows/roadmap.yml": "      - uses: carby/simple-agentic-roadmap-skill@v1\n",
+  };
+  for (const [path, text] of Object.entries(files)) {
+    mkdirSync(join(path, ".."), { recursive: true });
+    writeFileSync(path, text);
+  }
+  return files;
+}
+
+test("update prints how to migrate a 1.x install, and changes none of it", () => {
+  main(["init", "--tools", "agents"]);
+  const files = legacy();
+  output = [];
+
+  expect(main(["update"])).toBe(0);
+
+  const printed = output.join("");
+  for (const step of [
+    "  git submodule deinit -f .claude/skills/roadmap\n",
+    "  git rm -f .claude/skills/roadmap\n",
+    "  rm -rf .git/modules/.claude/skills/roadmap\n",
+    "  git rm tools/roadmap.py\n",
+    "  printf '.claude/skills/\\n.agents/skills/\\n' >> .gitignore\n",
+    '  git config merge.roadmap.driver "npx --no -- roadmap merge-driver %O %A %B %P"\n',
+    "  npx --no -- roadmap update --tools claude\n",
+    "In .github/workflows/roadmap.yml, use carby/simple-agentic-roadmap-skill@v2",
+  ]) {
+    expect(printed).toContain(step);
+  }
+  for (const [path, text] of Object.entries(files)) expect(read(path)).toBe(text);
+  expect(printed).toContain("Refreshed .agents/skills/roadmap"); // the package's own copies still update
+});
+
+test("update with only a 1.x install prints the migration and exits 0", () => {
+  mkdirSync("roadmap");
+  legacy();
+  output = [];
+
+  expect(main(["update"])).toBe(0);
+  expect(output.join("")).toContain("This repo still has a 1.x install");
+});
+
+test("update --tools installs into a tool that has no copy yet", () => {
+  main(["init"]);
+  output = [];
+
+  expect(main(["update", "--tools", "agents"])).toBe(0);
+
+  expect(stampedVersion(TOOLS.agents as string)).toBe(VERSION);
+  expect(output.join("")).toContain(`Installed .agents/skills/roadmap: roadmap ${VERSION}.`);
+});
+
+test("update --tools refuses a tool whose path is still a submodule", () => {
+  main(["init", "--tools", "agents"]);
+  legacy();
+
+  expect(main(["update", "--tools", "claude"])).toBe(2);
+  expect(read(".claude/skills/roadmap/SKILL.md")).toContain("Old rules.");
+});
