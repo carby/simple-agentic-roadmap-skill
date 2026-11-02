@@ -7,7 +7,7 @@ filed = 2026-11-02
 depends_on = ["npm-installer"]
 
 [refs]
-files = ["tests/conftest.py", "test/", "CONTRIBUTING.md"]
+files = ["test/helpers.ts", "CONTRIBUTING.md"]
 +++
 
 Split from [npx-ci-migration](npx-ci-migration.md) on 2026-11-02, so that PR doesn't also carry the whole test port. The Python suite (about 2.5k lines, 224 tests) is still the TypeScript CLI's spec: with `ROADMAP_IMPL=ts` it runs against the bin. It can't stay once the Python script goes, and porting it is internal work that needs no release.

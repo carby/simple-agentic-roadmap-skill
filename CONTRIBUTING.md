@@ -11,63 +11,57 @@ an agent session in this repo runs `/roadmap` with the rules as you are editing
 them. `.claude/skills/` is gitignored, so run it once per clone.
 `.gitattributes` merges `roadmap/README.md` and `done.md` with the skill's own
 merge driver; turn it on in your clone with
-`git config merge.roadmap.driver "python scripts/roadmap.py merge-driver %O %A %B %P"`.
+`git config merge.roadmap.driver "node bin/roadmap.js merge-driver %O %A %B %P"`
+(after `npm run build`).
 
-**`scripts/roadmap.py` must stay stdlib-only.** `init` vendors it into other
-repos, which must not need to install anything to run it.
+`scripts/roadmap.py` is the Python CLI that 1.x releases vendor, and what the
+Action still runs. It is frozen: rules change only in `src/` until
+[npx-ci-migration](roadmap/items/npx-ci-migration.md) moves the Action to Node
+and deletes it.
 
 ## Running the tests
 
-The pytest suite tests the tool, the template, SKILL.md and the docs. It
-never runs in a client's CI. Clients only run `roadmap.py check`, as described
-in [Checking your roadmap](docs/checking.md).
-
-```bash
-uv sync                                        # dev deps: pytest, ruff
-uv run pytest                                  # the full suite
-uv run pytest tests/test_rules.py -k bucket    # one rule's cases
-uv run ruff check . && uv run ruff format --check .
-```
-
-### The TypeScript port
-
-`src/` is a TypeScript port of `scripts/roadmap.py`, on its way to replacing
-it (see [typescript-port](roadmap/archive/typescript-port.md)). Until then the
-Python suite is its spec: with `ROADMAP_IMPL=ts`, every test that runs the
-script as a subprocess runs the built `bin/roadmap.js` instead, and every
-in-process `check` is repeated through it and has to report the same
-problems. Tests marked `python_only` cover what the port leaves out (`init`,
-`upgrade`). vitest covers the TypeScript-only parts.
+The vitest suite tests the CLI, the template, SKILL.md and the docs. It never
+runs in a client's CI. Clients only run `check`, as described in
+[Checking your roadmap](docs/checking.md).
 
 ```bash
 npm ci
-npx biome ci . && npx tsc --noEmit && npx vitest run
-npm run build && ROADMAP_IMPL=ts uv run pytest
+npx biome ci . && npx tsc --noEmit
+npx vitest run                         # the full suite; it builds dist/ first
+npx vitest run test/rules.test.ts -t bucket   # one rule's cases
 ```
+
+Most tests run the built `bin/roadmap.js` as a subprocess, the way CI and
+agents do, so `test/global-setup.ts` runs `npm run build` before the suite.
 
 | File | Covers |
 |---|---|
-| `tests/test_rules.py` | one failing case per rule tag, plus what the rules deliberately allow. `test_every_rule_has_a_failing_case` fails if a tag in `RULES` has no case. |
-| `tests/test_render.py` | the generated index and done.md: order, grouping, splicing |
-| `tests/test_cli.py` | the script as a subprocess: exit codes, stderr, `--dir`, usage errors |
-| `tests/test_workflow.py` | `init → new → move → close` in a fresh repo, with `check` required to pass after every step, and link rewriting; `upgrade` and the drift warning |
-| `tests/test_append_only.py` | `check --base` against a real temporary git repo |
-| `tests/test_skill.py` | SKILL.md frontmatter; every command the agent docs name exists; every rule tag documented; the dogfood roadmap is clean |
-| `tests/test_readme.py` | README.md, the `docs/` vault and this file: the right notes and sections exist, they name real commands and Action inputs, and every relative link resolves |
+| `test/rules.test.ts` | one failing case per rule tag, plus what the rules deliberately allow. "every rule has a failing case" fails if a tag in `RULES` has no case. |
+| `test/render.test.ts` | the generated index and done.md: order, grouping, splicing, the chart |
+| `test/cli.test.ts` | the CLI as a subprocess: exit codes, stderr, `--dir`, usage errors, `new`, `move`, `close`, `decide`, `index --renumber` |
+| `test/list-split.test.ts` | `list` and `split` |
+| `test/workflow.test.ts` | `init → new → move → close` in a fresh repo, with `check` required to pass after every step, and link rewriting |
+| `test/install.test.ts` | `init --tools` and `update`: the skill copies and their version stamp |
+| `test/append-only.test.ts` | `check --base` against a real temporary git repo |
+| `test/merge.test.ts` | two branches merged, with and without the merge driver |
+| `test/review.test.ts` | `review`: passed milestones and stale items |
+| `test/docs.test.ts` | SKILL.md, README.md, the `docs/` vault and this file: they name real commands and Action inputs, document every rule tag, and every relative link resolves |
+| `test/py.test.ts`, `test/port.test.ts` | the Python-compatible helpers the output depends on, and the golden fixture rendered in-process |
 
-`tests/fixtures/valid/` is a complete example roadmap. Its README.md and
+`test/fixtures/valid/` is a complete example roadmap. Its README.md and
 done.md are the golden output of the renderer. If you change the rendering on
 purpose, regenerate them with:
 
 ```bash
-python scripts/roadmap.py index --dir tests/fixtures/valid/roadmap
+npm run build && node bin/roadmap.js index --dir test/fixtures/valid/roadmap
 ```
 
 ## Adding a rule
 
-1. Add its tag to `RULES` in `scripts/roadmap.py`.
-2. Implement it.
-3. Add a failing case to `CASES` in `tests/test_rules.py`.
+1. Add its tag to `RULES` in `src/model.ts`.
+2. Implement it in `src/rules.ts`.
+3. Add a failing case to `CASES` in `test/rules.test.ts`.
 4. Add a row to the rule-tag table in `references/conventions.md`.
 
 The tests fail until all four are done.
@@ -75,7 +69,7 @@ The tests fail until all four are done.
 ## CI
 
 `.github/workflows/ci.yml` has two jobs:
-- `test`: runs the suite above on Python 3.11 to 3.14.
+- `node`: lint, types and the vitest suite above.
 - `action`: runs the client-side check the way a consuming repo does, through
   `uses: ./`. It checks the fixture, and it checks this repo's own `roadmap/`
   with `--base`.
@@ -92,11 +86,13 @@ as a submodule pinned to the newest fixed `vX.Y.Z` tag, which `v1` must never
 stand in for, because a pin that moves is not a pin.
 
 ```bash
-# 1. Bump the version in both places (a test fails if they differ):
-#    __version__ in scripts/roadmap.py, and version in pyproject.toml.
+# 1. Bump the version: `npm version 1.0.1 --no-git-tag-version` for
+#    package.json and its lockfile, and VERSION in src/model.ts (a test fails
+#    if those two differ). Until 2.0.0, also __version__ in
+#    scripts/roadmap.py, which the Action runs.
 #    Rename CHANGELOG.md's "Unreleased" heading to "1.0.1 — <date>" (a test
 #    fails if the current version has no entry).
-uv lock && uv run pytest && git commit -am "chore: release 1.0.1"
+npx vitest run && git commit -am "chore: release 1.0.1"
 
 # 2. Tag the release and move the major tag onto it
 git tag v1.0.1
