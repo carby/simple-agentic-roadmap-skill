@@ -7,7 +7,7 @@ notes** say what you have to do after `update`. Where a release changes the
 rules `check` enforces, it says so there, because a stricter rule can turn a
 passing `check` red.
 
-## Unreleased (2.0.0)
+## 2.0.0 — 2026-11-02
 
 The skill and its CLI now ship as an npm package, the way
 [OpenSpec](https://github.com/Fission-AI/OpenSpec/) does, and the CLI is
