@@ -100,7 +100,7 @@ test("a broken config is a usage error", () => {
 });
 
 test("--version", () => {
-  expect(run(["--version"], process.cwd()).stdout.trim()).toBe(`roadmap.py ${VERSION}`);
+  expect(run(["--version"], process.cwd()).stdout.trim()).toBe(`roadmap ${VERSION}`);
 });
 
 test("new refuses a reused id", () => {

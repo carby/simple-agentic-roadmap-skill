@@ -1,5 +1,5 @@
 /** The commands. Each one ports the `cmd_*` function of the same name in
- * scripts/roadmap.py, prints what it printed, and returns the exit status. */
+ * the Python CLI of 1.x, prints what it printed, and returns the exit status. */
 
 import { spawnSync } from "node:child_process";
 import { mkdirSync, unlinkSync, writeFileSync } from "node:fs";
@@ -545,8 +545,8 @@ export function cmdMergeDriver(_rm: Roadmap | null, args: Args): number {
       readText(ours).replaceAll(MERGE_STANDIN, () => block as string),
     );
     err(
-      `roadmap.py: kept this branch's generated block in ${args.path || args.ours};` +
-        " run `roadmap.py index` once the merge is done",
+      `roadmap: kept this branch's generated block in ${args.path || args.ours};` +
+        " run `roadmap index` once the merge is done",
     );
   }
   return status ? 1 : 0;

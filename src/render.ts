@@ -279,7 +279,7 @@ export function generatedProblems(rm: Roadmap, items: Item[], archived: Item[]):
   const problems: Problem[] = [];
   for (const [path, begin, end, block] of generatedTargets(rm, items, archived)) {
     if (!exists(path)) {
-      problems.push(new Problem(path, "generated", "is missing; `roadmap.py init` writes one"));
+      problems.push(new Problem(path, "generated", "is missing; `roadmap init` writes one"));
       continue;
     }
     const text = readText(path);
@@ -291,7 +291,7 @@ export function generatedProblems(rm: Roadmap, items: Item[], archived: Item[]):
       problems.push(new Problem(path, "generated", `markers not found; expected ${begin} ... ${end}`));
       continue;
     }
-    if (stale) problems.push(new Problem(path, "generated", "generated block is stale; run `roadmap.py index`"));
+    if (stale) problems.push(new Problem(path, "generated", "generated block is stale; run `roadmap index`"));
   }
   return problems;
 }

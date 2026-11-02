@@ -29,7 +29,7 @@ const CLI_COMMANDS = new Set(Object.keys(COMMANDS));
 // The docs for Python installs still name `upgrade` until npx-ci-migration
 // rewrites them; the TypeScript CLI's `update` replaces it.
 const DOCUMENTED_COMMANDS = new Set([...CLI_COMMANDS, "upgrade"]);
-const NAMED = /(?:roadmap\.(?:py|js)|npx roadmap|\{\{command\}\}) (?:--dir \S+ )?([a-z]+(?:-[a-z]+)*)/g;
+const NAMED = /(?:roadmap\.(?:py|js|mjs)|npx (?:--no -- )?roadmap|\{\{command\}\}) (?:--dir \S+ )?([a-z]+(?:-[a-z]+)*)/g;
 
 const AGENT_DOCS = ["SKILL.md", "references/conventions.md", "assets/template/README.md"];
 const README = read("README.md");
