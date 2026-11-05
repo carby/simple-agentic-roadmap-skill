@@ -4,22 +4,13 @@
 
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  realpathSync,
-  rmSync,
-  symlinkSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, test } from "node:test";
 import { main } from "../src/cli.ts";
 import { PACKAGE_ROOT, stamped, stampedVersion, TOOLS } from "../src/install.ts";
-import { INDEX_BEGIN, VERSION } from "../src/model.ts";
+import { INDEX_BEGIN, openRoadmap, VERSION } from "../src/model.ts";
 import { capture, contains, excludes } from "./helpers.ts";
 
 const home = process.cwd();
@@ -43,7 +34,7 @@ test("init writes the roadmap and a stamped skill for each tool", (t) => {
   output = capture(t);
   assert.equal(main(["init", "--tools", "claude,agents"]), 0);
   const readme = read("roadmap/README.md");
-  contains(readme, "npx --no -- roadmap new <id>");
+  contains(readme, "\nroadmap new <id>");
   excludes(readme, "{{");
   excludes(readme, "python");
   contains(readme, INDEX_BEGIN);
@@ -221,7 +212,6 @@ test("update --tools refuses a tool whose path is still a submodule", (t) => {
 });
 
 const GITIGNORE_HINT = "to .gitignore.";
-const PIN_HINT = "Pin the package: npm install -D simple-agentic-roadmap-skill";
 
 /** A git repo whose .gitignore holds `ignored`, and a package.json that pins the package if `pin`. */
 function quickStart(ignored: string[], pin: boolean): void {
@@ -231,29 +221,76 @@ function quickStart(ignored: string[], pin: boolean): void {
   writeFileSync("package.json", JSON.stringify({ name: "x", ...deps }));
 }
 
-test("init in a bare directory hints at the gitignore and at creating a package.json", (t) => {
+test("init without a package.json pin pins roadmap.toml and names the global CLI", (t) => {
   output = capture(t);
 
   assert.equal(main(["init"]), 0);
 
   contains(output.join(""), `Add .claude/skills/roadmap ${GITIGNORE_HINT}`);
-  contains(output.join(""), "There is no package.json here");
-  contains(output.join(""), "Run `npm init -y` first, then `npm install -D simple-agentic-roadmap-skill`.");
-  excludes(output.join(""), PIN_HINT);
+  contains(output.join(""), `Pinned roadmap ${VERSION} in roadmap/roadmap.toml`);
+  contains(read("roadmap/roadmap.toml"), `\nversion = "${VERSION}"\n`);
+  assert.equal(openRoadmap("roadmap").pin, VERSION);
+  contains(read("roadmap/README.md"), "\nroadmap check ");
+  excludes(read("roadmap/README.md"), "npx --no -- roadmap");
+  excludes(output.join(""), "npm install -D");
+  assert.equal(main(["check"]), 0);
 });
 
-test("init and update name the parent npm would install into without a package.json", (t) => {
+test("init in a repo whose package.json pins the package leaves roadmap.toml unpinned", (t) => {
   output = capture(t);
-  writeFileSync("package.json", "{}");
-  mkdirSync("app");
-  process.chdir("app");
+  quickStart([".claude/skills/"], true);
 
   assert.equal(main(["init"]), 0);
-  contains(output.join(""), `so \`npm install\` installs into ${realpathSync(repo)} instead of this repo`);
+
+  assert.equal(openRoadmap("roadmap").pin, null);
+  contains(read("roadmap/roadmap.toml"), '# version = "x.y.z"');
+  contains(read("roadmap/README.md"), "npx --no -- roadmap check ");
+  excludes(output.join(""), "Pinned");
+});
+
+test("update moves an older pin, and refuses a newer one unless forced", (t) => {
+  output = capture(t);
+  main(["init"]);
+  writeFileSync("roadmap/roadmap.toml", read("roadmap/roadmap.toml").replace(`"${VERSION}"`, '"2.0.0"'));
+  const before = read("roadmap/roadmap.toml");
 
   output.length = 0;
+  assert.equal(main(["update", "--dry-run"]), 0);
+  contains(output.join(""), `Would move the pin in roadmap/roadmap.toml: roadmap 2.0.0 → ${VERSION}.`);
+  assert.equal(read("roadmap/roadmap.toml"), before);
+
   assert.equal(main(["update"]), 0);
-  contains(output.join(""), `installs into ${realpathSync(repo)} instead`);
+  contains(output.join(""), `Moved the pin in roadmap/roadmap.toml: roadmap 2.0.0 → ${VERSION}.`);
+  assert.equal(openRoadmap("roadmap").pin, VERSION);
+  excludes(output.join(""), "warning: roadmap.toml pins");
+
+  writeFileSync("roadmap/roadmap.toml", read("roadmap/roadmap.toml").replace(`"${VERSION}"`, '"99.0.0"'));
+  output.length = 0;
+  assert.equal(main(["update"]), 2);
+  contains(output.join(""), "pins roadmap 99.0.0, newer than this");
+  assert.equal(main(["update", "--force"]), 0);
+  assert.equal(openRoadmap("roadmap").pin, VERSION);
+});
+
+test("a command run against another pinned release warns, and keeps its exit code", (t) => {
+  output = capture(t);
+  main(["init"]);
+  writeFileSync("roadmap/roadmap.toml", read("roadmap/roadmap.toml").replace(`"${VERSION}"`, '"2.0.0"'));
+  output.length = 0;
+  assert.equal(main(["check"]), 0);
+  contains(
+    output.join(""),
+    `warning: roadmap.toml pins roadmap 2.0.0, but this is ${VERSION}; install it with \`npm install -g simple-agentic-roadmap-skill@2.0.0\``,
+  );
+});
+
+test("a malformed pin is a config error", (t) => {
+  output = capture(t);
+  main(["init"]);
+  writeFileSync("roadmap/roadmap.toml", read("roadmap/roadmap.toml").replace(`"${VERSION}"`, '"latest"'));
+  output.length = 0;
+  assert.equal(main(["check"]), 2);
+  contains(output.join(""), "version must be a release such as");
 });
 
 test("update lists config files that still call roadmap.py, and no prose", (t) => {
@@ -304,17 +341,17 @@ test("init hints only at the gitignore when the package is pinned", (t) => {
   assert.equal(main(["init"]), 0);
 
   contains(output.join(""), GITIGNORE_HINT);
-  excludes(output.join(""), PIN_HINT);
+  excludes(output.join(""), "Pinned");
 });
 
-test("init hints only at the pin when the tool directories are ignored", (t) => {
+test("init pins roadmap.toml when package.json doesn't list the package", (t) => {
   output = capture(t);
   quickStart([".claude/skills/"], false);
 
   assert.equal(main(["init"]), 0);
 
   excludes(output.join(""), GITIGNORE_HINT);
-  contains(output.join(""), PIN_HINT);
+  contains(output.join(""), "Pinned roadmap");
 });
 
 test("init names only the tool directories git doesn't ignore yet", (t) => {

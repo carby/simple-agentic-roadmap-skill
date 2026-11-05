@@ -14,14 +14,14 @@
 import { join, relative, sep } from "node:path";
 import { DECISIONS_INTROS, GUIDING_MASK, INDEX_MASK, README_SECTIONS } from "./legacy.ts";
 import { DECISIONS_INTRO, DONE_BEGIN, DONE_END, entriesStart, INDEX_BEGIN, INDEX_END, type Roadmap } from "./model.ts";
-import { PACKAGE_ROOT, templateText } from "./package.ts";
+import { COMMAND, GLOBAL_COMMAND, PACKAGE_ROOT, templateText } from "./package.ts";
 import { isFile } from "./pathlib.ts";
 import { readText } from "./py.ts";
 import { blockSpan } from "./render.ts";
 
 /** What a migration does to one file's text. Returning it unchanged means
  * nothing to do; a missing file is skipped before any rewrite runs. */
-export type Rewrite = (text: string) => string;
+export type Rewrite = (text: string, rm: Roadmap) => string;
 
 export interface Migration {
   /** Stable name, for tests and messages. */
@@ -75,7 +75,7 @@ export const MIGRATIONS: Migration[] = [
     id: "template-sections",
     since: "2.1.0",
     summary: "sections an older template wrote are replaced with today's",
-    files: { "README.md": (text) => templateSections(text) },
+    files: { "README.md": (text, rm) => templateSections(text, commandFor(rm)) },
   },
   {
     id: "decisions-intro",
@@ -119,9 +119,14 @@ function masked(body: string): { text: string; parts: Map<string, string> } {
   return { text, parts };
 }
 
+/** The command `init` would write into this roadmap's template text. */
+export function commandFor(rm: Roadmap): string {
+  return rm.pin ? GLOBAL_COMMAND : COMMAND;
+}
+
 /** Today's template sections, masked, keyed by heading. */
-function currentSections(): Map<string, string> {
-  const template = templateText(readText(join(PACKAGE_ROOT, "assets", "template", "README.md")));
+function currentSections(command: string): Map<string, string> {
+  const template = templateText(readText(join(PACKAGE_ROOT, "assets", "template", "README.md")), command);
   return new Map(
     sections(template)
       .filter((s) => s.head !== null)
@@ -132,8 +137,8 @@ function currentSections(): Map<string, string> {
 /** Replace each section that is exactly what an older template wrote with
  * today's, keeping the user's index and guiding principle. A section the
  * user edited matches nothing, and is left alone. */
-function templateSections(text: string): string {
-  const current = currentSections();
+function templateSections(text: string, command: string): string {
+  const current = currentSections(command);
   return sections(text)
     .map(({ head, body }) => {
       const now = head === null ? undefined : current.get(head);
@@ -177,7 +182,7 @@ export function planMigrations(rm: Roadmap, migrations: Migration[] = MIGRATIONS
       const entry = planned.get(path);
       if (entry === undefined && !isFile(path)) continue;
       const before = entry ? entry.text : readText(path);
-      const after = rewrite(before);
+      const after = rewrite(before, rm);
       if (after === before) continue;
       guardBlocks(path, before, after, migration);
       if (entry) {

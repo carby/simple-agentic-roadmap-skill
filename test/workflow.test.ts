@@ -27,14 +27,14 @@ function ok(root: string, ...args: string[]): string {
   return result.stdout;
 }
 
-test("init writes a roadmap that names npx --no -- roadmap and passes check", () => {
+test("init writes a roadmap that names the global CLI and passes check", () => {
   const root = repo();
 
   for (const name of ["README.md", "done.md", "decisions.md", "roadmap.toml", "items/.gitkeep", "archive/.gitkeep"]) {
     assert.equal(existsSync(join(root, "roadmap", name)), true, name);
   }
   excludes(read(join(root, "roadmap/README.md")), "{{");
-  contains(read(join(root, "roadmap/README.md")), "npx --no -- roadmap check");
+  contains(read(join(root, "roadmap/README.md")), "\nroadmap check ");
   assert.equal(run(["check"], root).status, 0);
 });
 

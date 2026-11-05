@@ -10,9 +10,10 @@ Pick one of these.
 
 ## GitHub Actions, using this repo's action
 
-It runs the version your `package-lock.json` pins, so CI checks with the same
-rules as everyone's `npx --no -- roadmap`. Without a pin it falls back to a
-plain semver range in `package.json`, and then to the action's own version.
+It runs the version your repo pins, so CI checks with the same rules as
+everyone else: the exact version in `package-lock.json`, else a plain semver
+range in `package.json`, else the `version` in `roadmap.toml` (in the `dir` you
+pass), and only then the action's own version.
 It reads only npm's lockfile; with pnpm or yarn it uses the range in
 `package.json`. It sets up Node itself unless the runner already has Node 22 or
 newer.
@@ -32,7 +33,7 @@ checks with still come from your pin. See [Upgrading](upgrading.md).
 
 ## GitHub Actions without the action, or any other CI
 
-After `npm ci`:
+In a repo that pins the package as a dev dependency, after `npm ci`:
 
 ```yaml
       - run: npx --no -- roadmap check
@@ -40,6 +41,15 @@ After `npm ci`:
 
 The `--no --` keeps npx from installing the unrelated `roadmap` package on npm
 if this one is missing.
+
+In a repo that pins it in `roadmap.toml`, name the same version:
+
+```yaml
+      - run: npx --yes --package=simple-agentic-roadmap-skill@2.1.0 -- roadmap check
+```
+
+`roadmap update` moves the pin in `roadmap.toml` but doesn't touch CI files,
+so bump the version here in the same commit.
 
 ### When the CI image has no Node
 
@@ -56,9 +66,9 @@ roadmap:
     - npx --no -- roadmap check
 ```
 
-If the repo has no `package.json`, create one with `npm init -y` and pin the
-package there first (see [Install](install.md)); otherwise `npm ci` has
-nothing to install.
+If the repo has no `package.json`, drop `npm ci` and run the version
+`roadmap.toml` pins with `npx --yes --package=simple-agentic-roadmap-skill@<version> -- roadmap check`,
+as above.
 
 ## GitLab CI
 

@@ -102,6 +102,8 @@ export const RULES: Record<string, string> = {
     "with --base: no archived entry is removed, moved or loses a line, and neither does any entry in decisions.md",
 };
 
+/** A release, as roadmap.toml's `version` names it. */
+export const PIN = /^\d+\.\d+\.\d+$/;
 export const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const FRONTMATTER = /^\+\+\+\n([\s\S]*?)\n\+\+\+\n?([\s\S]*)$/;
 
@@ -171,12 +173,25 @@ export class Roadmap {
   readonly root: string;
   readonly refKinds: Map<string, readonly string[]>;
   readonly milestones: Map<string, Milestone>;
+  /** The release roadmap.toml pins, for a repo whose package.json doesn't. */
+  readonly pin: string | null;
 
-  constructor(dir: string, root: string, refKinds: Map<string, readonly string[]>, milestones = new Map()) {
+  constructor(
+    dir: string,
+    root: string,
+    refKinds: Map<string, readonly string[]>,
+    milestones = new Map(),
+    pin: string | null = null,
+  ) {
     this.dir = dir;
     this.root = root;
     this.refKinds = refKinds;
     this.milestones = milestones;
+    this.pin = pin;
+  }
+
+  get config(): string {
+    return join(this.dir, "roadmap.toml");
   }
 
   get itemsDir(): string {
@@ -248,7 +263,7 @@ export function openRoadmap(directory: string): Roadmap {
       throw new ConfigError(`${configPath}: malformed TOML: ${tomlReason(exc)} [config]`);
     }
   }
-  const unknown = Object.keys(config).filter((k) => !["root", "refs", "milestones"].includes(k));
+  const unknown = Object.keys(config).filter((k) => !["version", "root", "refs", "milestones"].includes(k));
   if (unknown.length) throw new ConfigError(`${configPath}: unknown key(s) ${unknown.sort().join(", ")} [config]`);
   const root = "root" in config ? config.root : "..";
   if (typeof root !== "string") throw new ConfigError(`${configPath}: root must be a path string [config]`);
@@ -271,8 +286,12 @@ export function openRoadmap(directory: string): Roadmap {
     }
     kinds.set(kind, templates as string[]);
   }
+  const pin = "version" in config ? config.version : null;
+  if (pin !== null && !(typeof pin === "string" && PIN.test(pin))) {
+    throw new ConfigError(`${configPath}: version must be a release such as "${VERSION}" [config]`);
+  }
   const rootPath = normpath(join(dir, root));
-  return new Roadmap(dir, rootPath, kinds, milestonesOf(config, configPath));
+  return new Roadmap(dir, rootPath, kinds, milestonesOf(config, configPath), pin);
 }
 
 /** The [milestones] table: a kebab-case id per milestone, each with a title

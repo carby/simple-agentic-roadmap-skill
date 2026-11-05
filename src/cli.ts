@@ -19,6 +19,7 @@ import {
 } from "./commands.ts";
 import { cmdInit, cmdUpdate, TOOLS } from "./install.ts";
 import { BUCKETS, OUTCOMES, openRoadmap, type Roadmap, UsageError, VERSION } from "./model.ts";
+import { PACKAGE_NAME } from "./package.ts";
 import { Day, repr } from "./py.ts";
 
 const PROG = "roadmap";
@@ -417,6 +418,14 @@ export function parseArgs(argv: string[]): Args {
   return args;
 }
 
+/** What every command but `update` says when roadmap.toml pins another release. */
+export function pinWarning(pin: string): string {
+  return (
+    `warning: roadmap.toml pins roadmap ${pin}, but this is ${VERSION}; ` +
+    `install it with \`npm install -g ${PACKAGE_NAME}@${pin}\`, or run \`roadmap update\` to move the pin`
+  );
+}
+
 export function main(argv: string[]): number {
   let args: Args;
   try {
@@ -427,7 +436,10 @@ export function main(argv: string[]): number {
   }
   const spec = COMMANDS[args.command] as Command;
   try {
-    return spec.run("dir" in args ? openRoadmap(args.dir) : null, args);
+    const rm = "dir" in args ? openRoadmap(args.dir) : null;
+    // `update` moves the pin itself, so it says so there rather than here.
+    if (rm?.pin && rm.pin !== VERSION && args.command !== "update") err(pinWarning(rm.pin));
+    return spec.run(rm, args);
   } catch (exc) {
     if (exc instanceof UsageError) {
       err(`error: ${exc.message}`);

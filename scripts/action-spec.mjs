@@ -3,9 +3,11 @@
 //   1. the action's `package` input, if set (this repo's CI passes a tarball);
 //   2. the exact version in the repo's package-lock.json (v1, v2 or v3);
 //   3. the range in its package.json, if it is plain semver;
-//   4. the action's own version.
+//   4. the `version` that <roadmap dir>/roadmap.toml pins, for a repo that
+//      runs the global CLI instead of pinning the package in package.json;
+//   5. the action's own version.
 // pnpm and yarn lockfiles aren't read; those repos get step 3.
-// Usage: action-spec.mjs <repo dir> <action dir> [<package input>]
+// Usage: action-spec.mjs <repo dir> <action dir> [<package input>] [<roadmap dir>]
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -25,8 +27,21 @@ function plainRange(range) {
   return typeof range === "string" && /^[\s\d.xX*^~<>=|-]+$/.test(range) && /\d|\*|x/i.test(range);
 }
 
+/** The release roadmap.toml pins: a top-level `version = "x.y.z"` line,
+ * read without a TOML parser, which this script doesn't have. */
+function tomlPin(path) {
+  let text;
+  try {
+    text = readFileSync(path, "utf8");
+  } catch {
+    return null;
+  }
+  const top = text.split(/^\[/m)[0];
+  return /^version\s*=\s*"(\d+\.\d+\.\d+)"\s*(?:#.*)?$/m.exec(top)?.[1] ?? null;
+}
+
 /** [spec, where it came from] */
-export function resolveSpec(repo, actionDir, input = "") {
+export function resolveSpec(repo, actionDir, input = "", roadmapDir = "roadmap") {
   if (input.trim()) return [input.trim(), "the package input"];
   const lock = json(join(repo, "package-lock.json"));
   const locked = lock?.packages?.[`node_modules/${NAME}`]?.version ?? lock?.dependencies?.[NAME]?.version;
@@ -34,13 +49,16 @@ export function resolveSpec(repo, actionDir, input = "") {
   const manifest = json(join(repo, "package.json"));
   const range = manifest?.devDependencies?.[NAME] ?? manifest?.dependencies?.[NAME];
   if (plainRange(range)) return [`${NAME}@${range}`, "package.json"];
+  const config = join(repo, roadmapDir, "roadmap.toml");
+  const pin = tomlPin(config);
+  if (pin) return [`${NAME}@${pin}`, `${roadmapDir}/roadmap.toml`];
   const own = json(join(actionDir, "package.json"))?.version;
   return [`${NAME}@${own}`, "the action's own version"];
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const [repo = ".", actionDir = ".", input = ""] = process.argv.slice(2);
-  const [spec, source] = resolveSpec(repo, actionDir, input);
+  const [repo = ".", actionDir = ".", input = "", roadmapDir = "roadmap"] = process.argv.slice(2);
+  const [spec, source] = resolveSpec(repo, actionDir, input, roadmapDir || "roadmap");
   if (source === "the action's own version") {
     console.error(`::notice::${NAME} isn't pinned in this repo; using ${spec}, the action's own version`);
   }

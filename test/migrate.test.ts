@@ -22,6 +22,9 @@ let output: string[] = [];
 beforeEach(() => {
   repo = mkdtempSync(join(tmpdir(), "roadmap-migrate-"));
   process.chdir(repo);
+  // Pinned through package.json, as a 1.x repo moved to 2.0 is, so init
+  // writes the npx form these migrations aim at.
+  writeFileSync("package.json", JSON.stringify({ devDependencies: { "simple-agentic-roadmap-skill": "^2.0.0" } }));
 });
 
 afterEach(() => {

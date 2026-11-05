@@ -5,11 +5,23 @@ aliases: [Upgrade, Drift]
 
 # Upgrading
 
-The package pins two things at once: the **CLI**, which enforces the rules, and
-the **skill**, which tells your agent what the rules are. Upgrading moves both,
-in one commit. Read the [CHANGELOG](../CHANGELOG.md) first: it says when a
-release changes the rules, since a stricter rule can turn a passing `check`
-red.
+The package holds two things at once: the **CLI**, which enforces the rules,
+and the **skill**, which tells your agent what the rules are. Upgrading moves
+both, in one commit per repo. Read the [CHANGELOG](../CHANGELOG.md) first: it
+says when a release changes the rules, since a stricter rule can turn a
+passing `check` red.
+
+With the global CLI, upgrade it once, then run `update` in each repo:
+
+```bash
+npm install -g simple-agentic-roadmap-skill@latest   # or @<version>
+cd your-repo
+roadmap update
+git add roadmap
+git commit -m "chore: upgrade the roadmap skill to <version>"
+```
+
+In a repo that pins the package as a dev dependency, upgrade it there instead:
 
 ```bash
 npm install -D simple-agentic-roadmap-skill@latest   # or @<version>
@@ -20,14 +32,16 @@ git commit -m "chore: upgrade the roadmap skill to <version>"
 
 `update` copies the new skill into every tool directory that has one
 (`.claude/skills/roadmap`, `.agents/skills/roadmap`). Add `--tools` to install
-it for another tool too. It then migrates the roadmap's files (see below), and
-if the new version renders the index differently, it regenerates the generated
-blocks in README.md and done.md and says so. It then runs `check` with the new
-version, so any rule changes show up straight away. It refuses to put an older
-skill over a newer one unless you pass `--force`.
+it for another tool too. It moves roadmap.toml's `version` pin, if the repo
+has one, to the CLI's release, and migrates the roadmap's files (see below).
+If the new version renders the index differently, it regenerates the
+generated blocks in README.md and done.md and says so. It then runs `check`
+with the new version, so any rule changes show up straight away. It refuses to
+put an older skill over a newer one, or to move the pin back, unless you pass
+`--force`.
 
-`npx --no -- roadmap update --dry-run` prints the same steps as "Would …"
-lines and writes nothing, so you can see what an upgrade changes first.
+`roadmap update --dry-run` prints the same steps as "Would …" lines and
+writes nothing, so you can see what an upgrade changes first.
 
 ## Migrations
 
@@ -44,20 +58,26 @@ text an older template wrote, so text you edited is left alone, and a second
 decisions.md's entries or the generated blocks.
 
 The tool directories are gitignored, so after pulling an upgrade someone else
-committed, each developer runs `npm install` and `npx --no -- roadmap update`
-in their own clone.
+committed, each developer installs that release (`npm install -g
+simple-agentic-roadmap-skill@<version>`, or `npm install` for a dev
+dependency) and runs `roadmap update` in their own clone.
 
 ## How drift shows up
 
-- `npx --no -- roadmap --version` says which release the repo pins.
+- `roadmap --version` says which release you are running. A global CLI hands
+  off to the copy the repo's package.json pins, so in such a repo it prints
+  that version.
+- `version` in roadmap.toml says which release the repo pins, when it doesn't
+  pin through package.json. Every command but `update` warns on stderr when
+  it runs another release.
 - Each copy of the skill names the release it was installed from, as
   `metadata.version` in its SKILL.md frontmatter.
-- Once per session the agent compares the two. If the skill is older, it
-  offers to run `update`. If it is newer, it tells you, and relies on `check`.
+- Once per session the agent compares them. If the skill is older, it offers
+  to run `update`. If it is newer, it tells you, and relies on `check`.
 
-The GitHub Action follows your lockfile, so CI checks with the same version as
-everyone else. Its floating `@v2` tag only moves the action's own steps; see
-[CI](ci.md).
+The GitHub Action runs the version your lockfile pins, or else the one
+roadmap.toml pins, so CI checks with the same version as everyone else. Its
+floating `@v2` tag only moves the action's own steps; see [CI](ci.md).
 
 ## Migrating from 1.x (a submodule and `tools/roadmap.py`)
 

@@ -1,5 +1,6 @@
 // Which package the GitHub Action runs: the input, then the repo's lockfile
-// pin, then a plain semver range from its package.json, then its own version.
+// pin, then a plain semver range from its package.json, then the version its
+// roadmap.toml pins, then its own version.
 
 import assert from "node:assert/strict";
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -65,4 +66,35 @@ test("an unpinned repo gets the action's own version", () => {
   const [repo, action] = setup({});
 
   assert.deepEqual(resolveSpec(repo, action), [`${NAME}@2.0.0`, "the action's own version"]);
+});
+
+function withToml(repo: string, text: string, dir = "roadmap"): void {
+  mkdirSync(join(repo, dir), { recursive: true });
+  writeFileSync(join(repo, dir, "roadmap.toml"), text);
+}
+
+test("roadmap.toml's pin is used when package.json pins nothing", () => {
+  const [repo, action] = setup({});
+  withToml(repo, '# Roadmap configuration\n\nversion = "2.4.0"  # moved by update\n\n[refs]\n');
+
+  assert.deepEqual(resolveSpec(repo, action), [`${NAME}@2.4.0`, "roadmap/roadmap.toml"]);
+});
+
+test("roadmap.toml's pin is read from the roadmap directory, and only above its tables", () => {
+  const [repo, action] = setup({});
+  withToml(repo, 'version = "2.5.0"\n', "docs/roadmap");
+  withToml(repo, '[milestones]\nversion = "9.9.9"\n');
+
+  assert.deepEqual(resolveSpec(repo, action, "", "docs/roadmap"), [`${NAME}@2.5.0`, "docs/roadmap/roadmap.toml"]);
+  assert.deepEqual(resolveSpec(repo, action), [`${NAME}@2.0.0`, "the action's own version"]);
+});
+
+test("package.json beats roadmap.toml, and a commented pin counts for nothing", () => {
+  const [repo, action] = setup({ "package.json": dev("2.1.0") });
+  withToml(repo, 'version = "2.4.0"\n');
+  assert.deepEqual(resolveSpec(repo, action), [`${NAME}@2.1.0`, "package.json"]);
+
+  const [bare, own] = setup({});
+  withToml(bare, '# version = "x.y.z"\n');
+  assert.deepEqual(resolveSpec(bare, own), [`${NAME}@2.0.0`, "the action's own version"]);
 });

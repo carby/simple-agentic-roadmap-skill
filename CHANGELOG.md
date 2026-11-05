@@ -9,6 +9,20 @@ passing `check` red.
 
 ## Unreleased
 
+- **Install the CLI globally** — `npm install -g simple-agentic-roadmap-skill`
+  once per machine, then `roadmap init` in each repo, the way OpenSpec is
+  installed. A repo no longer needs a `package.json`.
+- **roadmap.toml pins the version** — in a repo whose package.json doesn't
+  pin the package, `init` writes `version = "x.y.z"` into roadmap.toml and
+  names the CLI as `roadmap` in its README. Every command warns on stderr
+  when it runs another release, `update` moves the pin (and refuses to move
+  it back without `--force`), and the GitHub Action runs the pinned version
+  after the lockfile and package.json.
+- **A global CLI hands off to the repo's own copy** — in a repo whose
+  package.json pins the package, `roadmap` runs the copy in its
+  `node_modules`, so it always runs the version the lockfile names.
+- `init` no longer hints at `npm install -D`, and `update` no longer warns
+  about a missing `package.json`: the roadmap.toml pin covers those repos.
 - **`update` migrates the roadmap's files** — when a release changes text
   that `init` writes into `roadmap/`, `update` now rewrites the old text
   instead of leaving it for you to fix by hand, and reports each file it
@@ -32,8 +46,13 @@ passing `check` red.
     docs cover CI images without Node.
 - **Rules:** decisions.md's intro, above its first entry, is no longer
   append-only; the entries still are. The rule gets looser, so it can't turn
-  `check` red.
-- **Upgrade notes:** nothing to do.
+  `check` red. roadmap.toml takes a new top-level `version` key, which older
+  releases reject as an unknown key: upgrade everyone, CI included, before
+  adding one by hand.
+- **Upgrade notes:** nothing to do for a repo that pins the package as a dev
+  dependency. To move one to the global CLI, `npm uninstall -D
+  simple-agentic-roadmap-skill`, add `version = "<release>"` to roadmap.toml,
+  and run `roadmap update`.
 
 ## 2.0.1 — 2026-11-02
 
