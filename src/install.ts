@@ -8,10 +8,11 @@ import { cpSync, lstatSync, mkdirSync, readdirSync, rmSync, writeFileSync } from
 import { dirname, join as joinPath, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { type Args, cmdCheck, err, out } from "./commands.ts";
+import { planMigrations } from "./migrate.ts";
 import { load, type Roadmap, UsageError, VERSION } from "./model.ts";
 import { exists, isDir, isFile } from "./pathlib.ts";
 import { readText, repr } from "./py.ts";
-import { writeGenerated } from "./render.ts";
+import { generatedChanges, writeGenerated } from "./render.ts";
 import { validate } from "./rules.ts";
 
 /** The package's root: `src/..` in tests, `dist/..` once built. */
@@ -263,6 +264,9 @@ export function cmdUpdate(rm: Roadmap, args: Args): number {
         `, or \`init --tools …\` to set up a roadmap too`,
     );
   }
+  // A dry run goes through every step below and writes nothing: each write
+  // is printed as "Would …" instead, so the preview can't drift from the run.
+  const dry = Boolean(args.dry_run);
   for (const dir of installed) {
     if (linked(dir)) {
       out(`Skipped ${dir}: it is symlinked, so it already follows its target.`);
@@ -273,16 +277,24 @@ export function cmdUpdate(rm: Roadmap, args: Args): number {
       throw new UsageError(`${dir} is roadmap ${old}, newer than this ${VERSION}; pass --force to downgrade`);
     }
     const fresh = !isFile(joinPath(dir, "SKILL.md"));
-    installSkill(dir);
-    out(
-      fresh
-        ? `Installed ${dir}: roadmap ${VERSION}.`
-        : old === VERSION
-          ? `Refreshed ${dir}: roadmap ${VERSION}.`
-          : `Updated ${dir}: roadmap ${old ?? "unknown"} → ${VERSION}.`,
-    );
+    if (!dry) installSkill(dir);
+    const [would, did, detail] = fresh
+      ? ["install", "Installed", `roadmap ${VERSION}`]
+      : old === VERSION
+        ? ["refresh", "Refreshed", `roadmap ${VERSION}`]
+        : ["update", "Updated", `roadmap ${old ?? "unknown"} → ${VERSION}`];
+    out(`${dry ? `Would ${would}` : did} ${dir}: ${detail}.`);
   }
   if (!isDir(rm.dir)) return 0;
+  // Bring text an older template wrote up to date. Migrations don't need the
+  // roadmap to pass the new rules: one that fails them may still have text to
+  // migrate.
+  const migrated = new Map<string, string>();
+  for (const { path, text, migrations } of planMigrations(rm)) {
+    if (!dry) writeFileSync(path, text);
+    migrated.set(path, text);
+    for (const m of migrations) out(`${dry ? "Would migrate" : "Migrated"} ${path}: ${m.summary} (${m.since}).`);
+  }
   // A release may render the index differently. The generated blocks are
   // never edited by hand, so rewrite them now rather than leave `check` to
   // report them stale. A roadmap the new rules reject is left alone, as
@@ -290,12 +302,17 @@ export function cmdUpdate(rm: Roadmap, args: Args): number {
   const [items, archived, problems] = load(rm);
   if (!problems.length && !validate(rm, items, archived).length) {
     try {
-      const written = writeGenerated(rm);
-      if (written.length) out(`Regenerated ${written.join(", ")}.`);
+      const changes = generatedChanges(rm, migrated);
+      if (!dry) for (const [path, text] of changes) writeFileSync(path, text);
+      if (changes.length) out(`${dry ? "Would regenerate" : "Regenerated"} ${changes.map(([p]) => p).join(", ")}.`);
     } catch (exc) {
       if (!(exc instanceof UsageError) && !(exc instanceof Error && "code" in exc)) throw exc;
       // missing files or markers; `check` reports them
     }
+  }
+  if (dry) {
+    out("Dry run: nothing was written, so `check` didn't run.");
+    return 0;
   }
   const code = cmdCheck(rm, { base: null });
   if (code) err("Some of these may come from rule changes; the release notes say what changed.");

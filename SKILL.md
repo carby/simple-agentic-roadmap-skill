@@ -105,7 +105,7 @@ link the two attempts.
 | Read the queue without README.md, or script against it | `npx --no -- roadmap list [--bucket now] [--json]` |
 | Verify | `npx --no -- roadmap check` |
 | Spot upkeep: passed milestones, stale Now/Next items | `npx --no -- roadmap review [--days 60]`. It uses today's date and git history, so it is never for CI, and it always exits 0. |
-| Refresh the skill after a package upgrade, once the user says yes | `npx --no -- roadmap update`. It copies the package's skill into every tool directory that already has one, regenerates the index if the new version renders it differently, and runs `check`. Fix or report what the new rules reject. |
+| Refresh the skill after a package upgrade, once the user says yes | `npx --no -- roadmap update`. It copies the package's skill into every tool directory that already has one, migrates text an older template wrote into `roadmap/`, regenerates the index if the new version renders it differently, and runs `check`. `--dry-run` shows all of that without writing. Fix or report what the new rules reject. |
 
 **Always finish a roadmap edit with `npx --no -- roadmap check`,** and fix
 every problem it reports. Each problem ends with a rule tag in brackets, such
