@@ -19,3 +19,9 @@ files = ["src/install.ts", "src/migrate.ts"]
 The gap matters because the 1.x → 2.x move is the upgrade people are making now, and each of these turns a migration that looks clean into broken CI or stale instructions.
 
 Done looks like each of the four points either fixed or recorded here as declined, with the reason. For point 3, the changed append-only rule is recorded here and in the CHANGELOG's rule notes, and [conventions](../../references/conventions.md) is updated. Then comment on issue #27 and close it.
+
+**Outcome, per point:**
+1. **Fixed.** Every `update` runs `git grep` for `roadmap.py` over tracked config-like files (`*.yml`, `*.yaml`, `*.toml`, `*.json`, `*.cfg`, `*.ini`, `*.sh`, Makefiles, justfiles), outside `roadmap/`, and lists each `path:line`. Prose such as Markdown and the CHANGELOG is left out on purpose, since it may describe the old setup; in this repo a search of every tracked file finds about ten such harmless hits.
+2. **Fixed.** A `template-sections` migration replaces each README section that matches, word for word, what the 1.0.0 or 1.1.0–1.3.1 template wrote, keeping the user's index and guiding principle. The 1.4.0–1.5.0 sections differ from today's only in the command lines that `cli-command` already migrates. The frozen texts are in `src/legacy.ts`. Sections a user edited are left alone, with no note, which would otherwise repeat on every `update`.
+3. **Fixed, with a rule change.** `check --base` now holds decisions.md append-only from its first `## ` entry on; the intro above it may change. A `decisions-intro` migration replaces the 1.4.0–1.5.0 and 2.0.x intros, and this repo's own intro was migrated with it. Migrations still throw if they touch an entry.
+4. **Fixed.** `init` and `update` warn when the repo has no `package.json`, naming the parent directory npm would install into, and say to run `npm init -y` first. The install docs say the same, and the CI docs cover images without Node.
