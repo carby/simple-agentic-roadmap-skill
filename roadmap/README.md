@@ -41,9 +41,8 @@ work is done. **Close it in the same branch as the code**, so it moves to
 
 *No open item depends on another or on a milestone, so there is no chart.*
 
-### Now (3)
+### Now (2)
 
-3. [Install the CLI globally and set projects up from it, like OpenSpec](items/global-install.md) — filed 2026-11-05
 13. [Evals for how an agent uses the skill, not just for the script](items/agent-behaviour-evals.md) — filed 2026-09-25
 20. [A milestone timeline in the roadmap index](items/milestone-timeline.md) — filed 2026-10-22
 
