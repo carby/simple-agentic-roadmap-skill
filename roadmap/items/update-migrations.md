@@ -19,3 +19,10 @@ Done looks like:
 - Migrations are idempotent and never touch `archive/` or `decisions.md`, which stay append-only.
 - `update` reports each file it changed, and `--dry-run` shows the changes without writing them.
 - `update` still ends with `check`, which passes after a migration for every rule change that has one.
+
+**2026-11-05:** surveyed OpenSpec's `update` (`src/core/update.ts`, `migration.ts`, `legacy-cleanup.ts`, `update-plan.ts`). What the analysis corrected:
+- **Detection, not the stamp.** OpenSpec's migrations don't go by version: each one detects the old shape and does nothing once it is gone. The stamped `metadata.version` can't drive migrations here anyway, because symlinked and 1.x installs have none and two tool directories can disagree. So each migration matches the exact text an older template wrote, which leaves edited lines alone and makes a second run a no-op. `since` only labels the release in the output.
+- **Only what the template wrote.** As OpenSpec touches only content it generated, migrations rewrite files `init` writes into `roadmap/`, and throw if one aims at `archive/`, `decisions.md` or a generated block. Workflow and submodule changes stay printed steps.
+- **One code path for `--dry-run`.** OpenSpec records writes through a seam (`UpdatePlanRecorder`) instead of describing them separately. Here `update --dry-run` runs every step and prints "Would …" where it would write.
+
+The first migration, `cli-command`, rewrites a 1.x roadmap's `python tools/roadmap.py` command lines in README.md and the header comment in roadmap.toml.
