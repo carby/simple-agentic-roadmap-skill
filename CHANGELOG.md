@@ -7,6 +7,21 @@ notes** say what you have to do after `update`. Where a release changes the
 rules `check` enforces, it says so there, because a stricter rule can turn a
 passing `check` red.
 
+## Unreleased
+
+- **`update` migrates the roadmap's files** — when a release changes text
+  that `init` writes into `roadmap/`, `update` now rewrites the old text
+  instead of leaving it for you to fix by hand, and reports each file it
+  migrated. As in OpenSpec, each migration looks for the exact text an older
+  template wrote, so lines you edited are left alone and a second run changes
+  nothing. `archive/`, `decisions.md` and the generated blocks are never
+  touched. The first migration rewrites a 1.x roadmap's `python
+  tools/roadmap.py` command lines in README.md and roadmap.toml to `npx --no
+  -- roadmap`.
+- **`update --dry-run`** prints what `update` would install, migrate and
+  regenerate, and writes nothing.
+- **Upgrade notes:** nothing to do. Nothing changes for `check`.
+
 ## 2.0.1 — 2026-11-02
 
 - **`init` hints only at steps still to do** — after setting up a roadmap,

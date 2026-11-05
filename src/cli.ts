@@ -88,7 +88,7 @@ export const COMMANDS: Record<string, Command> = {
     ],
   },
   update: {
-    help: "refresh every installed copy of the skill from this package, then regenerate and check",
+    help: "refresh every installed copy of the skill from this package, migrate the roadmap's files, then regenerate and check",
     run: (rm, args) => cmdUpdate(rm as Roadmap, args),
     options: [
       DIR,
@@ -99,6 +99,7 @@ export const COMMANDS: Record<string, Command> = {
         help: `also install into these tools' directories, from ${Object.keys(TOOLS).join(", ")}`,
       },
       { flag: "--force", dest: "force", kind: "flag", help: "overwrite a copy newer than this package" },
+      { flag: "--dry-run", dest: "dry_run", kind: "flag", help: "print what update would change, and write nothing" },
     ],
   },
   check: {

@@ -20,11 +20,24 @@ git commit -m "chore: upgrade the roadmap skill to <version>"
 
 `update` copies the new skill into every tool directory that has one
 (`.claude/skills/roadmap`, `.agents/skills/roadmap`). Add `--tools` to install
-it for another tool too. If the new version renders the index differently, it
-regenerates the generated blocks in README.md and done.md and says so; it
-touches nothing else in `roadmap/`. It then runs `check` with the new version,
-so any rule changes show up straight away. It refuses to put an older skill
-over a newer one unless you pass `--force`.
+it for another tool too. It then migrates the roadmap's files (see below), and
+if the new version renders the index differently, it regenerates the generated
+blocks in README.md and done.md and says so. It then runs `check` with the new
+version, so any rule changes show up straight away. It refuses to put an older
+skill over a newer one unless you pass `--force`.
+
+`npx --no -- roadmap update --dry-run` prints the same steps as "Would …"
+lines and writes nothing, so you can see what an upgrade changes first.
+
+## Migrations
+
+When a release changes text that `init` writes into `roadmap/`, such as the
+command lines in README.md, `update` rewrites the old text and reports each
+file as `Migrated <path>: <what changed> (<release>)`. Like OpenSpec's
+`update`, it doesn't go by version numbers: each migration looks for the exact
+text an older template wrote, so text you edited is left alone, and a second
+`update` finds nothing to change. Migrations never touch `archive/`,
+`decisions.md` or the generated blocks.
 
 The tool directories are gitignored, so after pulling an upgrade someone else
 committed, each developer runs `npm install` and `npx --no -- roadmap update`
@@ -52,8 +65,9 @@ npm install -D simple-agentic-roadmap-skill
 npx --no -- roadmap update
 ```
 
-`update` sees the submodule and the vendored script, leaves both alone, and
-prints the commands that finish the move: removing the submodule and
+`update` rewrites the `python tools/roadmap.py` command lines in
+`roadmap/README.md` and `roadmap.toml` to `npx --no -- roadmap`. It sees the
+submodule and the vendored script, leaves both alone, and prints the commands that finish the move: removing the submodule and
 `tools/roadmap.py`, gitignoring the tool directories, pointing the merge driver
 at the package, installing the skill with `update --tools`, and switching your
 workflow to `@v2` without its old `script:` input. It runs none of them, so

@@ -296,17 +296,23 @@ export function generatedProblems(rm: Roadmap, items: Item[], archived: Item[]):
   return problems;
 }
 
+/** What regenerating README.md's index and done.md would write, as [path,
+ * text] for each file that would change. Writes nothing. `texts` stands in
+ * for files whose new text isn't on disk yet, as during `update --dry-run`. */
+export function generatedChanges(rm: Roadmap, texts: ReadonlyMap<string, string> = new Map()): [string, string][] {
+  const [items, archived] = load(rm);
+  const changes: [string, string][] = [];
+  for (const [path, begin, end, block] of generatedTargets(rm, items, archived)) {
+    const text = texts.get(path) ?? readText(path);
+    const updated = splice(text, begin, end, block, path);
+    if (updated !== text) changes.push([path, updated]);
+  }
+  return changes;
+}
+
 /** Regenerate README.md's index and done.md. Returns the files that changed. */
 export function writeGenerated(rm: Roadmap): string[] {
-  const [items, archived] = load(rm);
-  const written: string[] = [];
-  for (const [path, begin, end, block] of generatedTargets(rm, items, archived)) {
-    const text = readText(path);
-    const updated = splice(text, begin, end, block, path);
-    if (updated !== text) {
-      writeFileSync(path, updated);
-      written.push(path);
-    }
-  }
-  return written;
+  const changes = generatedChanges(rm);
+  for (const [path, text] of changes) writeFileSync(path, text);
+  return changes.map(([path]) => path);
 }
