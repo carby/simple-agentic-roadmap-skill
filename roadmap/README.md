@@ -43,7 +43,7 @@ work is done. **Close it in the same branch as the code**, so it moves to
 
 ### Now (3)
 
-3. [Install the CLI globally and set projects up from it, like OpenSpec](items/global-install.md) — filed 2026-11-05<br>  **Gate:** decide where the version pin lives once the CLI is global: the repo's dev dependency, which the global CLI hands off to, or something OpenSpec does instead
+3. [Install the CLI globally and set projects up from it, like OpenSpec](items/global-install.md) — filed 2026-11-05
 13. [Evals for how an agent uses the skill, not just for the script](items/agent-behaviour-evals.md) — filed 2026-09-25
 20. [A milestone timeline in the roadmap index](items/milestone-timeline.md) — filed 2026-10-22
 
