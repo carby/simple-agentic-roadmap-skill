@@ -1,9 +1,10 @@
 +++
 id = "global-install"
 title = "Install the CLI globally and set projects up from it, like OpenSpec"
-bucket = "now"
-rank = 3
 filed = 2026-11-05
+closed = 2026-11-05
+outcome = "shipped"
+shipped_as = "#31"
 
 [refs]
 files = ["src/install.ts", "docs/install.md"]
@@ -29,3 +30,5 @@ Separate from [update-migrations](../archive/update-migrations.md), which migrat
 - `init` names the CLI as `roadmap` in a toml-pinned README, and as `npx --no -- roadmap` in a package.json-pinned one.
 
 Scope: `npm install -g` only. A standalone binary and Homebrew, as OpenSpec ships, are to be pitched as their own item.
+
+**Outcome:** shipped in #31. The hand-off is in `src/handoff.ts` and the bin. The roadmap.toml pin is read in `src/model.ts`, written by `init` and moved by `update` (`src/install.ts`), and the action reads it (`scripts/action-spec.mjs`). What the work corrected: #30's warning about a missing `package.json` would have fired in every repo using the global CLI, so it was dropped for the pin. Its `npm init -y` advice stays in the install docs for dev-dependency repos.
