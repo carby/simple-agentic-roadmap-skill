@@ -2,7 +2,7 @@
 id = "global-install"
 title = "Install the CLI globally and set projects up from it, like OpenSpec"
 bucket = "now"
-rank = 2
+rank = 3
 filed = 2026-11-05
 gate = "decide where the version pin lives once the CLI is global: the repo's dev dependency, which the global CLI hands off to, or something OpenSpec does instead"
 
