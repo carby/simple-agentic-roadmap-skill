@@ -20,4 +20,4 @@ Done looks like:
 - `npm install -g` followed by `roadmap init` works end to end, without breaking the pinned CI path.
 - SKILL.md's version check, the install docs and the action match the new install.
 
-Separate from [update-migrations](update-migrations.md), which migrates the roadmap's files whichever way the CLI is installed.
+Separate from [update-migrations](../archive/update-migrations.md), which migrates the roadmap's files whichever way the CLI is installed.

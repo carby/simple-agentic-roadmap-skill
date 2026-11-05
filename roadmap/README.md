@@ -41,9 +41,8 @@ work is done. **Close it in the same branch as the code**, so it moves to
 
 *No open item depends on another or on a milestone, so there is no chart.*
 
-### Now (4)
+### Now (3)
 
-1. [Let `update` migrate the roadmap's files to the new version](items/update-migrations.md) — filed 2026-11-05
 2. [Install the CLI globally and set projects up from it, like OpenSpec](items/global-install.md) — filed 2026-11-05<br>  **Gate:** decide where the version pin lives once the CLI is global: the repo's dev dependency, which the global CLI hands off to, or something OpenSpec does instead
 12. [Evals for how an agent uses the skill, not just for the script](items/agent-behaviour-evals.md) — filed 2026-09-25
 19. [A milestone timeline in the roadmap index](items/milestone-timeline.md) — filed 2026-10-22
