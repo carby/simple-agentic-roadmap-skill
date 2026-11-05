@@ -41,7 +41,8 @@ A roadmap directory (default `roadmap/`) holds:
 - `README.md`: conventions plus a **generated** index of the open items.
 - `done.md`: a **generated** one-line-per-item index of the archive, newest first.
 - `decisions.md`: dated decisions that belong to no single item, oldest first.
-  Written by `decide`, and **append-only** like the archive.
+  Written by `decide`. Its entries are **append-only** like the archive; the
+  intro above them is not.
 - `roadmap.toml`: optional; declares extra ref kinds, e.g. openspec specs.
 
 All commands go through the `roadmap` CLI from the npm package

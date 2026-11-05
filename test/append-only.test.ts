@@ -90,9 +90,31 @@ test("an edited decision fails", () => {
   const result = checkBase(root);
 
   assert.equal(result.status, 1);
-  contains(result.stderr, "decisions.md only takes added lines");
-  contains(result.stderr, `${DECISIONS}:`);
+  contains(result.stderr, "decisions.md's entries only take added lines");
+  contains(result.stderr, `${DECISIONS}:13:`);
   contains(result.stderr, "[append-only]");
+});
+
+test("an edited intro above the first decision passes", () => {
+  const root = repo();
+  const decisions = join(root, DECISIONS);
+  writeFileSync(decisions, read(decisions).replace("`roadmap.py decide`", "`npx --no -- roadmap decide`"));
+
+  const result = checkBase(root);
+
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test("a removed decision fails, even with the intro edited too", () => {
+  const root = repo();
+  const decisions = join(root, DECISIONS);
+  const text = read(decisions).replace("# Decisions", "# Decision log");
+  writeFileSync(decisions, text.replace(/## 2026-09-01:[\s\S]*?(?=## |$)/, ""));
+
+  const result = checkBase(root);
+
+  assert.equal(result.status, 1);
+  contains(result.stderr, "decisions.md's entries only take added lines");
 });
 
 test("a deleted decisions log fails", () => {

@@ -2,7 +2,7 @@
  * commit to each item, which `review` counts as a touch. */
 
 import { execFileSync } from "node:child_process";
-import { type Item, Problem, type Roadmap, UsageError } from "./model.ts";
+import { entriesStart, type Item, Problem, type Roadmap, UsageError } from "./model.ts";
 import { exists, join, relpath, resolve } from "./pathlib.ts";
 import { Day, readText, splitlines, universal } from "./py.ts";
 
@@ -18,12 +18,13 @@ export function git(cwd: string, ...args: string[]): string {
 
 const ARCHIVE_RULE = "archived entries only take added lines (dated annotations)";
 const ARCHIVE_KEPT = "archived entries are never deleted or moved";
-const DECISIONS_RULE = "decisions.md only takes added lines (new entries, dated annotations)";
+const DECISIONS_RULE = "decisions.md's entries only take added lines (new entries, dated annotations)";
 
 /** Every archived entry that existed at `base` must still exist, and it may
  * only have gained lines. That leaves room for a dated annotation added under
- * a claim that later events falsified, and for nothing else. decisions.md is
- * held to the same rule, so a decision is reversed by a new entry. */
+ * a claim that later events falsified, and for nothing else. decisions.md's
+ * entries are held to the same rule, so a decision is reversed by a new
+ * entry. Its intro, above the first entry, is not: a release may reword it. */
 export function appendOnlyProblems(rm: Roadmap, base: string): Problem[] {
   const top = git(rm.dir, "rev-parse", "--show-toplevel").trim();
   const archive = relpath(resolve(rm.archiveDir), top);
@@ -38,18 +39,31 @@ export function appendOnlyProblems(rm: Roadmap, base: string): Problem[] {
     } else if (rel.endsWith(".md")) {
       [shown, rule, kept] = [join(rm.archiveDir, relpath(rel, archive)), ARCHIVE_RULE, ARCHIVE_KEPT];
     } else continue;
-    problems.push(...lostLines(top, rel, base, shown, rule, kept));
+    problems.push(...lostLines(top, rel, base, shown, rule, kept, rel === decisions));
   }
   return problems;
 }
 
 /** The first change to `rel` since `base` that isn't an added line, if any. */
-function lostLines(top: string, rel: string, base: string, shown: string, rule: string, whyKept: string): Problem[] {
+function lostLines(
+  top: string,
+  rel: string,
+  base: string,
+  shown: string,
+  rule: string,
+  whyKept: string,
+  entriesOnly = false,
+): Problem[] {
   if (!exists(join(top, rel))) return [new Problem(shown, "append-only", `existed at ${base} and is gone; ${whyKept}`)];
-  const old = splitlines(git(top, "show", `${base}:${rel}`));
-  const now = splitlines(readText(join(top, rel)));
-  for (const [tag, i1, i2] of opcodes(old, now)) {
+  const [was, is] = [git(top, "show", `${base}:${rel}`), readText(join(top, rel))];
+  // For decisions.md, compare only the entries, and number lines as in the base.
+  const [from, to] = entriesOnly ? [entriesStart(was), entriesStart(is)] : [0, 0];
+  const offset = splitlines(was.slice(0, from)).length;
+  const old = splitlines(was.slice(from));
+  const now = splitlines(is.slice(to));
+  for (const [tag, j1, j2] of opcodes(old, now)) {
     if (tag === "replace" || tag === "delete") {
+      const [i1, i2] = [j1 + offset, j2 + offset];
       const lines = i2 - i1 === 1 ? `line ${i1 + 1}` : `lines ${i1 + 1}-${i2}`;
       return [new Problem(shown, "append-only", `changes ${lines} as of ${base}; ${rule}`, i1 + 1)];
     }

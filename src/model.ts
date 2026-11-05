@@ -66,9 +66,17 @@ things this project doesn't do. A decision about one item goes in that item's
 prose instead. **Search this file and \`done.md\` before proposing work.**
 
 Record a decision with \`npx --no -- roadmap decide\`. Entries are appended
-oldest first, and the file is **append-only**: \`check --base\` fails on a
-changed or removed line. To reverse a decision, record a new one that says so.
+oldest first, and each entry is **append-only**: \`check --base\` fails on a
+changed or removed line from the first entry on. To reverse a decision, record
+a new one that says so.
 `;
+
+/** Where decisions.md's entries start: its first `## ` line, or the end.
+ * Everything from there on is append-only; the intro above it is not. */
+export function entriesStart(text: string): number {
+  const match = /^## /m.exec(text);
+  return match ? match.index : text.length;
+}
 
 // Every rule `check` enforces, keyed by the tag printed after each problem.
 // README.md's error table has one row per key, and a test keeps them in step.
@@ -90,7 +98,8 @@ export const RULES: Record<string, string> = {
   ids: "an id is used once, across open and archived items and milestones",
   links: "every relative link in open items, README.md and done.md resolves",
   generated: "README.md's index and done.md match the item files",
-  "append-only": "with --base: no archived entry is removed, moved or loses a line, and neither does decisions.md",
+  "append-only":
+    "with --base: no archived entry is removed, moved or loses a line, and neither does any entry in decisions.md",
 };
 
 export const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;

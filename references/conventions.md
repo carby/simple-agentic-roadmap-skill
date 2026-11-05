@@ -150,8 +150,10 @@ It goes in `decisions.md`, appended by `decide`:
 Why, and what it rules out.
 ```
 
-Entries are oldest first. The file is append-only, like the archive and for
-the same reason: the reasoning has to survive for the next reader. To reverse
+Entries are oldest first. Every entry is append-only, like the archive and
+for the same reason: the reasoning has to survive for the next reader. The
+intro above the first entry is not, so a release can reword it and `update`
+can migrate it. To reverse
 a decision, record a new one that names the old one and says what changed.
 A dated annotation under an old entry is also allowed. `init` writes the file
 empty, and `decide` creates it in a roadmap that predates it. Like the
@@ -221,7 +223,7 @@ Every problem `check` reports ends in one of these tags.
 | `ids` | an id is used once, across `items/`, `archive/` and the milestones in roadmap.toml | choose a new id |
 | `links` | every relative link in open items, README.md and done.md resolves (not the archive or decisions.md) | repoint it |
 | `generated` | README.md's index and done.md match the files | run `index` |
-| `append-only` | with `--base`: no archived entry is removed, moved, or has a line changed, and neither is decisions.md or one of its lines | revert the change; add a dated annotation or a new decision on new lines instead |
+| `append-only` | with `--base`: no archived entry is removed, moved, or has a line changed, and neither is decisions.md or one of its entries' lines (the intro above the first entry may change) | revert the change; add a dated annotation or a new decision on new lines instead |
 
 Archived entries are exempt from `refs` and `links`. They describe the tree
 as it was when they closed, and they cannot be edited to follow a later rename.
