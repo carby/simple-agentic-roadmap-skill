@@ -1,5 +1,10 @@
 # Roadmap configuration, read by the roadmap CLI.
 
+# The roadmap release this repo runs, when its package.json doesn't pin the
+# package. `roadmap init` sets it, `roadmap update` moves it, and the GitHub
+# Action runs it.
+# version = "x.y.z"
+
 # What refs resolve against, relative to this directory. Default: the repo root.
 # root = ".."
 

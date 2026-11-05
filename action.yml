@@ -14,7 +14,8 @@ inputs:
   package:
     description: >-
       The npm spec to run, e.g. simple-agentic-roadmap-skill@2.0.0 or a tarball path. By default it is the
-      version pinned in the repo's package-lock.json, then the range in its package.json, then this action's own.
+      version pinned in the repo's package-lock.json, then the range in its package.json, then the version its
+      roadmap.toml pins, then this action's own.
     default: ""
   node-version:
     description: Node to set up if the runner has no Node 22 or newer already.
@@ -42,6 +43,6 @@ runs:
         ROADMAP_PACKAGE: ${{ inputs.package }}
         ACTION_DIR: ${{ github.action_path }}
       run: |
-        spec="$(node "$ACTION_DIR/scripts/action-spec.mjs" . "$ACTION_DIR" "$ROADMAP_PACKAGE")"
+        spec="$(node "$ACTION_DIR/scripts/action-spec.mjs" . "$ACTION_DIR" "$ROADMAP_PACKAGE" "$ROADMAP_DIR")"
         echo "Running $spec"
         npx --yes --package="$spec" -- roadmap check --dir "$ROADMAP_DIR" ${ROADMAP_BASE:+--base "$ROADMAP_BASE"}

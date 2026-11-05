@@ -9,16 +9,21 @@ as an Obsidian vault.
 
 ## Quick start
 
-Once per repo, from its root (Node 22 or later). This pins the package as a
-dev dependency, sets up `roadmap/`, and installs the skill for Claude Code and
-the tools that read `.agents/skills/`:
+Install the CLI once per machine (Node 22 or later), then set up each repo
+from its root. `init` sets up `roadmap/`, pins the version the repo runs in
+`roadmap/roadmap.toml`, and installs the skill for Claude Code and the tools
+that read `.agents/skills/`:
 
 ```bash
-npm install -D simple-agentic-roadmap-skill
-npx --no -- roadmap init --tools claude,agents
+npm install -g simple-agentic-roadmap-skill
+roadmap init --tools claude,agents
 printf '.claude/skills/\n.agents/skills/\n' >> .gitignore
-git add package.json package-lock.json .gitignore roadmap
+git add .gitignore roadmap
 ```
+
+In a Node repo you can pin it as a dev dependency instead
+(`npm install -D simple-agentic-roadmap-skill`, then `npx --no -- roadmap init`);
+see [Install](docs/install.md).
 
 Then put this in your repo's `CLAUDE.md` (or `AGENTS.md`), so a missing skill
 is a visible failure instead of an agent quietly improvising:
@@ -27,10 +32,11 @@ is a visible failure instead of an agent quietly improvising:
 ### Roadmap
 
 The roadmap lives in `roadmap/` and is managed with the `roadmap` skill from
-the `simple-agentic-roadmap-skill` dev dependency. Use `/roadmap` for any
-change to it. If the skill isn't available, run `npm install` and
-`npx --no -- roadmap update`, or stop and tell the user. Don't edit `roadmap/items/` or
-`roadmap/archive/` by hand without it. Verify with `npx --no -- roadmap check`.
+the `simple-agentic-roadmap-skill` package. Use `/roadmap` for any change to
+it. If the skill isn't available, run `roadmap update` (installing the CLI
+with `npm install -g simple-agentic-roadmap-skill` first if needed), or stop
+and tell the user. Don't edit `roadmap/items/` or `roadmap/archive/` by hand
+without it. Verify with `roadmap check`.
 ```
 
 Why each step matters, and other ways to install, are in

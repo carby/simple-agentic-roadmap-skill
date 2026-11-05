@@ -5,11 +5,11 @@
 
 import { spawnSync } from "node:child_process";
 import { cpSync, lstatSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join as joinPath, relative, resolve } from "node:path";
+import { dirname, join as joinPath, relative } from "node:path";
 import { type Args, cmdCheck, err, out } from "./commands.ts";
 import { planMigrations } from "./migrate.ts";
 import { load, type Roadmap, UsageError, VERSION } from "./model.ts";
-import { COMMAND, PACKAGE_NAME, PACKAGE_ROOT, templateText } from "./package.ts";
+import { COMMAND, GLOBAL_COMMAND, PACKAGE_NAME, PACKAGE_ROOT, pinsPackage, templateText } from "./package.ts";
 import { exists, isDir, isFile } from "./pathlib.ts";
 import { readText, repr } from "./py.ts";
 import { generatedChanges, writeGenerated } from "./render.ts";
@@ -146,48 +146,43 @@ export function cmdInit(rm: Roadmap, args: Args): number {
     );
   }
 
+  // A repo whose package.json pins the package runs it through npx, and the
+  // lockfile is the pin. Any other repo runs the global CLI, and roadmap.toml
+  // pins the release.
+  const lockfile = pinsPackage();
+  const command = lockfile ? COMMAND : GLOBAL_COMMAND;
   for (const [src, dest] of targets) {
     mkdirSync(dirname(dest), { recursive: true });
-    if (src.endsWith(".md") || src.endsWith(".toml")) writeFileSync(dest, templateText(readText(src)));
-    else cpSync(src, dest);
+    if (!(src.endsWith(".md") || src.endsWith(".toml"))) {
+      cpSync(src, dest);
+      continue;
+    }
+    const text = templateText(readText(src), command);
+    writeFileSync(dest, dest === rm.config && !lockfile ? withPin(text, VERSION) : text);
   }
   for (const dir of skillDirs) installSkill(dir);
   writeGenerated(rm);
   out(`Created ${rm.dir}/ and ${skillDirs.join(", ")} (roadmap ${VERSION}).`);
+  if (!lockfile) out(`Pinned roadmap ${VERSION} in ${rm.config}; \`roadmap update\` moves the pin.`);
   for (const hint of initHints(skillDirs)) out(hint);
   return 0;
 }
 
-/** What is left to do after `init`, for the steps the README's quick start
- * may already have done: gitignoring the tool directories and pinning the
- * package. */
+/** The commented `version` line the template carries, or a real one. */
+const PIN_LINE = /^#? ?version = "[^"]*"$/m;
+
+/** roadmap.toml's text with `version` set to `pin`: the template's commented
+ * line, or an existing pin, is replaced; failing both, a line is added on top. */
+export function withPin(text: string, pin: string): string {
+  const line = `version = "${pin}"`;
+  return PIN_LINE.test(text) ? text.replace(PIN_LINE, line) : `${line}\n${text}`;
+}
+
+/** What is left to do after `init` that the README's quick start may
+ * already have done: gitignoring the tool directories. */
 function initHints(skillDirs: string[]): string[] {
-  const hints: string[] = [];
   const unignored = skillDirs.filter((dir) => !gitIgnored(dir));
-  if (unignored.length) hints.push(`Add ${unignored.join(" and ")} to .gitignore.`);
-  const manifest = noManifest();
-  if (manifest) hints.push(manifest);
-  else if (!pinned()) hints.push(`Pin the package: npm install -D ${PACKAGE_NAME}`);
-  return hints;
-}
-
-/** The nearest directory above this one with a package.json, if any. */
-function manifestHome(): string | null {
-  let dir = resolve(".");
-  for (let up = dirname(dir); up !== dir; dir = up, up = dirname(dir)) {
-    if (isFile(joinPath(up, "package.json"))) return up;
-  }
-  return null;
-}
-
-/** A warning when this directory has no package.json: `npm install -D` then
- * quietly installs into the nearest parent that has one, such as `~`, and
- * pins the version there instead of in the repo. */
-function noManifest(): string | null {
-  if (isFile("package.json")) return null;
-  const home = manifestHome();
-  const where = home ? `, so \`npm install\` installs into ${home} instead of this repo` : "";
-  return `There is no package.json here${where}. Run \`npm init -y\` first, then \`npm install -D ${PACKAGE_NAME}\`.`;
+  return unignored.length ? [`Add ${unignored.join(" and ")} to .gitignore.`] : [];
 }
 
 /** Config-like files that may still call the 1.x CLI: CI and hook configs,
@@ -221,19 +216,6 @@ export function strayCallers(roadmapDir: string): string[] {
 /** Whether git ignores `path`. Outside a repo, or without git, it doesn't. */
 function gitIgnored(path: string): boolean {
   return spawnSync("git", ["check-ignore", "-q", path], { stdio: "ignore" }).status === 0;
-}
-
-/** Whether ./package.json lists the package as a dependency. */
-function pinned(): boolean {
-  if (!isFile("package.json")) return false;
-  try {
-    const manifest = JSON.parse(readText("package.json"));
-    return [manifest.dependencies, manifest.devDependencies].some(
-      (deps) => typeof deps === "object" && deps !== null && PACKAGE_NAME in deps,
-    );
-  } catch {
-    return false;
-  }
 }
 
 const VENDORED = "tools/roadmap.py";
@@ -303,8 +285,11 @@ export function cmdUpdate(rm: Roadmap, args: Args): number {
     out(`These lines still call roadmap.py, which 2.x replaces with \`${COMMAND}\`:`);
     for (const line of callers) out(`  ${line}`);
   }
-  const manifest = noManifest();
-  if (manifest) out(manifest);
+  if (rm.pin && newer(rm.pin, VERSION) && !args.force) {
+    throw new UsageError(
+      `${rm.config} pins roadmap ${rm.pin}, newer than this ${VERSION}; pass --force to move it back`,
+    );
+  }
   if (!installed.length) {
     if (migrating) return 0;
     throw new UsageError(
@@ -342,6 +327,11 @@ export function cmdUpdate(rm: Roadmap, args: Args): number {
     if (!dry) writeFileSync(path, text);
     migrated.set(path, text);
     for (const m of migrations) out(`${dry ? "Would migrate" : "Migrated"} ${path}: ${m.summary} (${m.since}).`);
+  }
+  // A roadmap.toml pin follows the CLI that updates it, as the skill does.
+  if (rm.pin && rm.pin !== VERSION) {
+    if (!dry) writeFileSync(rm.config, withPin(readText(rm.config), VERSION));
+    out(`${dry ? "Would move" : "Moved"} the pin in ${rm.config}: roadmap ${rm.pin} → ${VERSION}.`);
   }
   // A release may render the index differently. The generated blocks are
   // never edited by hand, so rewrite them now rather than leave `check` to

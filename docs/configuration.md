@@ -7,6 +7,20 @@ aliases: [roadmap.toml, Milestones, Refs]
 
 `roadmap/roadmap.toml` holds the settings `check` needs beyond the item files.
 
+## The pinned version
+
+A repo that runs the global CLI pins the release it runs here. `roadmap init`
+writes it when package.json doesn't pin the package, and `roadmap update`
+moves it:
+
+```toml
+version = "2.1.0"
+```
+
+Every command warns when it runs a different release, and the GitHub Action
+runs this one. It goes above the first `[table]`. A repo that pins the package
+in package.json leaves it out.
+
 ## Refs to things other than files
 
 By default a ref must name an existing file. For other ref kinds, declare each

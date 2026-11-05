@@ -27,8 +27,10 @@ const literal = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const matches = (re: RegExp, text: string) => [...text.matchAll(re)].map((m) => m[1] as string);
 
 const CLI_COMMANDS = new Set(Object.keys(COMMANDS));
+// A bare `roadmap <command>` counts only straight after a backtick, so prose
+// such as "the roadmap skill" isn't read as a command.
 const NAMED =
-  /(?:roadmap\.(?:py|js|mjs)|npx (?:--no -- )?roadmap|\{\{command\}\}) (?:--dir \S+ )?([a-z]+(?:-[a-z]+)*)/g;
+  /(?:roadmap\.(?:py|js|mjs)|npx (?:--no -- )?roadmap|(?<=`)roadmap|\{\{command\}\}) (?:--dir \S+ )?([a-z]+(?:-[a-z]+)*)/g;
 
 const AGENT_DOCS = ["SKILL.md", "references/conventions.md", "assets/template/README.md"];
 const README = read("README.md");

@@ -43,17 +43,26 @@ A roadmap directory (default `roadmap/`) holds:
 - `decisions.md`: dated decisions that belong to no single item, oldest first.
   Written by `decide`. Its entries are **append-only** like the archive; the
   intro above them is not.
-- `roadmap.toml`: optional; declares extra ref kinds, e.g. openspec specs.
+- `roadmap.toml`: optional; declares extra ref kinds (e.g. openspec specs),
+  milestones, and the `version` a repo without a package.json pin runs.
 
 All commands go through the `roadmap` CLI from the npm package
-`simple-agentic-roadmap-skill`, which the repo pins as a dev dependency: run
-them as `npx --no -- roadmap ...` from the repo root, and pass `--dir` if the roadmap is
-somewhere other than `roadmap/`. The `--no --` matters: an unrelated package called `roadmap` is on npm,
-and without it npx in a non-interactive shell installs and runs that one
-when this package is missing. Before the first command in a session, run
-`npx --no -- roadmap --version`. If it fails, the package isn't installed:
-tell the user to run `npm install`, or to add it with
-`npm install -D simple-agentic-roadmap-skill`.
+`simple-agentic-roadmap-skill`. Run them from the repo root, and pass `--dir`
+if the roadmap is somewhere other than `roadmap/`. Before the first command in
+a session, find out how this repo runs it:
+
+1. Run `roadmap --version`. If it prints `roadmap <x.y.z>`, the CLI is
+   installed globally: run commands as `roadmap ...`, as written below. A
+   global CLI hands off to the repo's own copy when package.json pins one, so
+   it always runs the version the repo pins.
+2. Otherwise run `npx --no -- roadmap --version`. If that works, the repo pins
+   the package as a dev dependency: run every command below as
+   `npx --no -- roadmap ...` instead. The `--no --` matters: an unrelated
+   package called `roadmap` is on npm, and without it npx in a non-interactive
+   shell installs and runs that one when this package is missing.
+3. If neither works, the CLI isn't installed. Tell the user to run
+   `npm install -g simple-agentic-roadmap-skill`, or `npm install` if the
+   repo's package.json already lists it.
 
 If the roadmap is only readable, e.g. synced into a Claude app Project, answer
 from it as usual. For a change, copy `roadmap/` into your working directory
@@ -63,16 +72,19 @@ this SKILL.md was loaded from. Then give the user the changed files to commit,
 since you can't write to their repo.
 
 This SKILL.md's frontmatter names the release it was installed from
-(`metadata.version`). Compare it with the version that
-`npx --no -- roadmap --version` printed:
+(`metadata.version`). Compare it with the version that `roadmap --version`
+printed, and with the `version` that roadmap.toml pins, if it has one:
 
-- **Skill older than the package:** someone upgraded the package without
-  refreshing the skill, so you are following older rules than `check` enforces.
-  Offer to run `npx --no -- roadmap update`, which copies the package's skill into every
-  tool directory that has one. Don't run it unasked.
-- **Skill newer than the package:** the skill came from somewhere else, e.g. a
-  global install. Tell the user, and follow the package's rules: rely on
-  `check`, and ask before any change the newer rules might get wrong.
+- **Skill older than the CLI:** someone upgraded the CLI without refreshing
+  the skill, so you are following older rules than `check` enforces. Offer to
+  run `roadmap update`, which copies the CLI's skill into every tool directory
+  that has one and moves roadmap.toml's pin. Don't run it unasked.
+- **Skill newer than the CLI:** the skill came from somewhere else. Tell the
+  user, and follow the CLI's rules: rely on `check`, and ask before any change
+  the newer rules might get wrong.
+- **CLI other than roadmap.toml's pin:** every command warns about it. Tell
+  the user: CI runs the pinned version, so `check` here may disagree with it.
+  Installing that version, or `roadmap update` to move the pin, fixes it.
 
 ## Before proposing work
 
@@ -93,22 +105,22 @@ link the two attempts.
 
 | Want to | Run |
 |---|---|
-| Set up a roadmap in a repo | `npm install -D simple-agentic-roadmap-skill`, then `npx --no -- roadmap init [--tools claude,agents]`. It writes `roadmap/` and installs the skill into each tool's skills directory, which should be gitignored. For CI setup, point the user at this skill's README. |
-| File an item | `npx --no -- roadmap new <id> --title "..." --bucket now [--gate "..."] [--depends-on <id>] [--milestone <id>] [--supersedes <declined-id>] [--ref files:path]`, then replace the placeholder body with the argument |
-| File an undecided item | `npx --no -- roadmap new <id> --title "..." --bucket later --blocked-on "the open question"` |
-| Reprioritise an item | `npx --no -- roadmap move <id> --bucket next` (add `--blocked-on "..."` for `later`). It lands just above the items there that depend on it, shifting them down, or else at the bottom. To place it elsewhere, or to re-rank it within its bucket, add `--rank <n>` or `--above <other-id>` (which also takes the other item's bucket); the items it passes shift a rank. It refuses a move that would put an item ahead of its dependencies. A move to another bucket sets `updated`. |
-| Close shipped work | `npx --no -- roadmap close <id> --outcome shipped --as <pr-or-change>`, **in the same branch as the code**, so it moves to done.md when that merges. Always pass `--as`: the archive is append-only, so it can't be added later |
-| Close declined work | `npx --no -- roadmap close <id> --outcome declined` |
-| Record a decision that belongs to no single item | `npx --no -- roadmap decide --title "..." --body "why, and what it rules out"`. A decision about one item goes in that item's prose. To reverse a decision, record a new one that says so. |
-| Regenerate the indexes after a hand edit | `npx --no -- roadmap index` |
+| Set up a roadmap in a repo | `npm install -g simple-agentic-roadmap-skill` (or `npm install -D` in a Node repo whose lockfile should pin it), then `roadmap init [--tools claude,agents]`. It writes `roadmap/`, pins the version in roadmap.toml when package.json doesn't, and installs the skill into each tool's skills directory, which should be gitignored. For CI setup, point the user at this skill's README. |
+| File an item | `roadmap new <id> --title "..." --bucket now [--gate "..."] [--depends-on <id>] [--milestone <id>] [--supersedes <declined-id>] [--ref files:path]`, then replace the placeholder body with the argument |
+| File an undecided item | `roadmap new <id> --title "..." --bucket later --blocked-on "the open question"` |
+| Reprioritise an item | `roadmap move <id> --bucket next` (add `--blocked-on "..."` for `later`). It lands just above the items there that depend on it, shifting them down, or else at the bottom. To place it elsewhere, or to re-rank it within its bucket, add `--rank <n>` or `--above <other-id>` (which also takes the other item's bucket); the items it passes shift a rank. It refuses a move that would put an item ahead of its dependencies. A move to another bucket sets `updated`. |
+| Close shipped work | `roadmap close <id> --outcome shipped --as <pr-or-change>`, **in the same branch as the code**, so it moves to done.md when that merges. Always pass `--as`: the archive is append-only, so it can't be added later |
+| Close declined work | `roadmap close <id> --outcome declined` |
+| Record a decision that belongs to no single item | `roadmap decide --title "..." --body "why, and what it rules out"`. A decision about one item goes in that item's prose. To reverse a decision, record a new one that says so. |
+| Regenerate the indexes after a hand edit | `roadmap index` |
 | Resolve a merge of two roadmap branches | For a conflict in a generated block, take either side and run `index`. For `[rank]` (both branches filed into the same bucket), run `index --renumber`. A `merge-driver` can take the generated blocks automatically; see references/conventions.md. |
-| Split an item that turned out to be two pieces of work | `npx --no -- roadmap split <id> <new-id> --title "..." [--body "..."]`. The new item copies the bucket, gate, blocked_on, depends_on, milestone and refs, and lands directly below the original. The original keeps one part, so narrow its prose. |
-| Read the queue without README.md, or script against it | `npx --no -- roadmap list [--bucket now] [--json]` |
-| Verify | `npx --no -- roadmap check` |
-| Spot upkeep: passed milestones, stale Now/Next items | `npx --no -- roadmap review [--days 60]`. It uses today's date and git history, so it is never for CI, and it always exits 0. |
-| Refresh the skill after a package upgrade, once the user says yes | `npx --no -- roadmap update`. It copies the package's skill into every tool directory that already has one, migrates text an older template wrote into `roadmap/`, regenerates the index if the new version renders it differently, and runs `check`. `--dry-run` shows all of that without writing. Fix or report what the new rules reject. |
+| Split an item that turned out to be two pieces of work | `roadmap split <id> <new-id> --title "..." [--body "..."]`. The new item copies the bucket, gate, blocked_on, depends_on, milestone and refs, and lands directly below the original. The original keeps one part, so narrow its prose. |
+| Read the queue without README.md, or script against it | `roadmap list [--bucket now] [--json]` |
+| Verify | `roadmap check` |
+| Spot upkeep: passed milestones, stale Now/Next items | `roadmap review [--days 60]`. It uses today's date and git history, so it is never for CI, and it always exits 0. |
+| Refresh the skill after a CLI upgrade, once the user says yes | `roadmap update`. It copies the CLI's skill into every tool directory that already has one, moves roadmap.toml's `version` pin to the CLI's release, migrates text an older template wrote into `roadmap/`, regenerates the index if the new version renders it differently, and runs `check`. `--dry-run` shows all of that without writing. Fix or report what the new rules reject. |
 
-**Always finish a roadmap edit with `npx --no -- roadmap check`,** and fix
+**Always finish a roadmap edit with `roadmap check`,** and fix
 every problem it reports. Each problem ends with a rule tag in brackets, such
 as `[bucket]`. references/conventions.md explains every tag.
 
