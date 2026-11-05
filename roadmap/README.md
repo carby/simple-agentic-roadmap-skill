@@ -51,10 +51,11 @@ work is done. **Close it in the same branch as the code**, so it moves to
 1. [Survey OpenSpec's CLI commands for ones the roadmap lacks](items/openspec-command-parity.md) — filed 2026-10-23<br>  **Depends on:** [Install and upgrade the skill through an npm package, like OpenSpec](archive/npm-installer.md) (shipped)
 2. [An explore command that turns a fuzzy problem into roadmap items](items/explore-command.md) — filed 2026-10-23
 
-### Later (2)
+### Later (3)
 
 3. [Epics: parent items that group others](items/epics.md) — filed 2026-09-25<br>  **Blocked on:** whether the roadmap grows past KISS to have a hierarchy of items<br>  **Depends on:** [Dependency chaining between items](archive/dependency-chaining.md) (shipped)
 4. [Gantt scheduling: estimates and dates on a timeline](items/gantt-scheduling.md) — filed 2026-09-25<br>  **Blocked on:** whether the roadmap should say when work happens, not just what is blocking it<br>  **Depends on:** [Dependency chaining between items](archive/dependency-chaining.md) (shipped)
+5. [Ship the CLI as a standalone binary, with Homebrew, like OpenSpec](items/standalone-binary.md) — filed 2026-11-05<br>  **Blocked on:** whether an install without Node is worth a per-platform release pipeline
 
 <!-- END INDEX -->
 
