@@ -1,9 +1,10 @@
 +++
 id = "update-migrations"
 title = "Let `update` migrate the roadmap's files to the new version"
-bucket = "now"
-rank = 1
 filed = 2026-11-05
+closed = 2026-11-05
+outcome = "shipped"
+shipped_as = "#29"
 
 [refs]
 files = ["src/install.ts"]
@@ -26,3 +27,5 @@ Done looks like:
 - **One code path for `--dry-run`.** OpenSpec records writes through a seam (`UpdatePlanRecorder`) instead of describing them separately. Here `update --dry-run` runs every step and prints "Would …" where it would write.
 
 The first migration, `cli-command`, rewrites a 1.x roadmap's `python tools/roadmap.py` command lines in README.md and the header comment in roadmap.toml.
+
+**Outcome:** shipped in #29. Migrations live in `src/migrate.ts` and run from `update` between copying the skill and regenerating the index; `update --dry-run` previews all three. The stamp-driven ordering in the original done-criteria was dropped for detection, as above.
