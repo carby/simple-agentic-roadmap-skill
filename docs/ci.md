@@ -41,6 +41,25 @@ After `npm ci`:
 The `--no --` keeps npx from installing the unrelated `roadmap` package on npm
 if this one is missing.
 
+### When the CI image has no Node
+
+A Python or other non-Node image can't run `npx`. Run the check as its own
+job or step on a `node:22` image (or with your CI's Node setup step), so the
+rest of the pipeline keeps its image:
+
+```yaml
+# GitLab CI; the same shape works in Bitbucket Pipelines
+roadmap:
+  image: node:22
+  script:
+    - npm ci
+    - npx --no -- roadmap check
+```
+
+If the repo has no `package.json`, create one with `npm init -y` and pin the
+package there first (see [Install](install.md)); otherwise `npm ci` has
+nothing to install.
+
 ## GitLab CI
 
 ```yaml

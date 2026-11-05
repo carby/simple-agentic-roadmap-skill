@@ -10,8 +10,9 @@ import { join } from "node:path";
 import { afterEach, beforeEach, test } from "node:test";
 import { main } from "../src/cli.ts";
 import { PACKAGE_ROOT, TOOLS } from "../src/install.ts";
+import { DECISIONS_INTROS, GUIDING_MASK, INDEX_MASK, README_SECTIONS } from "../src/legacy.ts";
 import { MIGRATIONS, type Migration, planMigrations } from "../src/migrate.ts";
-import { INDEX_BEGIN, openRoadmap } from "../src/model.ts";
+import { DECISIONS_INTRO, INDEX_BEGIN, openRoadmap } from "../src/model.ts";
 import { capture, contains, excludes } from "./helpers.ts";
 
 const home = process.cwd();
@@ -131,10 +132,13 @@ test("update leaves command lines and comments a user edited alone", (t) => {
   contains(read("roadmap/roadmap.toml"), "read by roadmap.py!");
 });
 
-test("update never touches decisions.md or the archive", (t) => {
+test("update never touches a decision or the archive", (t) => {
   output = capture(t);
   initLegacy();
-  writeFileSync("roadmap/decisions.md", `${read("roadmap/decisions.md")}\npython tools/roadmap.py check\n`);
+  writeFileSync(
+    "roadmap/decisions.md",
+    `${read("roadmap/decisions.md")}\n## 2026-01-01: Old\n\npython tools/roadmap.py check\n`,
+  );
   writeFileSync(
     "roadmap/archive/old.md",
     '+++\nid = "old"\ntitle = "Old"\nfiled = 2026-01-01\nclosed = 2026-01-02\noutcome = "declined"\n+++\n\npython tools/roadmap.py check\n',
@@ -146,13 +150,19 @@ test("update never touches decisions.md or the archive", (t) => {
   assert.equal(read("roadmap/archive/old.md"), archived);
 });
 
-test("a migration aimed at the archive, decisions.md or a generated block throws", (t) => {
+test("a migration aimed at the archive, a decision or a generated block throws", (t) => {
   output = capture(t);
   main(["init"]);
+  writeFileSync(
+    "roadmap/decisions.md",
+    `${read("roadmap/decisions.md")}\n## 2026-01-01: Ship weekly\n\nSmaller releases.\n`,
+  );
   const rm = openRoadmap("roadmap");
   const aimed = (files: Migration["files"]): Migration[] => [{ id: "bad", since: "0.0.0", summary: "", files }];
   const touch = (text: string) => `${text}x`;
-  assert.throws(() => planMigrations(rm, aimed({ "decisions.md": touch })), /never touch/);
+  assert.throws(() => planMigrations(rm, aimed({ "decisions.md": touch })), /changes an entry/);
+  const intro = (text: string) => text.replace("# Decisions", "# Decision log");
+  assert.equal(planMigrations(rm, aimed({ "decisions.md": intro })).length, 1);
   assert.throws(() => planMigrations(rm, aimed({ "archive/old.md": touch })), /never touch/);
   assert.throws(() => planMigrations(rm, aimed({ "../README.md": touch })), /never touch/);
   const intoIndex = (text: string) => text.replace(INDEX_BEGIN, `${INDEX_BEGIN}\nx`);
@@ -176,4 +186,85 @@ test("update migrates the roadmap next to a symlinked skill", (t) => {
   assert.equal(main(["update"]), 0);
   contains(output.join(""), "Skipped .claude/skills/roadmap: it is symlinked");
   assert.equal(read("roadmap/README.md"), fresh.readme);
+});
+
+/** README.md as an older template wrote it: today's, with each section that
+ * template wrote differently swapped for its frozen text. `pick` chooses
+ * which of a heading's historical texts to use. */
+function olderReadme(text: string, pick: (texts: readonly string[]) => string): string {
+  const index = /<!-- BEGIN INDEX[\s\S]*?<!-- END INDEX -->/.exec(text)?.[0] as string;
+  const guiding = /^\*\*Guiding principle:\*\*[\s\S]*?(?=\n\n)/m.exec(text)?.[0] as string;
+  const parts = text.split(/^(?=#{1,3} )/m);
+  return parts
+    .map((part, i) => {
+      const head = part.split("\n")[0] as string;
+      const old = README_SECTIONS[head];
+      if (!old) return part;
+      const body = pick(old).replace(INDEX_MASK, index).replace(GUIDING_MASK, guiding);
+      // A frozen section stops before the newline that ends its last line
+      // when another section follows; split here, the part keeps it.
+      return i < parts.length - 1 ? `${body}\n` : body;
+    })
+    .join("");
+}
+
+for (const [label, pick] of [
+  ["1.0.0", (texts: readonly string[]) => texts[0] as string],
+  ["1.1.0", (texts: readonly string[]) => texts.at(-1) as string],
+] as const) {
+  test(`update brings README sections from ${label} up to today's template`, (t) => {
+    output = capture(t);
+    main(["init"]);
+    const fresh = read("roadmap/README.md");
+    const ours = fresh.replace(/^\*\*Guiding principle:\*\*[\s\S]*?(?=\n\n)/m, "**Guiding principle:** ours.");
+    const older = olderReadme(ours, pick);
+    assert.notEqual(older, ours);
+    writeFileSync("roadmap/README.md", older);
+    output.length = 0;
+    assert.equal(main(["update"]), 0);
+    contains(output.join(""), "Migrated roadmap/README.md: sections an older template wrote");
+    assert.equal(read("roadmap/README.md"), ours);
+  });
+}
+
+test("update keeps an older README section the user edited", (t) => {
+  output = capture(t);
+  main(["init"]);
+  const older = olderReadme(read("roadmap/README.md"), (texts) => texts[0] as string);
+  const edited = older.replace("## Working on this\n", "## Working on this\n\nOur own note.\n");
+  writeFileSync("roadmap/README.md", edited);
+  main(["update"]);
+  const readme = read("roadmap/README.md");
+  contains(readme, "Our own note.");
+  // The sections around it still move to today's text.
+  contains(readme, "Decisions that belong to no single item");
+});
+
+test("update replaces an older decisions.md intro and keeps the entries", (t) => {
+  output = capture(t);
+  main(["init"]);
+  const entries = "## 2026-01-01: Ship weekly\n\nSmaller releases.\n";
+  for (const old of DECISIONS_INTROS) {
+    writeFileSync("roadmap/decisions.md", `${old.trimEnd()}\n\n${entries}`);
+    output.length = 0;
+    assert.equal(main(["update"]), 0);
+    contains(output.join(""), "Migrated roadmap/decisions.md: the intro above the first decision");
+    assert.equal(read("roadmap/decisions.md"), `${DECISIONS_INTRO.trimEnd()}\n\n${entries}`);
+  }
+  writeFileSync("roadmap/decisions.md", `# Our decisions\n\n${entries}`);
+  main(["update"]);
+  assert.equal(read("roadmap/decisions.md"), `# Our decisions\n\n${entries}`);
+});
+
+test("the frozen texts never include today's template", () => {
+  const template = read(join(PACKAGE_ROOT, "assets/template/README.md"));
+  for (const texts of Object.values(README_SECTIONS)) {
+    for (const text of texts) {
+      const head = text.split("\n")[0] as string;
+      const today = template.split(/^(?=#{1,3} )/m).find((part) => part.startsWith(`${head}\n`));
+      assert.ok(today, `${head} is no longer a heading in the template`);
+    }
+  }
+  assert.ok(!DECISIONS_INTROS.includes(DECISIONS_INTRO));
+  assert.deepEqual(planMigrations(openRoadmap(join(PACKAGE_ROOT, "assets/template"))), []);
 });

@@ -32,12 +32,16 @@ lines and writes nothing, so you can see what an upgrade changes first.
 ## Migrations
 
 When a release changes text that `init` writes into `roadmap/`, such as the
-command lines in README.md, `update` rewrites the old text and reports each
-file as `Migrated <path>: <what changed> (<release>)`. Like OpenSpec's
+command lines in README.md, a README section, or the intro at the top of
+decisions.md, `update` rewrites the old text and reports each file as
+`Migrated <path>: <what changed> (<release>)`. A README section is replaced
+whole when it matches what an older template wrote, keeping your index and
+guiding principle; compare a section you edited with the package's
+`assets/template/README.md` yourself. Like OpenSpec's
 `update`, it doesn't go by version numbers: each migration looks for the exact
 text an older template wrote, so text you edited is left alone, and a second
 `update` finds nothing to change. Migrations never touch `archive/`,
-`decisions.md` or the generated blocks.
+decisions.md's entries or the generated blocks.
 
 The tool directories are gitignored, so after pulling an upgrade someone else
 committed, each developer runs `npm install` and `npx --no -- roadmap update`
@@ -66,7 +70,10 @@ npx --no -- roadmap update
 ```
 
 `update` rewrites the `python tools/roadmap.py` command lines in
-`roadmap/README.md` and `roadmap.toml` to `npx --no -- roadmap`. It sees the
+`roadmap/README.md` and `roadmap.toml` to `npx --no -- roadmap`, brings
+README sections and the decisions.md intro from 1.x templates up to date, and
+lists every line in a tracked config file (CI, pre-commit, Makefile and the
+like, outside `roadmap/`) that still calls `roadmap.py`. It sees the
 submodule and the vendored script, leaves both alone, and prints the commands that finish the move: removing the submodule and
 `tools/roadmap.py`, gitignoring the tool directories, pointing the merge driver
 at the package, installing the skill with `update --tools`, and switching your

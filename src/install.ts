@@ -5,18 +5,17 @@
 
 import { spawnSync } from "node:child_process";
 import { cpSync, lstatSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join as joinPath, relative } from "node:path";
-import { fileURLToPath } from "node:url";
+import { dirname, join as joinPath, relative, resolve } from "node:path";
 import { type Args, cmdCheck, err, out } from "./commands.ts";
 import { planMigrations } from "./migrate.ts";
 import { load, type Roadmap, UsageError, VERSION } from "./model.ts";
+import { COMMAND, PACKAGE_NAME, PACKAGE_ROOT, templateText } from "./package.ts";
 import { exists, isDir, isFile } from "./pathlib.ts";
 import { readText, repr } from "./py.ts";
 import { generatedChanges, writeGenerated } from "./render.ts";
 import { validate } from "./rules.ts";
 
-/** The package's root: `src/..` in tests, `dist/..` once built. */
-export const PACKAGE_ROOT = joinPath(dirname(fileURLToPath(import.meta.url)), "..");
+export { COMMAND, PACKAGE_NAME, PACKAGE_ROOT };
 
 /** Where each tool loads skills from, relative to the repo root. Adding a
  * tool is one row. `agents` is the shared directory OpenSpec writes for
@@ -28,12 +27,6 @@ export const TOOLS: Record<string, string> = {
 
 /** What a tool's copy of the skill holds. No scripts: commands go through the bin. */
 const PAYLOAD = ["SKILL.md", "references", "assets"];
-
-/** The npm package this CLI ships in. */
-export const PACKAGE_NAME = "simple-agentic-roadmap-skill";
-
-/** How the generated files and the template name the CLI. */
-export const COMMAND = "npx --no -- roadmap";
 
 /** Where SKILL.md's frontmatter keeps the version: the index of its
  * `metadata:` line, and of the `version:` line in that block, if any. Scanned
@@ -155,8 +148,7 @@ export function cmdInit(rm: Roadmap, args: Args): number {
 
   for (const [src, dest] of targets) {
     mkdirSync(dirname(dest), { recursive: true });
-    if (src.endsWith(".md") || src.endsWith(".toml"))
-      writeFileSync(dest, readText(src).replaceAll("{{command}}", COMMAND).replaceAll("{{script}}", COMMAND));
+    if (src.endsWith(".md") || src.endsWith(".toml")) writeFileSync(dest, templateText(readText(src)));
     else cpSync(src, dest);
   }
   for (const dir of skillDirs) installSkill(dir);
@@ -173,8 +165,57 @@ function initHints(skillDirs: string[]): string[] {
   const hints: string[] = [];
   const unignored = skillDirs.filter((dir) => !gitIgnored(dir));
   if (unignored.length) hints.push(`Add ${unignored.join(" and ")} to .gitignore.`);
-  if (!pinned()) hints.push(`Pin the package: npm install -D ${PACKAGE_NAME}`);
+  const manifest = noManifest();
+  if (manifest) hints.push(manifest);
+  else if (!pinned()) hints.push(`Pin the package: npm install -D ${PACKAGE_NAME}`);
   return hints;
+}
+
+/** The nearest directory above this one with a package.json, if any. */
+function manifestHome(): string | null {
+  let dir = resolve(".");
+  for (let up = dirname(dir); up !== dir; dir = up, up = dirname(dir)) {
+    if (isFile(joinPath(up, "package.json"))) return up;
+  }
+  return null;
+}
+
+/** A warning when this directory has no package.json: `npm install -D` then
+ * quietly installs into the nearest parent that has one, such as `~`, and
+ * pins the version there instead of in the repo. */
+function noManifest(): string | null {
+  if (isFile("package.json")) return null;
+  const home = manifestHome();
+  const where = home ? `, so \`npm install\` installs into ${home} instead of this repo` : "";
+  return `There is no package.json here${where}. Run \`npm init -y\` first, then \`npm install -D ${PACKAGE_NAME}\`.`;
+}
+
+/** Config-like files that may still call the 1.x CLI: CI and hook configs,
+ * task runners and scripts. Prose (Markdown, the CHANGELOG) is left out, as
+ * it may describe the old setup on purpose. */
+const CALLER_PATHSPECS = [
+  "*.yml",
+  "*.yaml",
+  "*.toml",
+  "*.json",
+  "*.cfg",
+  "*.ini",
+  "*.sh",
+  "*Makefile",
+  "*justfile",
+  "*Justfile",
+];
+
+/** Lines in tracked config-like files outside the roadmap that still name
+ * `roadmap.py`, as `path:line: text`. Outside git, or without it, none. */
+export function strayCallers(roadmapDir: string): string[] {
+  const result = spawnSync(
+    "git",
+    ["grep", "-nI", "-E", "roadmap\\.py", "--", ...CALLER_PATHSPECS, `:(exclude)${roadmapDir}`],
+    { encoding: "utf8" },
+  );
+  if (result.status !== 0 || typeof result.stdout !== "string") return [];
+  return result.stdout.split("\n").filter(Boolean);
 }
 
 /** Whether git ignores `path`. Outside a repo, or without git, it doesn't. */
@@ -257,6 +298,13 @@ export function cmdUpdate(rm: Roadmap, args: Args): number {
   );
   const migrating = legacy.submodules.length > 0 || legacy.vendored;
   if (migrating) for (const line of migrationSteps(legacy.submodules, legacy.vendored)) out(line);
+  const callers = strayCallers(rm.dir);
+  if (callers.length) {
+    out(`These lines still call roadmap.py, which 2.x replaces with \`${COMMAND}\`:`);
+    for (const line of callers) out(`  ${line}`);
+  }
+  const manifest = noManifest();
+  if (manifest) out(manifest);
   if (!installed.length) {
     if (migrating) return 0;
     throw new UsageError(

@@ -21,6 +21,11 @@ Other ways to install are in [Install alternatives](install-alternatives.md).
 npm install -D simple-agentic-roadmap-skill
 ```
 
+In a repo with no `package.json` yet, such as a Python project, run
+`npm init -y` first. Without one, npm quietly installs into the nearest parent
+directory that has a `package.json` (often your home directory), and the pin
+never reaches the repo. `init` and `update` warn when this directory has none.
+
 The lockfile pins the exact version, so every developer, CI run and agent
 session gets the same rules, and upgrades go through your normal dependency
 updates (see [Upgrading](upgrading.md)). Every command runs as

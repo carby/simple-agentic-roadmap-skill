@@ -20,7 +20,20 @@ passing `check` red.
   -- roadmap`.
 - **`update --dry-run`** prints what `update` would install, migrate and
   regenerate, and writes nothing.
-- **Upgrade notes:** nothing to do. Nothing changes for `check`.
+- **More of a 1.x install is migrated** ([#27](https://github.com/carby/simple-agentic-roadmap-skill/issues/27)):
+  - README.md sections that a 1.0–1.3 template wrote (Working on this,
+    Frontmatter and the others) are replaced with today's when they match
+    word for word, keeping your index and guiding principle.
+  - decisions.md's intro from 1.4–2.0 is replaced with today's.
+  - `update` lists each line in a tracked config file (CI, pre-commit,
+    Makefile and the like, outside `roadmap/`) that still calls `roadmap.py`.
+  - `init` and `update` warn when the repo has no `package.json`, since
+    `npm install -D` then installs into a parent directory instead, and the
+    docs cover CI images without Node.
+- **Rules:** decisions.md's intro, above its first entry, is no longer
+  append-only; the entries still are. The rule gets looser, so it can't turn
+  `check` red.
+- **Upgrade notes:** nothing to do.
 
 ## 2.0.1 — 2026-11-02
 

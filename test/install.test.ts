@@ -4,7 +4,16 @@
 
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, test } from "node:test";
@@ -222,13 +231,59 @@ function quickStart(ignored: string[], pin: boolean): void {
   writeFileSync("package.json", JSON.stringify({ name: "x", ...deps }));
 }
 
-test("init hints at both steps in a bare directory", (t) => {
+test("init in a bare directory hints at the gitignore and at creating a package.json", (t) => {
   output = capture(t);
 
   assert.equal(main(["init"]), 0);
 
   contains(output.join(""), `Add .claude/skills/roadmap ${GITIGNORE_HINT}`);
-  contains(output.join(""), PIN_HINT);
+  contains(output.join(""), "There is no package.json here");
+  contains(output.join(""), "Run `npm init -y` first, then `npm install -D simple-agentic-roadmap-skill`.");
+  excludes(output.join(""), PIN_HINT);
+});
+
+test("init and update name the parent npm would install into without a package.json", (t) => {
+  output = capture(t);
+  writeFileSync("package.json", "{}");
+  mkdirSync("app");
+  process.chdir("app");
+
+  assert.equal(main(["init"]), 0);
+  contains(output.join(""), `so \`npm install\` installs into ${realpathSync(repo)} instead of this repo`);
+
+  output.length = 0;
+  assert.equal(main(["update"]), 0);
+  contains(output.join(""), `installs into ${realpathSync(repo)} instead`);
+});
+
+test("update lists config files that still call roadmap.py, and no prose", (t) => {
+  output = capture(t);
+  quickStart([".claude/skills/"], true);
+  main(["init"]);
+  writeFileSync(".pre-commit-config.yaml", "      - id: roadmap\n        entry: python tools/roadmap.py check\n");
+  writeFileSync("NOTES.md", "We used to run tools/roadmap.py.\n");
+  // The roadmap's own files are the migrations' business, not this report's.
+  const config = read("roadmap/roadmap.toml");
+  writeFileSync("roadmap/roadmap.toml", config.replace("read by the roadmap CLI.", "read by roadmap.py."));
+  spawnSync("git", ["add", "-A"], { stdio: "ignore" });
+
+  output.length = 0;
+  assert.equal(main(["update"]), 0);
+  contains(output.join(""), "These lines still call roadmap.py, which 2.x replaces with `npx --no -- roadmap`:");
+  contains(output.join(""), "  .pre-commit-config.yaml:2:        entry: python tools/roadmap.py check");
+  excludes(output.join(""), "NOTES.md");
+  excludes(output.join(""), "  roadmap/roadmap.toml:");
+  contains(output.join(""), "Migrated roadmap/roadmap.toml");
+});
+
+test("update says nothing about callers when no config file names roadmap.py", (t) => {
+  output = capture(t);
+  quickStart([".claude/skills/"], true);
+  main(["init"]);
+  spawnSync("git", ["add", "-A"], { stdio: "ignore" });
+  output.length = 0;
+  assert.equal(main(["update"]), 0);
+  excludes(output.join(""), "still call roadmap.py");
 });
 
 test("init hints at nothing once the README's steps are done", (t) => {
