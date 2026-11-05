@@ -2,7 +2,7 @@
 id = "agent-behaviour-evals"
 title = "Evals for how an agent uses the skill, not just for the script"
 bucket = "now"
-rank = 10
+rank = 12
 filed = 2026-09-25
 updated = 2026-10-22
 +++
