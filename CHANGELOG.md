@@ -7,7 +7,7 @@ notes** say what you have to do after `update`. Where a release changes the
 rules `check` enforces, it says so there, because a stricter rule can turn a
 passing `check` red.
 
-## Unreleased
+## 2.1.0 — 2026-11-06
 
 - **Install the CLI globally** — `npm install -g simple-agentic-roadmap-skill`
   once per machine, then `roadmap init` in each repo, the way OpenSpec is
@@ -41,9 +41,7 @@ passing `check` red.
   - decisions.md's intro from 1.4–2.0 is replaced with today's.
   - `update` lists each line in a tracked config file (CI, pre-commit,
     Makefile and the like, outside `roadmap/`) that still calls `roadmap.py`.
-  - `init` and `update` warn when the repo has no `package.json`, since
-    `npm install -D` then installs into a parent directory instead, and the
-    docs cover CI images without Node.
+  - The docs cover CI images without Node.
 - **Rules:** decisions.md's intro, above its first entry, is no longer
   append-only; the entries still are. The rule gets looser, so it can't turn
   `check` red. roadmap.toml takes a new top-level `version` key, which older

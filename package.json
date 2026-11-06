@@ -1,6 +1,6 @@
 {
   "name": "simple-agentic-roadmap-skill",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "description": "A Now/Next/Later roadmap kept as one Markdown file per item, checked in CI.",
   "keywords": [
     "roadmap",
