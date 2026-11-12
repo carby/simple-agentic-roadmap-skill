@@ -41,3 +41,28 @@ The GUI's close dialog then passes the reasoning through `--body`, and doesn't w
 - A progress line ("2 of 4 due items closed: 1 shipped, 1 declined"), the open items in the order they can land, and the closed ones with their outcome and `shipped_as`.
 
 It reads only what [gui-read-interface](gui-read-interface.md) already lists: milestones, open and archived items with their `milestone` field, and dependencies in both directions. Archived items name their milestone, as done.md's Milestones list already uses.
+
+**2026-11-12:** a second UX review of the sketches. Its fixes to the sketches are made on the canvas. These parts belong in the GUI repo's items:
+- **States read the same everywhere.** A filled dot means ready, a hollow one waiting, and a dashed one in Later, in the queue, the detail pane, the milestone view and the milestone detail. `blocked_on` gets its own colour and a ⊘, because amber is kept for milestones.
+- **The milestone strip has a lane per milestone**, every declared one in date order, passed ones included. A filled hexagon marks an item due for the milestone, and a hollow one an item that waits on it through `depends_on`. Waiting on a milestone is drawn too: in the strip, and on the right of the milestone detail graph.
+- **One way to count a milestone's work**, everywhere: "2 due open, 2 needed first", next to what's closed.
+- **A keymap, written down and complete:**
+  - rows: ↑↓ or j/k;
+  - views: Ctrl+1 for the queue, Ctrl+2 for milestones;
+  - `/` or Ctrl+F to find;
+  - Enter opens a milestone's detail from a card or its lane, and F filters the queue to its items;
+  - Shift+F10 or the Menu key opens the context menu;
+  - Space highlights the chain;
+  - Alt+↑/↓ walk the chain, Alt+← or Esc go back;
+  - F5 reloads;
+  - Tab moves focus into the strip.
+  
+  Text shown on hover is always in the detail pane too, so nothing needs a mouse.
+- **Scaling to 50+ items and many milestones:**
+  - the id column sizes to the longest id, because ids are the key;
+  - bucket separators collapse;
+  - the lane gutter caps its width and bundles lanes past the cap;
+  - the strip scrolls sideways past a few lanes;
+  - timeline labels that collide stack;
+  - the milestone cards become a list.
+- **What the GUI needs from the CLI beyond [gui-read-interface](gui-read-interface.md):** JSON results from the write commands, with refusals carrying their rule tag, and `check --json`. Editing (the refused move) and the problems display (check results per row) depend on them, so the breakdown should file them as their own CLI-side item, ahead of the GUI's editing items.
