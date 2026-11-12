@@ -34,3 +34,10 @@ The GUI's close dialog then passes the reasoning through `--body`, and doesn't w
 - **Reload** waits for F5, like gitk. The GUI watches the files and shows a "changed on disk" banner, but never redraws while someone reads or edits.
 - **Gates and `blocked_on`** show as a small tag on the row, with the full text on hover and in the detail pane.
 - **A refused edit** shows the CLI's refusal word for word, with its rule tag, plus a link to the item that blocks it. The GUI never suggests a fix.
+
+**2026-11-12:** the GUI should also have a **milestone detail view**, opened from a milestone in the strip or the milestone view, showing everything that has to be completed for the milestone and what already has been:
+- A graph that runs left to right into the milestone. It holds every item due for the milestone, plus every open item those wait on through `depends_on` that isn't due for it, marked as needed first, so the whole path to the date shows.
+- Closed items due for the milestone stay on the graph: shipped ones as done, declined ones greyed out and not counted as progress.
+- A progress line ("2 of 4 due items closed: 1 shipped, 1 declined"), the open items in the order they can land, and the closed ones with their outcome and `shipped_as`.
+
+It reads only what [gui-read-interface](gui-read-interface.md) already lists: milestones, open and archived items with their `milestone` field, and dependencies in both directions. Archived items name their milestone, as done.md's Milestones list already uses.
