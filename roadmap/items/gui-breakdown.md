@@ -19,3 +19,11 @@ Done looks like:
 - The GUI repo exists, with a roadmap of its own (`roadmap init`) holding the GUI's implementation items, read-only view first and editing after, each small enough to ship on its own.
 - This roadmap holds the CLI-side items the GUI needs, starting with [gui-read-interface](gui-read-interface.md), refined or split to match.
 - Each item's bucket was agreed with the product owner. Items, not task lists: per-task detail goes in an OpenSpec change, as the 2026-10-23 decision says.
+
+**2026-11-12:** UX sketches of the GUI exist as a private design canvas the product owner holds. They raised one question that changes the CLI, now decided: `close` gains a `--body` flag, and the breakdown should file it as a CLI-side item in this roadmap.
+- `close` appends the text to the item's prose as a dated paragraph before archiving it: `**<date>: shipped in <shipped_as>.** <text>`, or `**<date>: declined.** <text>`. The CLI writes the date and outcome, so they can't disagree with the frontmatter.
+- `--body` is required on every close, shipped or declined, because the archive is append-only and the reasoning can't be added afterwards. This is a stricter rule: a script that calls `close` without it starts failing, so it needs an upgrade note, and probably a major version.
+- `--body -` reads the text from stdin, so long prose doesn't depend on shell quoting.
+- SKILL.md's close workflow, which today tells agents to edit the prose by hand before closing, changes to pass `--body` instead.
+
+The GUI's close dialog then passes the reasoning through `--body`, and doesn't write prose itself. The canvas's other open questions (milestone rows, archived scope, reload, row tags, refused edits) belong to the GUI repo's items.
