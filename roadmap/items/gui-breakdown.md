@@ -27,3 +27,10 @@ Done looks like:
 - SKILL.md's close workflow, which today tells agents to edit the prose by hand before closing, changes to pass `--body` instead.
 
 The GUI's close dialog then passes the reasoning through `--body`, and doesn't write prose itself. The canvas's other open questions (milestone rows, archived scope, reload, row tags, refused edits) belong to the GUI repo's items.
+
+**2026-11-12:** the sketches' other open questions, settled as defaults for the GUI repo's items. The product owner had no preference, so these are the recommended options and can be revisited there:
+- **Milestone rows in the queue** sit right after the last item due for them. That is the order `check` already enforces, so the dashed due-for lanes only flow downward.
+- **Show archived** shows in full the archived items that open items depend on, and folds the rest into rows that expand.
+- **Reload** waits for F5, like gitk. The GUI watches the files and shows a "changed on disk" banner, but never redraws while someone reads or edits.
+- **Gates and `blocked_on`** show as a small tag on the row, with the full text on hover and in the detail pane.
+- **A refused edit** shows the CLI's refusal word for word, with its rule tag, plus a link to the item that blocks it. The GUI never suggests a fix.
