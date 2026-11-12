@@ -7,6 +7,17 @@ notes** say what you have to do after `update`. Where a release changes the
 rules `check` enforces, it says so there, because a stricter rule can turn a
 passing `check` red.
 
+## Unreleased
+
+- **Milestone timeline** — When roadmap.toml declares milestones, the
+  README index gets a Milestones section above the buckets: a Mermaid gantt
+  with one dated marker per milestone, passed or coming, then one line each
+  naming the open items due for it and how many closed ones done.md lists.
+  Items are never drawn as bars, and nothing reads today's date, so `check`
+  gives the same answer every day. The chart is left out while every
+  milestone shares one date. **Upgrade notes:** `update` regenerates the
+  index if roadmap.toml declares milestones. Nothing changes for `check`.
+
 ## 2.1.0 — 2026-11-06
 
 - **Install the CLI globally** — `npm install -g simple-agentic-roadmap-skill`

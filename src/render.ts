@@ -34,6 +34,7 @@ export function renderIndex(
   const graph = renderGraph(items, milestones);
   if (graph.length) lines.push(...graph, "");
   else if (items.length) lines.push("*No open item depends on another or on a milestone, so there is no chart.*", "");
+  lines.push(...renderTimeline(items, archived, milestones));
   for (const bucket of BUCKETS) {
     const inBucket = items.filter((i) => i.bucket === bucket);
     lines.push(`### ${BUCKET_TITLES[bucket]} (${inBucket.length})`, "");
@@ -108,6 +109,52 @@ export function renderGraph(items: Item[], milestones: Map<string, Milestone> = 
   if (later.length) lines.push("  classDef later stroke-dasharray: 5 5", `  class ${later.join(",")} later`);
   lines.push("```");
   return lines;
+}
+
+/** The declared milestones in date order, past and coming alike: a Mermaid
+ * gantt with one marker each, then one line each naming the open items due
+ * for it, in index order, and how many closed items done.md lists for it.
+ * Items wait on a milestone only in the flowchart, and they are never bars,
+ * because an item has a deadline but no start or estimate. Nothing here
+ * reads today's date; the viewer draws Mermaid's today marker. A chart whose
+ * markers all share one date would have an axis spanning no time, so it is
+ * left out. The heading counts declared milestones, where done.md's
+ * Milestones heading counts the ones closed items name. With no milestones
+ * declared, this renders nothing. */
+export function renderTimeline(
+  items: readonly Item[],
+  archived: readonly Item[] = [],
+  milestones: Map<string, Milestone> = new Map(),
+): string[] {
+  if (!milestones.size) return [];
+  const ordered = [...milestones.values()].sort((a, b) => cmp([a.date.ordinal, a.id], [b.date.ordinal, b.id]));
+  const lines = [`### Milestones (${ordered.length})`, ""];
+  if (new Set(ordered.map((m) => m.date.ordinal)).size > 1) {
+    lines.push("```mermaid", "gantt", "  dateFormat YYYY-MM-DD", "  axisFormat %Y-%m");
+    for (const m of ordered) lines.push(`  ${taskLabel(m.title)} : milestone, ${node(m.id, "m_")}, ${m.date}, 0d`);
+    lines.push("```", "");
+  }
+  for (const m of ordered) {
+    const open = BUCKETS.flatMap((b) => items.filter((i) => i.bucket === b && i.meta.milestone === m.id));
+    const closed = archived.filter((i) => i.meta.milestone === m.id).length;
+    const parts = [
+      open.length ? `open ${open.map((i) => `[${i.title}](items/${name(i.path)})`).join(", ")}` : "nothing open",
+    ];
+    if (closed) parts.push(`${closed} closed in [done.md](done.md)`);
+    lines.push(`- **${m.title}** (\`${m.id}\`) — ${m.date}: ${parts.join("; ")}`);
+  }
+  lines.push("");
+  return lines;
+}
+
+/** A title as the name of a gantt task. A colon would end the name, so it
+ * becomes a ratio sign that looks the same. A name that starts like one of
+ * the gantt keywords, or like a comment, is quoted so it is read as a task. */
+function taskLabel(title: string): string {
+  const text = title.replaceAll(":", "∶");
+  const keyword =
+    /^(gantt|dateformat\s|inclusiveenddates|topaxis|axisformat\s|tickinterval\s|includes\s|excludes\s|todaymarker\s|weekday\s|weekend\s|title\s|accdescription\s|section\s|acctitle|accdescr|click\s|call\s|href\s|\d{4}-\d\d-\d\d|.?%)/i;
+  return keyword.test(text) ? `“${text}”` : text;
 }
 
 /** A Mermaid node id: `i_` for an item, `m_` for a milestone. The prefix

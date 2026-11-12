@@ -7,7 +7,7 @@ import { describe, test } from "node:test";
 import { check } from "../src/commands.ts";
 import { DONE_BEGIN, DONE_END, INDEX_BEGIN, INDEX_END, load, openRoadmap, UsageError } from "../src/model.ts";
 import { len, readText } from "../src/py.ts";
-import { renderDone, renderGraph, renderIndex, short, splice } from "../src/render.ts";
+import { renderDone, renderGraph, renderIndex, renderTimeline, short, splice } from "../src/render.ts";
 import {
   closedMeta,
   contains,
@@ -298,4 +298,100 @@ test("the graph draws the milestones open items name as hexagons", () => {
     graph.some((line) => line.includes("m_unused")),
     false,
   );
+});
+
+const TIMELINE =
+  "[milestones]\n" +
+  'beta = { title = "Public beta", date = 2026-12-01 }\n' +
+  'alpha = { title = "Alpha", date = 2026-08-01 }\n' +
+  'unused = { title = "U", date = 2027-01-01 }\n';
+
+test("the timeline marks every declared milestone in date order", () => {
+  const rm = makeRoadmap(tempDir(), {
+    "roadmap.toml": TIMELINE,
+    "items/a.md": itemText(openMeta({ id: "a", title: "A", milestone: "beta" })),
+  });
+  const [items, archived] = load(rm);
+
+  const timeline = renderTimeline(items, archived, rm.milestones);
+
+  assert.deepEqual(timeline.slice(0, 9), [
+    "### Milestones (3)",
+    "",
+    "```mermaid",
+    "gantt",
+    "  dateFormat YYYY-MM-DD",
+    "  axisFormat %Y-%m",
+    "  Alpha : milestone, m_alpha, 2026-08-01, 0d", // passed or not, every declared one is drawn
+    "  Public beta : milestone, m_beta, 2026-12-01, 0d",
+    "  U : milestone, m_unused, 2027-01-01, 0d", // no item names it
+  ]);
+  contains(renderIndex(items, archived, rm.milestones), timeline.join("\n"));
+  assert.deepEqual(strings(check(rm)), []);
+});
+
+test("the timeline lists the open items due for each milestone, and the closed ones", () => {
+  const rm = makeRoadmap(tempDir(), {
+    "roadmap.toml": TIMELINE,
+    "items/a.md": itemText(openMeta({ id: "a", title: "A", bucket: "next", milestone: "beta" })),
+    "items/b.md": itemText(openMeta({ id: "b", title: "B", milestone: "beta" })),
+    "items/c.md": itemText(openMeta({ id: "c", title: "C", bucket: "next", rank: 2, depends_on: ["beta"] })),
+    "archive/d.md": itemText(closedMeta({ id: "d", title: "D", milestone: "alpha" })),
+    "archive/e.md": itemText(closedMeta({ id: "e", title: "E", milestone: "beta", outcome: "declined" })),
+  });
+  const [items, archived] = load(rm);
+
+  const timeline = renderTimeline(items, archived, rm.milestones);
+
+  assert.deepEqual(
+    timeline.filter((line) => line.startsWith("- ")),
+    [
+      "- **Alpha** (`alpha`) — 2026-08-01: nothing open; 1 closed in [done.md](done.md)",
+      // index order, Now before Next; c only waits on beta, so it is left out
+      "- **Public beta** (`beta`) — 2026-12-01: open [B](items/b.md), [A](items/a.md); 1 closed in [done.md](done.md)",
+      "- **U** (`unused`) — 2027-01-01: nothing open",
+    ],
+  );
+  assert.deepEqual(strings(check(rm)), []);
+});
+
+test("the timeline leaves out a chart whose milestones share one date", () => {
+  const rm = makeRoadmap(tempDir(), { "roadmap.toml": MILESTONES.split("unused")[0] ?? "" });
+  const [items, archived] = load(rm);
+
+  assert.deepEqual(renderTimeline(items, archived, rm.milestones), [
+    "### Milestones (1)",
+    "",
+    "- **Public beta** (`beta`) — 2026-12-01: nothing open",
+    "",
+  ]);
+});
+
+test("without milestones there is no timeline", () => {
+  const rm = makeRoadmap(tempDir(), { "items/a.md": itemText(openMeta({ id: "a", title: "A" })) });
+  const [items, archived] = load(rm);
+
+  assert.deepEqual(renderTimeline(items, archived, rm.milestones), []);
+  excludes(renderIndex(items, archived, rm.milestones), "### Milestones");
+});
+
+test("a milestone title cannot break the gantt", () => {
+  const rm = makeRoadmap(tempDir(), {
+    "roadmap.toml":
+      "[milestones]\n" +
+      'v1 = { title = "v1: #1 launch; done", date = 2026-08-01 }\n' +
+      'cfp = { title = "Call for papers", date = 2026-09-01 }\n' +
+      'pct = { title = "5% rollout", date = 2026-10-01 }\n' +
+      'sec = { title = "Section 2", date = 2026-11-01 }\n',
+  });
+  const [items, archived] = load(rm);
+
+  const gantt = renderTimeline(items, archived, rm.milestones).filter((line) => line.includes(": milestone,"));
+
+  assert.deepEqual(gantt, [
+    "  v1∶ #1 launch; done : milestone, m_v1, 2026-08-01, 0d", // only a colon ends a task's name
+    "  “Call for papers” : milestone, m_cfp, 2026-09-01, 0d",
+    "  “5% rollout” : milestone, m_pct, 2026-10-01, 0d",
+    "  “Section 2” : milestone, m_sec, 2026-11-01, 0d",
+  ]);
 });
