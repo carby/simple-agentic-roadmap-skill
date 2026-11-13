@@ -7,7 +7,7 @@ notes** say what you have to do after `update`. Where a release changes the
 rules `check` enforces, it says so there, because a stricter rule can turn a
 passing `check` red.
 
-## Unreleased
+## 2.2.0 — 2026-11-14
 
 - **Mark a milestone reached** — a milestone takes an optional `reached`
   date in roadmap.toml (`beta = { title = "Public beta", date = 2026-12-01,
