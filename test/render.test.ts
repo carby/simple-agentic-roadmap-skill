@@ -276,6 +276,26 @@ test("the index names the milestones an item is due for and waits on", () => {
   assert.deepEqual(strings(check(rm)), []);
 });
 
+test("a reached milestone is history in the index and draws nothing in the graph", () => {
+  const rm = makeRoadmap(tempDir(), {
+    "roadmap.toml":
+      '[milestones]\nbeta = { title = "Public beta", date = 2026-12-01 }\n' +
+      'alpha = { title = "Alpha", date = 2026-11-01, reached = 2026-11-02 }\n',
+    "items/a.md": itemText(openMeta({ id: "a", title: "A", milestone: "beta", depends_on: ["alpha"] })),
+    "items/b.md": itemText(openMeta({ id: "b", title: "B", bucket: "next", depends_on: ["alpha"] })),
+  });
+  const [items, archived] = load(rm);
+
+  contains(renderIndex(items, archived, rm.milestones), "**Depends on:** Alpha (2026-11-01, reached 2026-11-02)");
+  const graph = renderGraph(items, rm.milestones);
+  assert.equal(
+    graph.some((line) => line.includes("m_alpha")),
+    false,
+  );
+  contains(graph, "  class i_a,i_b ready"); // waiting on a reached milestone holds nothing up
+  assert.deepEqual(strings(check(rm)), []);
+});
+
 test("the graph draws the milestones open items name as hexagons", () => {
   const rm = makeRoadmap(tempDir(), {
     "roadmap.toml": MILESTONES,

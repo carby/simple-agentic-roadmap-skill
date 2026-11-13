@@ -65,11 +65,29 @@ milestone than its own. A `later` item due for a milestone makes the items
 waiting on it `later` too, without a `blocked_on` of their own. Dates order
 milestones against each other, never against today, so `check` gives the same
 answer every day. Once a milestone has passed, keep it in roadmap.toml as
-history: done.md lists it with the archived items due for it. Re-date it, or
-re-target the open items still due for it, and drop the `depends_on` entries
-that name it. An archived item may name a milestone roadmap.toml no longer
+history: done.md lists it with the archived items due for it. **A date
+passing is not the milestone being met.** When it is met (the release went
+out, the check-in was done), a person adds `reached = <date>` to it, the
+way an item is closed:
+
+```toml
+beta = { title = "Public beta", date = 2026-12-01, reached = 2026-12-03 }
+```
+
+A reached milestone is satisfied, like a shipped item. It stays in the
+`depends_on` of the items that waited on it, as history: never drop those
+entries. It orders nothing any more, the README index notes when it was
+reached, and the chart leaves it out. No open item may still be due for it.
+`reached` may fall before or after `date`, since a release can ship early.
+If a milestone slipped instead, re-date it, or re-target the open items due
+for it. Reaching a later milestone doesn't release the items due for an
+earlier, unreached one: that one slipped, and `review` lists it.
+
+An archived item may name a milestone roadmap.toml no longer
 declares; done.md then shows the bare id. Milestones need roadmap 1.3.0 or later,
-because older versions reject the `[milestones]` table.
+because older versions reject the `[milestones]` table, and `reached` needs
+2.2.0 or later: upgrade everyone, CI and the merge driver included, before
+setting it.
 
 **People decide the bucket.** When filing an item, suggest a bucket and ask
 before filing. Base the suggestion on dependency order: an item goes no
@@ -215,7 +233,7 @@ Every problem `check` reports ends in one of these tags.
 | `schema` | required fields present, none unknown, id = filename = kebab slug; archived items carry no queue fields | rename the file or the id; remove the stray field |
 | `bucket` | bucket is `now`, `next` or `later`; `later` ⇔ `blocked_on`, or a dependency in `later` | add `blocked_on`, or `move` the item out of `later` |
 | `rank` | positive integer, unique within the bucket | `index --renumber` |
-| `depends` | `depends_on` is a list of ids naming open or shipped items or declared milestones, each ahead of the item: in an earlier bucket, or higher in the same one. `milestone` names a declared milestone; items due for it (or an earlier one) come before items waiting on it, and no item waits on a milestone at or after the one it is due for | reorder or `move` the items; drop a declined or missing dependency and re-argue the item; drop a passed milestone from `depends_on` |
+| `depends` | `depends_on` is a list of ids naming open or shipped items or declared milestones, each ahead of the item: in an earlier bucket, or higher in the same one. `milestone` names a declared milestone; items due for it (or an earlier one) come before items waiting on it, and no item waits on a milestone at or after the one it is due for | reorder or `move` the items; drop a declined or missing dependency and re-argue the item; re-target an item due for a reached milestone. A passed or reached milestone stays in `depends_on` |
 | `supersedes` | `supersedes` names a declined archived item, not the item itself | point it at the declined item; for follow-up work on a shipped item use `depends_on` |
 | `dates` | bare TOML dates (`2026-09-06`, not `"2026-09-06"`); none earlier than `filed` | unquote the date |
 | `body` | the prose says something (HTML comments don't count) | write the argument |

@@ -179,6 +179,28 @@ test("every shipped migration is a no-op on a fresh roadmap", (t) => {
   assert.deepEqual(planMigrations(openRoadmap("roadmap"), MIGRATIONS), []);
 });
 
+test("a 2.1 roadmap.toml learns about reached, once, and keeps its milestones", (t) => {
+  output = capture(t);
+  main(["init"]);
+  const fresh = read("roadmap/roadmap.toml");
+  const old = fresh
+    .replace(/^# Once one is met.*\n# shipped item.*\n/m, "")
+    .replace(/^# alpha = .*\n/m, "")
+    .replace(/^\[milestones\]$/m, '[milestones]\nbeta = { title = "B", date = 2026-12-01 }');
+  writeFileSync("roadmap/roadmap.toml", old);
+
+  const [planned] = planMigrations(openRoadmap("roadmap"), MIGRATIONS);
+  assert.deepEqual(
+    planned?.migrations.map((m) => m.id),
+    ["milestone-reached"],
+  );
+  writeFileSync("roadmap/roadmap.toml", planned?.text ?? "");
+
+  contains(read("roadmap/roadmap.toml"), "add `reached = <date>`");
+  contains(read("roadmap/roadmap.toml"), 'beta = { title = "B", date = 2026-12-01 }');
+  assert.deepEqual(planMigrations(openRoadmap("roadmap"), MIGRATIONS), []);
+});
+
 test("update migrates the roadmap next to a symlinked skill", (t) => {
   output = capture(t);
   const fresh = initLegacy();

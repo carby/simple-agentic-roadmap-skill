@@ -190,7 +190,7 @@ export function cmdReview(rm: Roadmap, args: Args): number {
   let found = false;
 
   const passed = [...rm.milestones.values()]
-    .filter((m) => m.date.ordinal < now.ordinal)
+    .filter((m) => m.reached === null && m.date.ordinal < now.ordinal)
     .sort((a, b) => cmp([a.date.ordinal, a.id], [b.date.ordinal, b.id]));
   for (const m of passed) {
     const dueFor = items.filter((i) => due(i, rm.milestones) === m).map((i) => i.id);
@@ -198,8 +198,9 @@ export function cmdReview(rm: Roadmap, args: Args): number {
     if (!(dueFor.length || waiting.length)) continue; // history: done.md lists it with what shipped for it
     if (!found) {
       out(
-        "Milestones that have passed but open items still name (re-date them, or re-target the items" +
-          " due for them and drop them from depends_on):",
+        "Milestones that have passed but aren't marked reached, and open items still name them (once one is" +
+          " met, add reached = <date> to it in roadmap.toml; if it slipped, re-date it or re-target the items" +
+          " due for it):",
       );
       found = true;
     }

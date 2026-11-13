@@ -166,11 +166,20 @@ export function awaited(item: Item, byId: Map<string, Item>, milestones: Map<str
     .map((d) => milestones.get(d) as Milestone);
 }
 
+/** The milestones an item still waits on: those its depends_on names that
+ * nobody has marked reached. A reached milestone is satisfied, like a
+ * shipped item. */
+export function pending(item: Item, byId: Map<string, Item>, milestones: Map<string, Milestone>): Milestone[] {
+  return awaited(item, byId, milestones).filter((m) => m.reached === null);
+}
+
 /** The open items that must come before `item` because of a milestone: the
- * ones due for a milestone it waits on, or for an earlier one. They are in
- * queue order, so the last one is the furthest down. */
+ * ones due for a milestone it still waits on, or for an earlier one. They
+ * are in queue order, so the last one is the furthest down. A reached
+ * milestone orders nothing, even if an earlier one has open items left: that
+ * one slipped, and `review` lists it. */
 export function dueBefore(item: Item, byId: Map<string, Item>, milestones: Map<string, Milestone>): Item[] {
-  const waits = awaited(item, byId, milestones);
+  const waits = pending(item, byId, milestones);
   if (!waits.length) return [];
   const latest = Math.max(...waits.map((m) => m.date.ordinal));
   const found = [...byId.values()].filter((other) => {
@@ -207,9 +216,11 @@ function latestOf(milestones: Milestone[]): Milestone {
  *
  * A milestone is a point in time. An item that waits on one comes after
  * every item due for it or for an earlier one, and an item can't wait on a
- * point it is due before. Today's date plays no part, so `check` gives the
- * same answer every day. An archived item keeps depends_on and milestone as
- * history, so only their types are checked. */
+ * point it is due before. A milestone marked reached is satisfied, like a
+ * shipped item: it stays in depends_on as history, orders nothing, and no
+ * open item may still be due for it. Today's date plays no part, so `check`
+ * gives the same answer every day. An archived item keeps depends_on and
+ * milestone as history, so only their types are checked. */
 export function dependsProblems(item: Item, byId: Map<string, Item>, milestones: Map<string, Milestone>): Problem[] {
   const deps = "depends_on" in item.meta ? item.meta.depends_on : [];
   if (!(Array.isArray(deps) && deps.every((d) => typeof d === "string" && d.trim()))) {
@@ -222,6 +233,11 @@ export function dependsProblems(item: Item, byId: Map<string, Item>, milestones:
   const mid = item.meta.milestone;
   if (typeof mid === "string" && mine === undefined) {
     problems.push(`is due for milestone ${repr(mid)}, which roadmap.toml does not declare`);
+  } else if (mine?.reached) {
+    problems.push(
+      `is due for ${repr(mine.id)}, which was reached on ${mine.reached}; re-target the item, or remove` +
+        " `reached` from the milestone",
+    );
   }
   if (new Set(deps).size !== deps.length) problems.push("depends_on names an item more than once");
   for (const depId of new Set(deps as string[])) {
@@ -233,7 +249,7 @@ export function dependsProblems(item: Item, byId: Map<string, Item>, milestones:
     if (depId === item.id) {
       problems.push("depends on itself");
     } else if (waitsFor) {
-      if (mine && waitsFor.date.ordinal >= mine.date.ordinal) {
+      if (mine && waitsFor.reached === null && waitsFor.date.ordinal >= mine.date.ordinal) {
         problems.push(`is due for ${repr(mine.id)} (${mine.date}) but waits on ${repr(depId)} (${waitsFor.date})`);
       }
     } else if (dep === undefined) {
@@ -261,7 +277,7 @@ export function dependsProblems(item: Item, byId: Map<string, Item>, milestones:
     : [];
   const other = late[late.length - 1];
   if (other) {
-    const latest = latestOf(awaited(item, byId, milestones));
+    const latest = latestOf(pending(item, byId, milestones));
     problems.push(
       `depends on milestone ${repr(latest.id)} (${latest.date}), but ${repr(other.id)} (${repr(other.bucket)}, rank` +
         ` ${other.rank}) is due by then and must come first: in an earlier bucket, or higher in ${repr(item.bucket)}`,

@@ -46,12 +46,32 @@ test("passed milestones are listed with the items that name them", () => {
 
   const lines = review(root, "--date", "2026-11-11");
 
-  assert.equal(lines[0]?.startsWith("Milestones that have passed but open items still name"), true);
+  assert.equal(lines[0]?.startsWith("Milestones that have passed but aren't marked reached"), true);
   assert.equal(lines[1], "  alpha: Alpha (2026-11-01), 10 days ago; due: a; waiting: b");
   assert.equal(
     lines.some((l) => l.includes("beta")),
     false,
   );
+});
+
+test("a reached milestone stays quiet, with items still waiting on it", () => {
+  const root = tempDir();
+  makeRoadmap(root, {
+    "roadmap.toml": MILESTONES.replace("date = 2026-11-01 }", "date = 2026-11-01, reached = 2026-11-01 }"),
+    "items/b.md": itemText(openMeta({ id: "b", bucket: "next", depends_on: ["alpha"], filed: D(2026, 10, 30) })),
+  });
+
+  assert.equal(review(root, "--date", "2026-11-11").at(-1), "Nothing to review.");
+});
+
+test("a passed check-in nothing is due for is listed until it is marked reached", () => {
+  const root = tempDir();
+  makeRoadmap(root, {
+    "roadmap.toml": MILESTONES,
+    "items/b.md": itemText(openMeta({ id: "b", depends_on: ["alpha"], filed: D(2026, 10, 30) })),
+  });
+
+  assert.equal(review(root, "--date", "2026-11-11")[1], "  alpha: Alpha (2026-11-01), 10 days ago; waiting: b");
 });
 
 test("a passed milestone nothing open names is history", () => {

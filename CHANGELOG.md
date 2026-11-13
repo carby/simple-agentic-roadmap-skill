@@ -7,6 +7,31 @@ notes** say what you have to do after `update`. Where a release changes the
 rules `check` enforces, it says so there, because a stricter rule can turn a
 passing `check` red.
 
+## Unreleased
+
+- **Mark a milestone reached** — a milestone takes an optional `reached`
+  date in roadmap.toml (`beta = { title = "Public beta", date = 2026-12-01,
+  reached = 2026-12-03 }`), set by a person once it is met, the way an item
+  is closed. A reached milestone is satisfied, like a shipped item: it orders
+  nothing, makes nothing Later, and the README chart leaves it out, while the
+  index notes it as `Public beta (2026-12-01, reached 2026-12-03)`.
+- **A passed milestone stays in `depends_on`** — the old convention said to
+  drop the `depends_on` entries naming a passed milestone, which rewrote the
+  dependency chain because time passed and lost why items waited. They now
+  stay as history, like a shipped dependency. `review` lists a passed
+  milestone only while it isn't marked reached and open items name it, and
+  suggests marking it reached instead of dropping anything.
+- `update` adds a line about `reached` to roadmap.toml's milestone comment.
+- **Rules:** `[config]` accepts `reached` as a bare date, before or after the
+  milestone's `date`. `[depends]` gets one new failure: an open item due for
+  a reached milestone (re-target it, or remove `reached`). Neither can turn
+  an existing roadmap red, because nothing sets `reached` yet. But releases
+  before 2.2.0 reject the key as unknown with `[config]`: upgrade everyone,
+  CI and the merge driver included, before setting it.
+- **Upgrade notes:** nothing required. If you dropped `depends_on` entries
+  under the old convention, you may put them back and mark the milestone
+  reached.
+
 ## 2.1.0 — 2026-11-06
 
 - **Install the CLI globally** — `npm install -g simple-agentic-roadmap-skill`

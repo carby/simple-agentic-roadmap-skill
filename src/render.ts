@@ -18,7 +18,7 @@ import {
 } from "./model.ts";
 import { exists, name } from "./pathlib.ts";
 import { cmp, len, readText, str, truthy } from "./py.ts";
-import { awaited, byIdOf, dependsOn, due, isBucket } from "./rules.ts";
+import { byIdOf, dependsOn, due, isBucket, pending } from "./rules.ts";
 
 /** The README's index block, between its markers. There is one line per item, and
  * every one is read back out of the item files. `archived` is only consulted
@@ -63,8 +63,10 @@ export function renderIndex(
  * holds up gets a thick border: it is not in Later and waits on no open item
  * and no milestone. A milestone counts as waiting even once its date has
  * passed, because telling would take today's date, which `check` never
- * reads. Later items get a dashed border. Nothing sets a colour, so the
- * chart reads in light and dark themes. A chart with no arrows would only
+ * reads, until a person marks it `reached`. Then, like a closed dependency,
+ * it draws no arrow, and no hexagon unless an open item is due for it.
+ * Later items get a dashed border. Nothing sets a colour, so the chart reads
+ * in light and dark themes. A chart with no arrows would only
  * repeat the list as boxes, so it is left out. */
 export function renderGraph(items: Item[], milestones: Map<string, Milestone> = new Map()): string[] {
   const queued = items.filter((i) => isBucket(i.bucket));
@@ -79,7 +81,7 @@ export function renderGraph(items: Item[], milestones: Map<string, Milestone> = 
     return m ? [[i, m]] : [];
   });
   const byId = byIdOf(items);
-  const waits = queued.flatMap((i) => awaited(i, byId, milestones).map((m): [Item, Milestone] => [i, m]));
+  const waits = queued.flatMap((i) => pending(i, byId, milestones).map((m): [Item, Milestone] => [i, m]));
   if (!(arrows.length || dueFor.length || waits.length)) return [];
   const lines = ["```mermaid", "flowchart LR"];
   const buckets = BUCKETS.filter((b) => queued.some((i) => i.bucket === b));
@@ -159,7 +161,11 @@ function note(item: Item, byId: Map<string, Item>, milestones: Map<string, Miles
  * shown as it is, unlinked. */
 function dependency(depId: string, byId: Map<string, Item>, milestones: Map<string, Milestone>): string {
   const dep = byId.get(depId);
-  if (dep === undefined) return String(milestones.get(depId) ?? depId);
+  if (dep === undefined) {
+    const m = milestones.get(depId);
+    if (m === undefined) return depId;
+    return m.reached ? `${m.title} (${m.date}, reached ${m.reached})` : String(m);
+  }
   if (dep.archived) return `[${dep.title}](archive/${name(dep.path)}) (${str(dep.meta.outcome)})`;
   return `[${dep.title}](items/${name(dep.path)})`;
 }
