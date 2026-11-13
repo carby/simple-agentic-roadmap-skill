@@ -83,14 +83,15 @@ export function entriesStart(text: string): number {
 export const RULES: Record<string, string> = {
   config:
     "roadmap.toml parses, declares each ref kind as a path template containing {}, and each milestone" +
-    " as a title and a bare date",
+    " as a title and a bare date, plus an optional bare `reached` date",
   frontmatter: "the file opens with +++-fenced frontmatter that parses as TOML",
   schema: "required fields present, none unknown, id is a kebab-case slug matching the filename",
   bucket: "bucket is now, next or later; later <=> blocked_on, or a dependency that is in later",
   rank: "rank is a positive integer, unique within its bucket",
   depends:
     "depends_on names open or shipped items or milestones, each one ahead of the item in bucket and" +
-    " rank order; an item due for a milestone comes before the items that wait on it",
+    " rank order; an item due for a milestone comes before the items that wait on it, and none is due for a" +
+    " reached milestone",
   supersedes: "supersedes names a declined archived item: the idea this item tries again",
   dates: "dates are bare TOML dates, and none predates `filed`",
   body: "the prose body says something (HTML comments don't count)",
@@ -153,11 +154,14 @@ export class Milestone {
   readonly id: string;
   readonly title: string;
   readonly date: Day;
+  /** When a person marked it met, like closing an item; null until then. */
+  readonly reached: Day | null;
 
-  constructor(id: string, title: string, date: Day) {
+  constructor(id: string, title: string, date: Day, reached: Day | null = null) {
     this.id = id;
     this.title = title;
     this.date = date;
+    this.reached = reached;
   }
 
   toString(): string {
@@ -310,12 +314,18 @@ function milestonesOf(config: Meta, configPath: string): Map<string, Milestone> 
     const keys = isDict(spec) ? Object.keys(spec).sort() : [];
     const title = isDict(spec) ? spec.title : undefined;
     const date = isDict(spec) ? spec.date : undefined;
-    if (keys.join() !== "date,title" || !(typeof title === "string" && title.trim() && date instanceof Day)) {
+    const reached = isDict(spec) && "reached" in spec ? spec.reached : null;
+    if (
+      !["date,title", "date,reached,title"].includes(keys.join()) ||
+      !(typeof title === "string" && title.trim() && date instanceof Day) ||
+      !(reached === null || reached instanceof Day)
+    ) {
       throw new ConfigError(
-        `${configPath}: milestones.${mid} must be { title = "...", date = 2026-12-01 }, with a bare TOML date [config]`,
+        `${configPath}: milestones.${mid} must be { title = "...", date = 2026-12-01 }, with a bare TOML date,` +
+          ` and optionally reached = 2026-12-01 once it is met [config]`,
       );
     }
-    milestones.set(mid, new Milestone(mid, title, date));
+    milestones.set(mid, new Milestone(mid, title, date, reached));
   }
   return milestones;
 }

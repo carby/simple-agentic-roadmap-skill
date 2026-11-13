@@ -83,6 +83,23 @@ export const MIGRATIONS: Migration[] = [
     summary: "the intro above the first decision is replaced with today's",
     files: { "decisions.md": (text) => decisionsIntro(text) },
   },
+  {
+    id: "milestone-reached",
+    since: "2.2.0",
+    summary: "roadmap.toml's milestone comment mentions `reached`",
+    files: {
+      "roadmap.toml": (text) =>
+        text.includes("`reached = <date>`")
+          ? text
+          : lines(
+              text,
+              /^# `milestone = "beta"`, or waits on one with `depends_on = \["beta"\]`\.$/,
+              (m) =>
+                `${m[0]}\n# Once one is met, add \`reached = <date>\`: it then counts as done, like a\n` +
+                "# shipped item, and stays in depends_on as history.",
+            ),
+    },
+  },
 ];
 
 /** README.md split at its `#`, `##` and `###` headings. Each section runs

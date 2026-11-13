@@ -18,5 +18,8 @@
 
 # Milestones: named points in time. An item is due for one with
 # `milestone = "beta"`, or waits on one with `depends_on = ["beta"]`.
+# Once one is met, add `reached = <date>`: it then counts as done, like a
+# shipped item, and stays in depends_on as history.
 [milestones]
 # beta = { title = "Public beta", date = 2026-12-01 }
+# alpha = { title = "Private alpha", date = 2026-11-01, reached = 2026-10-30 }

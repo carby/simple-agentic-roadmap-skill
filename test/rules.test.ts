@@ -367,6 +367,15 @@ const CASES: Case[] = [
     },
   ],
   [
+    "milestone-due-for-reached",
+    "depends",
+    "is due for 'alpha', which was reached on 2026-10-30; re-target the item, or remove `reached`",
+    {
+      "roadmap.toml": '[milestones]\nalpha = { title = "Alpha", date = 2026-11-01, reached = 2026-10-30 }\n',
+      "items/sample.md": itemText(openMeta({ milestone: "alpha" })),
+    },
+  ],
+  [
     "milestone-id-taken",
     "ids",
     "id 'beta' is also a milestone in roadmap.toml",
@@ -433,6 +442,12 @@ describe("a broken config is refused", () => {
     ["[milestones]\nbeta = { date = 2026-12-01 }", "milestones.beta must be"],
     ['[milestones]\nbeta = { title = "B", date = 2026-12-01, owner = "me" }', "milestones.beta must be"],
     ['[milestones]\nbeta = "2026-12-01"', "milestones.beta must be"],
+    ['[milestones]\nbeta = { title = "B", date = 2026-12-01, reached = "2026-12-01" }', "milestones.beta must be"],
+    [
+      '[milestones]\nbeta = { title = "B", date = 2026-12-01, reached = 2026-12-01T10:00:00 }',
+      "milestones.beta must be",
+    ],
+    ['[milestones]\nbeta = { title = "B", date = 2026-12-01, reached = true }', "optionally reached = 2026-12-01"],
   ])("%s", (toml, expected) => {
     const tmp = tempDir();
     mkdirSync(join(tmp, "roadmap"));
@@ -580,4 +595,40 @@ test("milestones order the items due for them ahead of the items waiting on them
   });
 
   assert.deepEqual(strings(check(rm)), []);
+});
+
+test("a reached milestone is satisfied, like a shipped item", () => {
+  // alpha was met early, so the items waiting on it are free to go ahead of
+  // anything, and to sit in any bucket. They keep naming it as history.
+  const reached =
+    '[milestones]\nalpha = { title = "Alpha", date = 2026-11-01, reached = 2026-10-30 }\n' +
+    'beta = { title = "Beta", date = 2026-12-01 }\n';
+  const files = {
+    "roadmap.toml": reached,
+    "items/waits.md": itemText(openMeta({ id: "waits", depends_on: ["alpha"] })),
+    "items/due.md": itemText(openMeta({ id: "due", rank: 2, milestone: "beta", depends_on: ["alpha"] })),
+    "items/early.md": itemText(openMeta({ id: "early", bucket: "later", blocked_on: "a call" })),
+    "archive/old.md": itemText(closedMeta({ id: "old", milestone: "alpha" })),
+  };
+  assert.deepEqual(strings(check(makeRoadmap(tempDir(), files))), []);
+
+  // Un-marking it brings the ordering back.
+  const unmarked = makeRoadmap(tempDir(), {
+    ...files,
+    "roadmap.toml": reached.replace(", reached = 2026-10-30", ""),
+    "items/late.md": itemText(openMeta({ id: "late", bucket: "next", milestone: "alpha" })),
+  });
+  contains(strings(check(unmarked)).join("\n"), "depends on milestone 'alpha' (2026-11-01), but 'late'");
+});
+
+test("a reached milestone may be reached before or after its date", () => {
+  const rm = makeRoadmap(tempDir(), {
+    "roadmap.toml":
+      '[milestones]\nearly = { title = "E", date = 2026-11-01, reached = 2026-10-01 }\n' +
+      'late = { title = "L", date = 2026-11-01, reached = 2026-12-01 }\n',
+    "items/a.md": itemText(openMeta({ id: "a", depends_on: ["early", "late"] })),
+  });
+
+  assert.deepEqual(strings(check(rm)), []);
+  assert.equal(String(rm.milestones.get("late")?.reached), "2026-12-01");
 });

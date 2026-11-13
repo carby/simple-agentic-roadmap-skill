@@ -43,8 +43,18 @@ beta = { title = "Public beta", date = 2026-12-01 }
 ```
 
 Keep a milestone after its date passes. `done.md` lists it, with the
-archived items that were due for it. `review` flags it only while an open
-item still names it.
+archived items that were due for it. Once it is met, mark it so; it then
+counts as done, like a shipped item, and the items that waited on it keep
+naming it as history:
+
+```toml
+[milestones]
+beta = { title = "Public beta", date = 2026-12-01, reached = 2026-12-03 }
+```
+
+`review` flags a passed milestone only while it isn't marked `reached` and an
+open item still names it. `reached` needs release 2.2.0 or later; older ones
+reject the key, so upgrade everyone, CI included, first.
 
 How milestones relate to buckets and `depends_on` is in [Concepts](concepts.md).
 

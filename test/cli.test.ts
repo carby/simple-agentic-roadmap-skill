@@ -615,6 +615,20 @@ test("move refuses to put an item behind the items waiting on its milestone", ()
   contains(result.stderr, "waits.md: depends on milestone 'beta' (2026-12-01), but 'due' ('later', rank 1)");
 });
 
+test("move puts an item waiting on a reached milestone ahead of the items due for it", () => {
+  const root = tempDir();
+  makeRoadmap(root, {
+    "roadmap.toml": '[milestones]\nbeta = { title = "Public beta", date = 2026-12-01, reached = 2026-12-01 }\n',
+    "items/done-soon.md": itemText(openMeta({ id: "done-soon" })),
+    "items/waits.md": itemText(openMeta({ id: "waits", bucket: "next", depends_on: ["beta"] })),
+  });
+
+  ok(run(["move", "waits", "--bucket", "now", "--rank", "1"], root));
+
+  assert.equal(meta(join(root, "roadmap/items/waits.md")).rank, 1);
+  checks(root);
+});
+
 test("index --renumber resolves a rank collision, oldest first", () => {
   const root = tempDir();
   makeRoadmap(root, {

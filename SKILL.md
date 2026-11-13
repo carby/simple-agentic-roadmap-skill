@@ -26,7 +26,7 @@ file it as a roadmap item instead of improvising it in the files.
 | `split <id>` | Agree the new part's id and title with the user. Run `split`, write the new item's prose, narrow the original's prose to the part it keeps, then run `check`. |
 | `close <id> [reason]` | Ask whether it shipped or was declined, unless that is clear. Add the outcome and reasoning to the item's prose *before* running `close`, because after that it is append-only. Then run `check`. |
 | `decide <decision>` | Draft a one-line title and the reasoning (why, and what it rules out), and confirm them with the user. Then run `decide` and `check`. A decision about a single item goes in that item's prose instead. |
-| `review` | Run `review` and report what it found. Suggest a fix for each (a `move`, a new milestone date, a `close`), but make none unasked. |
+| `review` | Run `review` and report what it found. Suggest a fix for each (a `move`, a new milestone date, marking a milestone `reached`, a `close`), but make none unasked. |
 | `check` | Run `check`. Fix what can be fixed (run `index` for `[generated]`), and report the rest. |
 | anything else | Treat it as a question. Answer from the roadmap, searching `done.md` and `decisions.md` first. |
 
@@ -117,6 +117,7 @@ link the two attempts.
 | Split an item that turned out to be two pieces of work | `roadmap split <id> <new-id> --title "..." [--body "..."]`. The new item copies the bucket, gate, blocked_on, depends_on, milestone and refs, and lands directly below the original. The original keeps one part, so narrow its prose. |
 | Read the queue without README.md, or script against it | `roadmap list [--bucket now] [--json]` |
 | Verify | `roadmap check` |
+| Mark a milestone met, once the user says it is | Add `reached = <date>` to it in roadmap.toml, e.g. `beta = { title = "Public beta", date = 2026-12-01, reached = 2026-12-03 }`, then run `index` and `check`. It is now satisfied, like a shipped item. **Leave it in the `depends_on` of the items that wait on it**: that is history, never something to clean up. |
 | Spot upkeep: passed milestones, stale Now/Next items | `roadmap review [--days 60]`. It uses today's date and git history, so it is never for CI, and it always exits 0. |
 | Refresh the skill after a CLI upgrade, once the user says yes | `roadmap update`. It copies the CLI's skill into every tool directory that already has one, moves roadmap.toml's `version` pin to the CLI's release, migrates text an older template wrote into `roadmap/`, regenerates the index if the new version renders it differently, and runs `check`. `--dry-run` shows all of that without writing. Fix or report what the new rules reject. |
 
@@ -128,8 +129,8 @@ Editing prose is a plain file edit. Run `index` and `check` afterwards.
 
 ## Hard rules
 
-0. **The human is the product owner.** Never file, move or close an item, or
-   record a decision, on your own initiative. If you spot something worth tracking, **pitch it**:
+0. **The human is the product owner.** Never file, move or close an item,
+   mark a milestone reached, or record a decision, on your own initiative. If you spot something worth tracking, **pitch it**:
    - a title,
    - a few lines on what is wrong and why it matters,
    - a suggested bucket.

@@ -104,9 +104,10 @@ test("every documented frontmatter field is one the schema knows", () => {
 });
 
 test("the template config parses with its examples uncommented", () => {
-  const uncommented = read("assets/template/roadmap.toml").replace(/^# (root|specs|changes|adrs|beta)/gm, "$1");
+  const uncommented = read("assets/template/roadmap.toml").replace(/^# (root|specs|changes|adrs|beta|alpha)/gm, "$1");
 
   assert.ok("beta" in (parseToml(uncommented).milestones as object));
+  assert.ok("reached" in ((parseToml(uncommented).milestones as Record<string, object>).alpha ?? {}));
 });
 
 test("the template decisions log is what decide writes", () => {
