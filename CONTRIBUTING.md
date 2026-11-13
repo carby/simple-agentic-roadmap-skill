@@ -38,7 +38,9 @@ agents do, which is why `npm test` builds `dist/` first (`pretest`). Set
 Assertions come from `node:assert/strict`, plus `contains`, `excludes`,
 `throwsWith` and `each` in `test/helpers.ts`. Code that writes to stdout is
 tested in-process with `capture(t)`, called first in the test body, never in
-a hook.
+a hook. A test that runs git checks its state or exit status, never its
+messages: git translates them, so a check for `CONFLICT` fails in a Swedish
+locale.
 
 | File | Covers |
 |---|---|

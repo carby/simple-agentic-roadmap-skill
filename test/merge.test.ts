@@ -46,11 +46,15 @@ function closeOneOnEachBranch(root: string) {
 }
 
 test("without the driver, two closes conflict in the generated blocks", () => {
-  const result = closeOneOnEachBranch(repo());
+  const root = repo();
+  const result = closeOneOnEachBranch(root);
 
+  // git translates its messages, so ask it which files are left unmerged.
   assert.notEqual(result.status, 0);
-  contains(result.stdout, "CONFLICT");
-  contains(result.stdout, "roadmap/done.md");
+  assert.deepEqual(git(root, "diff", "--name-only", "--diff-filter=U").split("\n").filter(Boolean), [
+    "roadmap/README.md",
+    "roadmap/done.md",
+  ]);
 });
 
 test("with the driver, two closes merge, and index makes check pass", () => {
