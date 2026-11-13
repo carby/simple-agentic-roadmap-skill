@@ -1,9 +1,10 @@
 +++
 id = "milestone-reached"
 title = "Mark milestones reached, and keep passed ones in depends_on"
-bucket = "now"
-rank = 14
 filed = 2026-11-13
+closed = 2026-11-13
+outcome = "shipped"
+shipped_as = "#38"
 
 [refs]
 files = ["src/rules.ts", "references/conventions.md"]
@@ -19,3 +20,5 @@ Done looks like:
 - `review` lists a passed milestone only while it is not reached and open items name it, and never says to drop `depends_on` entries.
 - conventions.md, SKILL.md (hard rule 0 and a Workflows row), docs and the template say so; `update` adds the template comment; CHANGELOG has the upgrade note that older releases reject the key.
 - The plan was reviewed by a second agent before implementing; its changes (no arrows for reached milestones, `pending` in the late-item message, the older-CLI note, the template migration) are in.
+
+**Outcome (2026-11-13):** shipped in #38, as planned and reviewed. `reached` is set by hand; whether agents need a command for it is [reach-command](../items/reach-command.md). A reached milestone draws nothing in the chart, rather than a hexagon kept as history, so it matches a shipped dependency. Reaching a later milestone doesn't release items due for an earlier, unreached one; that one slipped, and `review` lists it.
