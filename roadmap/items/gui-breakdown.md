@@ -72,3 +72,26 @@ It reads only what [gui-read-interface](gui-read-interface.md) already lists: mi
 - **The gutter stays the plain gitk graph.** Selecting an item highlights its row and nothing else, so a crowded chain never tangles the queue.
 - **The selected item's dependencies are drawn in the detail pane** as a small left-to-right graph: what it depends on (items and milestones) → the item → what needs it (items, and the milestone it is due for). It shows direct links only, with "+n further up/down" to expand a level in place. Clicking a node selects it and redraws the graph around it, with a breadcrumb and Alt+← back. It uses the same visual language as the milestone detail.
 - **Reached milestones**, since [milestone-reached](../archive/milestone-reached.md) shipped in 2.2.0, show as satisfied, like a shipped item: a ✓ chip that doesn't make an item wait. A milestone whose date has passed without being reached shows as late. The GUI may compare the date with today's, which the generated index never does. The snapshot in [gui-read-interface](gui-read-interface.md) has to carry `reached`.
+
+**2026-11-23:** a UX review of the main window found that a long item couldn't be read: at 1280×800 the queue, the graph and the frontmatter left 3–4 lines for the text, and a bigger window made lines longer rather than adding more. The sketches are fixed. For the GUI repo's items:
+- **The detail pane scrolls as one document.** A header with the id, title, state and dependency counts stays pinned. The dependency graph sizes to its rows (at most three a side, then "+n more") and can be collapsed, and the choice is remembered.
+- **Reading typography:** 14px text at line height 1.55, with lines capped near 75 characters (about 640px).
+- **Two splitters, as in gitk**, each remembered per repo as a fraction:
+
+  | Splitter | Default | Minimums |
+  |---|---|---|
+  | Queue / panes below | queue 35% of the height | queue 5 rows; below 240px |
+  | Detail / git log | 62 / 38 | detail 420px; log 280px |
+
+  Z, or a double-click on a splitter, maximises the detail pane for reading; doing it again restores the layout.
+- **What grows with the window:**
+  - extra height goes to the panes below the queue, which is capped at its own rows;
+  - extra width goes to the detail pane until the text reaches its cap, then to the git log;
+  - under about 1100px wide, the git log folds into a History tab next to Item and Raw frontmatter.
+- **Markdown renders properly:**
+  - lists and inline code in the mono font;
+  - each dated note set off by a thin rule and a date label;
+  - links to other items walk to them like a graph node, with Back and Forward on Alt+←/→, and external links open the browser;
+  - the text can be selected and copied (egui needs a crate such as egui_commonmark).
+- **The git log diffs word by word** (`--word-diff`), wrapped. A paragraph is one long line, so a line diff would mark all of it as changed.
+- **Walking to another item scrolls to the top; Back restores the scroll position.** The "changed on disk" banner overlays the pane instead of pushing the text down.
