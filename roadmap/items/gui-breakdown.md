@@ -115,3 +115,42 @@ It reads only what [gui-read-interface](gui-read-interface.md) already lists: mi
 - **Below about 800px wide the columns stack:** the frontmatter, then the graph collapsed, then the text. Whether the graph is collapsed is remembered once per layout, wide or stacked, so collapsing it in one doesn't change the other.
 - **Only the splitter between the queue and the item remains.** Z, ⤢ or a double-click on it maximises the item pane: the queue hides, and both columns keep their place, with the graph still collapsible. Doing it again restores the layout.
 - **When check reports problems, a Check panel opens on the right**, listing the ones that belong to no row, and closes again when they're fixed.
+
+**2026-11-23:** the product owner replaced the pane under the queue with a page per item, after a UX review of the plan. The Queue tab now works like the Milestones tab: an overview you open details from. This supersedes the earlier notes' detail pane: its header row, columns, splitter, Z maximise and mini-graph, and the rule that the graph lists every direct dependency.
+- **The queue fills the window.** A click or ↑↓ selects a row, and the context menu and Space act on the selection. A two-line strip at the bottom shows the selected item:
+  - line 1: state, id, title, the ◆ milestone, bucket and rank, and "changed N d ago";
+  - line 2: the full reason it waits, the gate or `blocked_on` text, and the first sentence of the text.
+  
+  Hover text stays reachable without a mouse. Enter or a double-click opens the item's page, and a milestone chip opens the milestone's page.
+- **The item page mirrors the milestone detail.** The toolbar carries a breadcrumb. A header stays pinned while the page scrolls as one document. Under it:
+  - a left-to-right graph: what it depends on → the item → what needs it, with the milestone it is due for;
+  - a collapsed legend;
+  - the grey frontmatter panel and the text, capped near 75 characters;
+  - beside the text, "Still to land first", in the order things can land.
+- **The graph is capped so the text stays readable.** It shows at most three cards a column, with "+n more in this level" past that, and G collapses it to one line ("↑ 3 · ↓ 2 · ◆ v3"). At 1280×800 that leaves about 11 lines of text in view, or about 24 with the graph collapsed.
+- **Levels are fixed, not "as many as fit".** One level each way by default. The ends of the graph count what is cut off, without duplicates, and say what it is: "← +3 further up (2 open, 1 ◇)". A click, or `[` / `]`, adds a level up or down, and `{` / `}` remove one. The number of open levels is kept in the history entry. A wider window only adds margin; the centre card never moves.
+- **Milestones are end points in an item's graph,** so a milestone never pulls in everything due for it; clicking one opens its page. An item reached by several paths sits at its longest-path level, so edges always run left to right. Closed upstream items fold into one "✓ n done" card that unfolds on a click; Show archived, which stays a queue toggle, sets that default.
+- **Both detail pages share one language:**
+  - the breadcrumb;
+  - the header: glyph, id, title, a status line, and one summary line in the agreed counting phrase ("2 due open, 2 needed first", "2 open dependencies, 1 needed first");
+  - 180×64 cards on a 240px pitch, and a centre node spanning the rows;
+  - the edge styles, the collapsed legend, and section headings written "Label: count".
+  
+  Only the progress bar (milestone page) and the frontmatter and text (item page) are their own. The milestone page follows the same cap: its closed items fold into one "✓ n closed" card.
+- **Navigation and keys:**
+  - clicking a card in either graph opens that node's page, and links in an item's text do the same;
+  - one global history covers both page kinds, with Alt+← back and Alt+→ forward;
+  - Ctrl+1 and Ctrl+2 push the overview as a new entry, and the tab toggle highlights the root of the current trail;
+  - the breadcrumb shows its root plus the last three crumbs, and jumping to one drops the forward history;
+  - back to an overview restores its scroll position and selection;
+  - Ctrl+↓ / Ctrl+↑ on an item page open the next or previous item in queue order, replacing the history entry, so Back returns to the queue in one step; the breadcrumb shows "Queue (6 of 8)";
+  - Tab moves into the graph, arrows move between cards with a visible focus ring, and Enter opens a card or expands a "+n" label; this retires Alt+↑/↓;
+  - Esc first closes a menu, find, a dialog or the raw view, and only then goes back;
+  - L shows the current item in the queue.
+- **Check problems:** an item's own problems show as a red band between its header and its graph. While check reports problems, the queue gets a Check panel on the right (about 300px) that lists all of them, including those that belong to no row; "check: n problems" in the status bar focuses it from anywhere.
+- **States the pages must cover:**
+  - an item with no dependencies shows one line ("No dependencies; nothing waits on it");
+  - the context menu on the item page acts on the item shown;
+  - after an edit and F5 the page stays on the item, and switches to its archived look if the item was closed;
+  - a history entry for an item that no longer exists says so, with Back available;
+  - the "changed on disk" banner overlays the page.
