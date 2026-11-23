@@ -97,11 +97,20 @@ It reads only what [gui-read-interface](gui-read-interface.md) already lists: mi
 - **Walking to another item scrolls to the top; Back restores the scroll position.** The "changed on disk" banner overlays the pane instead of pushing the text down.
 
 **2026-11-23:** the product owner dropped the git log pane: this is a roadmap tool, not a git browser. That reverses the earlier notes' git log pane, its History tab and the word diff. Below the queue, the item now has the whole width:
-- **A pinned header across the top** carries the id, title and state.
-- **Under it, two columns:**
-  - on the left, next to the queue's gutter, the dependency graph and the frontmatter, at least 360px and about 600px by default;
-  - on the right, the text, at least 420px, scrolling on its own and capped near 75 characters, so the graph stays in view while you read.
+- **One pinned header row across the top.** It replaces the earlier tab strip, which cost a second row of chrome. It carries:
+  - the id and title;
+  - why the item waits ("waiting on 2 items · ◇ gui-preview · gate");
+  - the milestone it's due for (◆ v3 · 02-01);
+  - its bucket and rank, and when its file last changed ("changed 11 d ago"), since spotting stale items is part of the job;
+  - a ⤢ button for maximise.
+- **Under it, two columns, with the text first:**
+  - on the left, the text, in a column of 420–680px that scrolls on its own, with lines capped near 75 characters;
+  - on the right, the dependency graph and the frontmatter, at least 360px and taking all the remaining width, with the graph aligned next to the text. The graph stays in view while you read.
+  
+  The GUI draws the text before the graph, so Tab, screen readers and the stacked layout follow the order on screen. In egui, focus order is drawing order.
 - **A wider window gives the graph column the extra width**, so it can show a second level of dependencies each way, instead of making the text lines longer.
-- **Below about 800px wide the columns stack:** the graph on top, collapsed by default, then the text.
-- **Only the splitter between the queue and the item remains.** Z, or a double-click on it, maximises the item pane.
+- **The graph's centre node is just the item's id**, since the header carries its state. It keeps a fixed position, and further levels grow outward from it, so opening a level or walking the graph never makes it jump.
+- **The frontmatter block has a "raw" toggle** that shows the TOML as written, in place of a separate Raw frontmatter tab.
+- **Below about 800px wide the columns stack:** the graph collapsed above the text. Whether the graph is collapsed is remembered once per layout, wide or stacked, so collapsing it in one doesn't change the other.
+- **Only the splitter between the queue and the item remains.** Z, ⤢ or a double-click on it maximises the item pane: the queue hides, and both columns keep their place, with the graph still collapsible. Doing it again restores the layout.
 - **When check reports problems, a Check panel opens on the right**, listing the ones that belong to no row, and closes again when they're fixed.
