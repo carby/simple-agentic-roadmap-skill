@@ -154,3 +154,12 @@ It reads only what [gui-read-interface](gui-read-interface.md) already lists: mi
   - after an edit and F5 the page stays on the item, and switches to its archived look if the item was closed;
   - a history entry for an item that no longer exists says so, with Back available;
   - the "changed on disk" banner overlays the page.
+
+**2026-11-23:** the product owner decided to make this repo a monorepo instead of starting a GUI repo (see [decisions.md](../decisions.md), 2026-11-23). The current codebase moves down into cli/, the GUI goes in gui/, and one roadmap/ stays at the top for both. That changes what done looks like: the GUI's implementation items go in this roadmap, not in a roadmap of the GUI's own, and they can `depends_on` the CLI-side items directly. Where the earlier notes say "the GUI repo's items", read "the GUI's items in this roadmap".
+
+The move into cli/ is the first item to file, ahead of any GUI code. It has to keep working what the root layout supports today:
+- the GitHub Action, whose `action.yml` users reach as `uses: <owner>/<repo>@v2` at the root, so moving it breaks them unless a root `action.yml` stays or the change ships as a major version;
+- the npm package and its trusted publishing workflow, which run from cli/;
+- the release tags: the GUI needs its own tag prefix, so the `v` tags and the floating `v2` stay the CLI's;
+- CLAUDE.md, the `npm run dogfood` skill links, and the `node bin/roadmap.js check` command it documents;
+- CI, and the `refs` of open items that point at src/ paths, which `check` validates.
