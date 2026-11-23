@@ -103,14 +103,15 @@ It reads only what [gui-read-interface](gui-read-interface.md) already lists: mi
   - the milestone it's due for (◆ v3 · 02-01);
   - its bucket and rank, and when its file last changed ("changed 11 d ago"), since spotting stale items is part of the job;
   - a ⤢ button for maximise.
-- **Under it, two columns, with the text first:**
-  - on the left, the text, in a column of 420–680px that scrolls on its own, with lines capped near 75 characters;
-  - on the right, the dependency graph and the frontmatter, at least 360px and taking all the remaining width, with the graph aligned next to the text. The graph stays in view while you read.
+- **Under it, two columns:**
+  - on the left, a column of 420–680px: the frontmatter in its own panel with a grey background, pinned at the top, and the text under it, scrolling on its own with lines capped near 75 characters;
+  - on the right, the dependency graph alone, at least 360px and taking all the remaining width and the full height of the pane. It stays in view while you read.
   
-  The GUI draws the text before the graph, so Tab, screen readers and the stacked layout follow the order on screen. In egui, focus order is drawing order.
+  The GUI draws the frontmatter and the text before the graph, so Tab, screen readers and the stacked layout follow the order on screen. In egui, focus order is drawing order.
+- **The graph lists every direct dependency each way.** With the column's full height to itself, it no longer stops at three a side with "+n more", as the earlier note had it; past the column's height, the column scrolls.
 - **A wider window gives the graph column the extra width**, so it can show a second level of dependencies each way, instead of making the text lines longer.
 - **The graph's centre node is just the item's id**, since the header carries its state. It keeps a fixed position, and further levels grow outward from it, so opening a level or walking the graph never makes it jump.
 - **The frontmatter block has a "raw" toggle** that shows the TOML as written, in place of a separate Raw frontmatter tab.
-- **Below about 800px wide the columns stack:** the graph collapsed above the text. Whether the graph is collapsed is remembered once per layout, wide or stacked, so collapsing it in one doesn't change the other.
+- **Below about 800px wide the columns stack:** the frontmatter, then the graph collapsed, then the text. Whether the graph is collapsed is remembered once per layout, wide or stacked, so collapsing it in one doesn't change the other.
 - **Only the splitter between the queue and the item remains.** Z, ⤢ or a double-click on it maximises the item pane: the queue hides, and both columns keep their place, with the graph still collapsible. Doing it again restores the layout.
 - **When check reports problems, a Check panel opens on the right**, listing the ones that belong to no row, and closes again when they're fixed.
