@@ -95,3 +95,13 @@ It reads only what [gui-read-interface](gui-read-interface.md) already lists: mi
   - the text can be selected and copied (egui needs a crate such as egui_commonmark).
 - **The git log diffs word by word** (`--word-diff`), wrapped. A paragraph is one long line, so a line diff would mark all of it as changed.
 - **Walking to another item scrolls to the top; Back restores the scroll position.** The "changed on disk" banner overlays the pane instead of pushing the text down.
+
+**2026-11-23:** the product owner dropped the git log pane: this is a roadmap tool, not a git browser. That reverses the earlier notes' git log pane, its History tab and the word diff. Below the queue, the item now has the whole width:
+- **A pinned header across the top** carries the id, title and state.
+- **Under it, two columns:**
+  - on the left, next to the queue's gutter, the dependency graph and the frontmatter, at least 360px and about 600px by default;
+  - on the right, the text, at least 420px, scrolling on its own and capped near 75 characters, so the graph stays in view while you read.
+- **A wider window gives the graph column the extra width**, so it can show a second level of dependencies each way, instead of making the text lines longer.
+- **Below about 800px wide the columns stack:** the graph on top, collapsed by default, then the text.
+- **Only the splitter between the queue and the item remains.** Z, or a double-click on it, maximises the item pane.
+- **When check reports problems, a Check panel opens on the right**, listing the ones that belong to no row, and closes again when they're fixed.
