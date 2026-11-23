@@ -163,3 +163,32 @@ The move into cli/ is the first item to file, ahead of any GUI code. It has to k
 - the release tags: the GUI needs its own tag prefix, so the `v` tags and the floating `v2` stay the CLI's;
 - CLAUDE.md, the `npm run dogfood` skill links, and the `node bin/roadmap.js check` command it documents;
 - CI, and the `refs` of open items that point at src/ paths, which `check` validates.
+
+**2026-11-23:** a UX review of the whole canvas, with every fix applied to the sketches. For the GUI's items:
+- **One visual language.** A dashed card always means Later. An item that is needed first but not due for the milestone is a tinted card with a "needed first" tag. A file changed on disk gets a yellow "changed" tag, not a ● (which means ready) or amber (which is for milestones). Every count uses one phrase, "N due open, N needed first · N closed", and both detail pages head their list "Still to land: n".
+- **The preview strip never cuts the reason an item waits.** The sentence from the item's text shortens first, then the reason, with the full line as a tooltip and on the item page.
+- **Edits go through one flow.**
+  - Later asks for its `blocked_on` question, Rank above picks from a list that greys out the items it can't go above, and Split asks for the new id and title. Each dialog shows its command.
+  - While a command runs, edits are disabled and the status bar says so after 300 ms.
+  - A CLI that fails or isn't found shows its output word for word, like a refusal.
+  - A CLI without the JSON schema gets a banner and an empty window, never a guess.
+  - Launched outside a repo, the GUI offers to open another folder, and never runs `init`.
+- **The close dialog previews the paragraph the CLI will append**, with the date and outcome the CLI writes, and keeps Close disabled until the reasoning is filled in.
+- **The context menu** shows every entry's command and offers "Open item page" (Enter). On an item page it acts on the item shown, and adds "Show in queue" (L) and "Open milestone" for an item due for one.
+- **States the GUI must draw:**
+  - a ✓ chip for a reached milestone, and a red "late N d" chip for one whose date has passed without being reached;
+  - the queue filtered to a milestone (F), with a bar that Esc clears;
+  - find results, and no matches;
+  - an item with no dependencies;
+  - closed upstream items folded into one card;
+  - an item page after its item is closed;
+  - a history entry for an item that's gone.
+- **Keys:**
+  - Copy id is Ctrl+Shift+C, so Ctrl+C copies selected text;
+  - `[ ] { }` need AltGr on Nordic and German layouts, so Enter on the "+n further" end card is the main way to add a level, with a "− fewer" end card to take one away;
+  - the selected queue row carries the focus ring;
+  - Esc on an overview does nothing.
+- **Hard parts in egui, as risks for the GUI's items:**
+  - moving between graph cards with the arrow keys needs its own key handling, plus AccessKit nodes in reading order, since egui doesn't move focus by arrow keys;
+  - egui_commonmark renders paragraphs as separate labels, so a text selection can't span them: accept that, or offer "Copy text";
+  - the strip's two-colour line with an ellipsis needs a hand-built `LayoutJob`.
