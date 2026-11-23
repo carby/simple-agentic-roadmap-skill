@@ -4,7 +4,7 @@ title = "Drop the Mermaid chart from the index"
 bucket = "next"
 rank = 3
 filed = 2026-11-12
-gate = "the GUI's read-only view has shipped from its own repo"
+gate = "the GUI's read-only view has shipped"
 depends_on = ["gui-read-interface"]
 
 [refs]
@@ -22,3 +22,5 @@ Done looks like:
 - The CHANGELOG has an upgrade note: `update` regenerates every README once, and nothing changes for `check`.
 
 The GUI ships from another repo, which `depends_on` can't name, so the gate holds this item until the GUI's read-only view has shipped.
+
+**2026-11-23:** the GUI is now built in this repo, in gui/, with one roadmap for both (see [decisions.md](../decisions.md), 2026-11-23). The gate no longer says "from its own repo". Once [gui-breakdown](gui-breakdown.md) files the GUI's read-only view as an item, the gate becomes a `depends_on` on it.

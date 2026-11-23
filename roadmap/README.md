@@ -75,7 +75,7 @@ flowchart LR
 
 1. [Survey OpenSpec's CLI commands for ones the roadmap lacks](items/openspec-command-parity.md) — filed 2026-10-23<br>  **Depends on:** [Install and upgrade the skill through an npm package, like OpenSpec](archive/npm-installer.md) (shipped)
 2. [An explore command that turns a fuzzy problem into roadmap items](items/explore-command.md) — filed 2026-10-23
-3. [Drop the Mermaid chart from the index](items/drop-mermaid.md) — filed 2026-11-12<br>  **Gate:** the GUI's read-only view has shipped from its own repo<br>  **Depends on:** [A versioned JSON read interface a GUI can drive](items/gui-read-interface.md)
+3. [Drop the Mermaid chart from the index](items/drop-mermaid.md) — filed 2026-11-12<br>  **Gate:** the GUI's read-only view has shipped<br>  **Depends on:** [A versioned JSON read interface a GUI can drive](items/gui-read-interface.md)
 
 ### Later (3)
 
