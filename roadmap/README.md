@@ -50,6 +50,8 @@ flowchart LR
     i_openspec_command_parity["1 · Survey OpenSpec's CLI commands for…"]
     i_explore_command["2 · An explore command that turns a fuzzy…"]
     i_drop_mermaid["3 · Drop the Mermaid chart from the index"]
+    i_help_without_command["4 · Bare roadmap prints its help, not an…"]
+    i_handoff_override["5 · Say when a global roadmap hands off to…"]
   end
   subgraph b_later ["Later"]
     i_epics["3 · Epics: parent items that group others"]
@@ -60,7 +62,7 @@ flowchart LR
   i_gui_breakdown --> i_gui_read_interface
   i_gui_read_interface --> i_drop_mermaid
   classDef ready stroke-width: 3px
-  class i_gui_breakdown,i_agent_behaviour_evals,i_openspec_command_parity,i_explore_command ready
+  class i_gui_breakdown,i_agent_behaviour_evals,i_openspec_command_parity,i_explore_command,i_help_without_command,i_handoff_override ready
   classDef later stroke-dasharray: 5 5
   class i_epics,i_standalone_binary,i_reach_command later
 ```
@@ -71,11 +73,13 @@ flowchart LR
 14. [A versioned JSON read interface a GUI can drive](items/gui-read-interface.md) — filed 2026-11-12<br>  **Depends on:** [Break the gitk-style GUI into implementation items](items/gui-breakdown.md)
 15. [Evals for how an agent uses the skill, not just for the script](items/agent-behaviour-evals.md) — filed 2026-09-25
 
-### Next (3)
+### Next (5)
 
 1. [Survey OpenSpec's CLI commands for ones the roadmap lacks](items/openspec-command-parity.md) — filed 2026-10-23<br>  **Depends on:** [Install and upgrade the skill through an npm package, like OpenSpec](archive/npm-installer.md) (shipped)
 2. [An explore command that turns a fuzzy problem into roadmap items](items/explore-command.md) — filed 2026-10-23
 3. [Drop the Mermaid chart from the index](items/drop-mermaid.md) — filed 2026-11-12<br>  **Gate:** the GUI's read-only view has shipped<br>  **Depends on:** [A versioned JSON read interface a GUI can drive](items/gui-read-interface.md)
+4. [Bare roadmap prints its help, not an error](items/help-without-command.md) — filed 2026-11-24
+5. [Say when a global roadmap hands off to the pinned copy, and allow skipping it](items/handoff-override.md) — filed 2026-11-24
 
 ### Later (3)
 
