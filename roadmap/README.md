@@ -45,7 +45,6 @@ flowchart LR
     i_gui_breakdown["1 · Break the gitk-style GUI into…"]
     i_gui_read_interface["14 · A versioned JSON read interface a GUI…"]
     i_agent_behaviour_evals["15 · Evals for how an agent uses the skill…"]
-    i_multi_milestone["16 · Let an item be due for several…"]
   end
   subgraph b_next ["Next"]
     i_openspec_command_parity["1 · Survey OpenSpec's CLI commands for…"]
@@ -61,17 +60,16 @@ flowchart LR
   i_gui_breakdown --> i_gui_read_interface
   i_gui_read_interface --> i_drop_mermaid
   classDef ready stroke-width: 3px
-  class i_gui_breakdown,i_agent_behaviour_evals,i_multi_milestone,i_openspec_command_parity,i_explore_command ready
+  class i_gui_breakdown,i_agent_behaviour_evals,i_openspec_command_parity,i_explore_command ready
   classDef later stroke-dasharray: 5 5
   class i_epics,i_standalone_binary,i_reach_command later
 ```
 
-### Now (4)
+### Now (3)
 
 1. [Break the gitk-style GUI into implementation items](items/gui-breakdown.md) — filed 2026-11-12
 14. [A versioned JSON read interface a GUI can drive](items/gui-read-interface.md) — filed 2026-11-12<br>  **Depends on:** [Break the gitk-style GUI into implementation items](items/gui-breakdown.md)
 15. [Evals for how an agent uses the skill, not just for the script](items/agent-behaviour-evals.md) — filed 2026-09-25
-16. [Let an item be due for several milestones](items/multi-milestone.md) — filed 2026-11-24
 
 ### Next (3)
 
@@ -147,7 +145,7 @@ filed = 2026-09-06      # a bare TOML date, not a string
 updated = 2026-09-06    # optional; when the item was last re-argued (set by `move` to another bucket)
 gate = "..."            # optional; the bar the work has to clear
 blocked_on = "..."      # required for `later` (unless a dependency is), forbidden elsewhere
-milestone = "beta"      # optional; the milestone it is due for, declared in roadmap.toml
+milestone = ["beta"]    # optional; the milestones it is due for, declared in roadmap.toml
 depends_on = ["other"]  # optional; item or milestone ids that must come first (keep it above [refs])
 supersedes = "old"      # optional; the declined item this one tries again
 
