@@ -40,7 +40,7 @@ test("passed milestones are listed with the items that name them", () => {
   const root = tempDir();
   makeRoadmap(root, {
     "roadmap.toml": MILESTONES,
-    "items/a.md": itemText(openMeta({ id: "a", milestone: "alpha", filed: D(2026, 10, 30) })),
+    "items/a.md": itemText(openMeta({ id: "a", milestone: ["alpha"], filed: D(2026, 10, 30) })),
     "items/b.md": itemText(openMeta({ id: "b", bucket: "next", depends_on: ["alpha"], filed: D(2026, 10, 30) })),
   });
 
@@ -52,6 +52,18 @@ test("passed milestones are listed with the items that name them", () => {
     lines.some((l) => l.includes("beta")),
     false,
   );
+});
+
+test("an item due for several passed milestones is listed under each", () => {
+  const root = tempDir();
+  makeRoadmap(root, {
+    "roadmap.toml": MILESTONES,
+    "items/a.md": itemText(openMeta({ id: "a", milestone: ["alpha", "beta"], filed: D(2026, 10, 30) })),
+  });
+
+  const lines = review(root, "--date", "2027-01-01");
+
+  assert.equal(lines.filter((l) => l.includes("due: a")).length, 2);
 });
 
 test("a reached milestone stays quiet, with items still waiting on it", () => {

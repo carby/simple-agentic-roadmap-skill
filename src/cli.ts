@@ -164,8 +164,9 @@ export const COMMANDS: Record<string, Command> = {
       {
         flag: "--milestone",
         dest: "milestone",
+        kind: "append",
         metavar: "ID",
-        help: "a milestone from roadmap.toml that the item is due for",
+        help: "repeatable; a milestone from roadmap.toml that the item is due for",
       },
       {
         flag: "--depends-on",

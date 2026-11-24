@@ -35,7 +35,9 @@ changes = ["openspec/changes/{}", "openspec/changes/archive/*-{}"]
 ## Milestones
 
 Declare each one with a title and a date, then file items with
-`--milestone beta` (due for it) or `--depends-on beta` (waits on it):
+`--milestone beta` (due for it) or `--depends-on beta` (waits on it). Both
+flags repeat, so an item can be due for several milestones; the earliest one
+binds:
 
 ```toml
 [milestones]

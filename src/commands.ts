@@ -36,7 +36,8 @@ import {
   byIdOf,
   dependsOn,
   dependsProblems,
-  due,
+  dueIds,
+  dueFor as dueOf,
   mustFollow,
   positionKey,
   retargetLinks,
@@ -193,7 +194,7 @@ export function cmdReview(rm: Roadmap, args: Args): number {
     .filter((m) => m.reached === null && m.date.ordinal < now.ordinal)
     .sort((a, b) => cmp([a.date.ordinal, a.id], [b.date.ordinal, b.id]));
   for (const m of passed) {
-    const dueFor = items.filter((i) => due(i, rm.milestones) === m).map((i) => i.id);
+    const dueFor = items.filter((i) => dueOf(i, rm.milestones).includes(m)).map((i) => i.id);
     const waiting = items.filter((i) => awaited(i, byId, rm.milestones).includes(m)).map((i) => i.id);
     if (!(dueFor.length || waiting.length)) continue; // history: done.md lists it with what shipped for it
     if (!found) {
@@ -281,7 +282,7 @@ export function cmdNew(rm: Roadmap, args: Args): number {
   meta.filed = today(args);
   if (args.gate) meta.gate = args.gate;
   if (args.blocked_on) meta.blocked_on = args.blocked_on;
-  if (args.milestone) meta.milestone = args.milestone;
+  if (args.milestone.length) meta.milestone = args.milestone;
   if (args.supersedes) meta.supersedes = args.supersedes;
   if (args.depends_on.length) meta.depends_on = args.depends_on;
   const refs: Record<string, string[]> = {};
@@ -354,10 +355,12 @@ export function cmdList(rm: Roadmap, args: Args): number {
     for (const [label, key] of [
       ["blocked on", "blocked_on"],
       ["gate", "gate"],
-      ["due for", "milestone"],
     ] as const) {
       if (truthy(item.meta[key])) out(`    ${label}: ${str(item.meta[key])}`);
     }
+    const dated = dueOf(item, rm.milestones).map((m) => m.id);
+    const mids = [...dated, ...new Set(dueIds(item).filter((mid) => !dated.includes(mid)))];
+    if (mids.length) out(`    due for: ${mids.join(", ")}`);
     const deps = dependsOn(item);
     if (deps.length) out(`    depends on: ${deps.join(", ")}`);
   }
