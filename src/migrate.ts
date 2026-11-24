@@ -11,11 +11,12 @@
  * which `update` regenerates afterwards. A change to any of those is a bug in
  * the migration, and throws. */
 
+import { readdirSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { DECISIONS_INTROS, GUIDING_MASK, INDEX_MASK, README_SECTIONS } from "./legacy.ts";
 import { DECISIONS_INTRO, DONE_BEGIN, DONE_END, entriesStart, INDEX_BEGIN, INDEX_END, type Roadmap } from "./model.ts";
 import { COMMAND, GLOBAL_COMMAND, PACKAGE_ROOT, templateText } from "./package.ts";
-import { isFile } from "./pathlib.ts";
+import { isDir, isFile } from "./pathlib.ts";
 import { readText } from "./py.ts";
 import { blockSpan } from "./render.ts";
 
@@ -32,6 +33,9 @@ export interface Migration {
   summary: string;
   /** Rewrites per file, keyed by the path relative to the roadmap directory. */
   files: Record<string, Rewrite>;
+  /** A rewrite run on every open item, `items/*.md`. Closed items are
+   * append-only, so no migration reaches them. */
+  items?: Rewrite;
 }
 
 /** Replace whole lines that match `pattern` exactly. */
@@ -100,7 +104,36 @@ export const MIGRATIONS: Migration[] = [
             ),
     },
   },
+  {
+    id: "milestone-list",
+    since: "2.3.0",
+    summary: "an open item's `milestone` is a list, so it can name several",
+    files: {
+      "roadmap.toml": (text) =>
+        lines(
+          text,
+          /^# `milestone = "beta"`, or waits on one with `depends_on = \["beta"\]`\.$/,
+          () => '# `milestone = ["beta"]` (or several), or waits on one with `depends_on = ["beta"]`.',
+        ),
+    },
+    items: (text) =>
+      frontmatterLines(text, /^milestone = ("[^"\\]*")(\s*#.*)?$/, (m) => `milestone = [${m[1]}]${m[2] ?? ""}`),
+  },
 ];
+
+/** `lines`, but only inside the +++-fenced frontmatter at the top of an
+ * item, and only above its first table, where its top-level keys are. */
+function frontmatterLines(text: string, pattern: RegExp, replace: (match: RegExpExecArray) => string): string {
+  const all = text.split("\n");
+  if (all[0] !== "+++") return text;
+  const end = all.indexOf("+++", 1);
+  if (end === -1) return text;
+  const table = all.slice(1, end).findIndex((line) => line.trimStart().startsWith("["));
+  const stop = table === -1 ? end : table + 1;
+  if (stop === 1) return text;
+  const head = lines(all.slice(1, stop).join("\n"), pattern, replace);
+  return [all[0], head, ...all.slice(stop)].join("\n");
+}
 
 /** README.md split at its `#`, `##` and `###` headings. Each section runs
  * from its heading to the line before the next one, so joining them with
@@ -193,7 +226,14 @@ export interface Planned {
 export function planMigrations(rm: Roadmap, migrations: Migration[] = MIGRATIONS): Planned[] {
   const planned = new Map<string, Planned & { original: string }>();
   for (const migration of migrations) {
-    for (const [name, rewrite] of Object.entries(migration.files)) {
+    const rewrites = Object.entries(migration.files);
+    if (migration.items && isDir(rm.itemsDir)) {
+      const names = readdirSync(rm.itemsDir)
+        .filter((n) => n.endsWith(".md"))
+        .sort();
+      for (const n of names) rewrites.push([join("items", n), migration.items]);
+    }
+    for (const [name, rewrite] of rewrites) {
       const path = join(rm.dir, name);
       guardPath(rm, path, migration);
       const entry = planned.get(path);

@@ -558,8 +558,27 @@ test("new records the milestone an item is due for", () => {
 
   ok(run(["new", "ship-it", "--title", "T", "--bucket", "now", "--milestone", "beta", "--body", "Why."], root));
 
-  assert.equal(meta(join(root, "roadmap/items/ship-it.md")).milestone, "beta");
+  assert.deepEqual(meta(join(root, "roadmap/items/ship-it.md")).milestone, ["beta"]);
   contains(read(join(root, "roadmap/README.md")), "**Due for:** Public beta (2026-12-01)");
+  checks(root);
+});
+
+test("new records several milestones an item is due for, listed by date", () => {
+  const root = tempDir();
+  makeRoadmap(root, { "roadmap.toml": `${MILESTONES}alpha = { title = "Alpha", date = 2026-11-01 }\n` });
+
+  ok(
+    run(
+      ["new", "ship-it", "--title", "T", "--bucket", "now", "--milestone", "beta", "--milestone", "alpha"].concat([
+        "--body",
+        "Why.",
+      ]),
+      root,
+    ),
+  );
+
+  assert.deepEqual(meta(join(root, "roadmap/items/ship-it.md")).milestone, ["beta", "alpha"]);
+  contains(read(join(root, "roadmap/README.md")), "**Due for:** Alpha (2026-11-01), Public beta (2026-12-01)");
   checks(root);
 });
 
@@ -589,7 +608,7 @@ describe("new refuses an unknown milestone, and a milestone's id", () => {
 function dueAndWaiting(root: string): void {
   makeRoadmap(root, {
     "roadmap.toml": MILESTONES,
-    "items/due.md": itemText(openMeta({ id: "due", milestone: "beta" })),
+    "items/due.md": itemText(openMeta({ id: "due", milestone: ["beta"] })),
     "items/waits.md": itemText(openMeta({ id: "waits", bucket: "next", depends_on: ["beta"] })),
   });
 }

@@ -88,6 +88,17 @@ function schemaProblems(item: Item): Problem[] {
       problems.push(`${name} must be a non-empty string`);
     }
   }
+  if ("milestone" in item.meta) {
+    const value = item.meta.milestone;
+    const list = Array.isArray(value) && value.length > 0 && value.every((m) => typeof m === "string" && m.trim());
+    if (typeof value === "string" && item.archived) {
+      if (!value.trim()) problems.push("milestone must be a non-empty string, or a list of milestone ids");
+    } else if (typeof value === "string") {
+      problems.push(`milestone must be a list, e.g. [${JSON.stringify(value)}]; \`roadmap update\` rewrites it`);
+    } else if (!list) {
+      problems.push('milestone must be a non-empty list of milestone ids, e.g. ["beta"]');
+    }
+  }
   if (item.archived && "outcome" in item.meta && !(OUTCOMES as readonly unknown[]).includes(item.meta.outcome)) {
     problems.push(`outcome ${repr(item.meta.outcome)} is not one of ${OUTCOMES.join(", ")}`);
   }
@@ -152,10 +163,28 @@ function after(a: [number, number], b: [number, number]): boolean {
   return cmp(a, b) >= 0;
 }
 
-/** The declared milestone an item is due for, if any. */
-export function due(item: Item, milestones: Map<string, Milestone>): Milestone | undefined {
+/** The milestone ids an item is due for, as written. An archived item may
+ * still name one as a bare string, from before `milestone` became a list; a
+ * malformed field, which `schema` reports, names none. */
+export function dueIds(item: Item): string[] {
   const mid = item.meta.milestone;
-  return typeof mid === "string" ? milestones.get(mid) : undefined;
+  if (typeof mid === "string") return [mid];
+  return Array.isArray(mid) && mid.every((m) => typeof m === "string") ? mid : [];
+}
+
+/** The declared milestones an item is due for, earliest first. The earliest
+ * one binds: an item due for several has to come before the items waiting
+ * on any of them. */
+export function dueFor(item: Item, milestones: Map<string, Milestone>): Milestone[] {
+  return [...new Set(dueIds(item))]
+    .filter((mid) => milestones.has(mid))
+    .map((mid) => milestones.get(mid) as Milestone)
+    .sort((a, b) => cmp([a.date.ordinal, a.id], [b.date.ordinal, b.id]));
+}
+
+/** The earliest declared milestone an item is due for, if any. */
+export function due(item: Item, milestones: Map<string, Milestone>): Milestone | undefined {
+  return dueFor(item, milestones)[0];
 }
 
 /** The milestones an item's depends_on names. An id that is both an item
@@ -230,14 +259,18 @@ export function dependsProblems(item: Item, byId: Map<string, Item>, milestones:
 
   const problems: string[] = [];
   const mine = due(item, milestones);
-  const mid = item.meta.milestone;
-  if (typeof mid === "string" && mine === undefined) {
-    problems.push(`is due for milestone ${repr(mid)}, which roadmap.toml does not declare`);
-  } else if (mine?.reached) {
-    problems.push(
-      `is due for ${repr(mine.id)}, which was reached on ${mine.reached}; re-target the item, or remove` +
-        " `reached` from the milestone",
-    );
+  const mids = dueIds(item);
+  if (new Set(mids).size !== mids.length) problems.push("milestone names a milestone more than once");
+  for (const mid of new Set(mids)) {
+    const m = milestones.get(mid);
+    if (m === undefined) {
+      problems.push(`is due for milestone ${repr(mid)}, which roadmap.toml does not declare`);
+    } else if (m.reached) {
+      problems.push(
+        `is due for ${repr(m.id)}, which was reached on ${m.reached}; re-target the item, or remove` +
+          " `reached` from the milestone",
+      );
+    }
   }
   if (new Set(deps).size !== deps.length) problems.push("depends_on names an item more than once");
   for (const depId of new Set(deps as string[])) {

@@ -52,16 +52,18 @@ decision, so it may leave out `blocked_on`.
 **Milestones are named points in time.** roadmap.toml declares them, each
 with a title and a date. An item relates to a milestone in one of two ways:
 
-- `milestone = "beta"`: the item is **due for** beta, and ships by then. An
-  item has at most one milestone.
+- `milestone = ["beta"]`: the item is **due for** beta, and ships by then.
+  It may name several, `["beta", "v3"]`, when it has to land for each; the
+  earliest one binds. An archived item may still name one as a bare string,
+  `"beta"`, from before 2.3.0.
 - `depends_on = ["beta"]`: the item **waits on** beta, and doesn't start
   before it. `depends_on` mixes item and milestone ids freely.
 
 `check` puts every item due for a milestone, or for an earlier one, ahead of
 the items that wait on it, in the same bucket-then-rank order as a
-dependency. An item can't wait on a milestone that falls on or after the one
-it is due for, and it can't depend on an item that is due for a later
-milestone than its own. A `later` item due for a milestone makes the items
+dependency. An item can't wait on a milestone that falls on or after the
+earliest one it is due for, and it can't depend on an item whose earliest
+milestone is later than its own. A `later` item due for a milestone makes the items
 waiting on it `later` too, without a `blocked_on` of their own. Dates order
 milestones against each other, never against today, so `check` gives the same
 answer every day. Once a milestone has passed, keep it in roadmap.toml as
@@ -191,7 +193,7 @@ filed = 2026-09-06                # a bare TOML date, not a string
 updated = 2026-09-06              # optional: when the item was last re-argued; `move` to another bucket sets it
 gate = "..."                      # optional: the bar the work has to clear
 blocked_on = "..."                # required for later (unless depends_on names a later item), forbidden elsewhere
-milestone = "beta"                # optional: the milestone the item is due for, declared in roadmap.toml
+milestone = ["beta"]              # optional: the milestones the item is due for, declared in roadmap.toml
 depends_on = ["other-item"]       # optional: item or milestone ids that must come first; above [refs], or TOML files it under refs
 supersedes = "old-item"           # optional: the declined archived item this one tries again
 
@@ -230,10 +232,10 @@ Every problem `check` reports ends in one of these tags.
 |---|---|---|
 | `config` | roadmap.toml parses, each ref kind is a template containing `{}`, and each milestone has a `title` and a bare `date` | fix the TOML |
 | `frontmatter` | the file starts with `+++`-fenced TOML that parses | add or repair the fence; quote strings |
-| `schema` | required fields present, none unknown, id = filename = kebab slug; archived items carry no queue fields | rename the file or the id; remove the stray field |
+| `schema` | required fields present, none unknown, id = filename = kebab slug; archived items carry no queue fields; an open item's `milestone` is a non-empty list | rename the file or the id; remove the stray field; run `update` to turn a `milestone` string into a list |
 | `bucket` | bucket is `now`, `next` or `later`; `later` ⇔ `blocked_on`, or a dependency in `later` | add `blocked_on`, or `move` the item out of `later` |
 | `rank` | positive integer, unique within the bucket | `index --renumber` |
-| `depends` | `depends_on` is a list of ids naming open or shipped items or declared milestones, each ahead of the item: in an earlier bucket, or higher in the same one. `milestone` names a declared milestone; items due for it (or an earlier one) come before items waiting on it, and no item waits on a milestone at or after the one it is due for | reorder or `move` the items; drop a declined or missing dependency and re-argue the item; re-target an item due for a reached milestone. A passed or reached milestone stays in `depends_on` |
+| `depends` | `depends_on` is a list of ids naming open or shipped items or declared milestones, each ahead of the item: in an earlier bucket, or higher in the same one. `milestone` is a list of declared milestones, none named twice; items due for one (or an earlier one) come before items waiting on it, and no item waits on a milestone at or after the earliest one it is due for | reorder or `move` the items; drop a declined or missing dependency and re-argue the item; re-target an item due for a reached milestone. A passed or reached milestone stays in `depends_on` |
 | `supersedes` | `supersedes` names a declined archived item, not the item itself | point it at the declined item; for follow-up work on a shipped item use `depends_on` |
 | `dates` | bare TOML dates (`2026-09-06`, not `"2026-09-06"`); none earlier than `filed` | unquote the date |
 | `body` | the prose says something (HTML comments don't count) | write the argument |

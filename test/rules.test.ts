@@ -303,16 +303,40 @@ const CASES: Case[] = [
     { "README.md": `${README}\nClosed items used to live in [decisions](decisions.md).\n` },
   ],
   [
-    "milestone-not-a-string",
+    "milestone-not-a-list",
     "schema",
-    "milestone must be a non-empty string",
+    'milestone must be a non-empty list of milestone ids, e.g. ["beta"]',
     { "items/sample.md": itemText(openMeta({ milestone: 3 })) },
+  ],
+  [
+    "milestone-empty-list",
+    "schema",
+    'milestone must be a non-empty list of milestone ids, e.g. ["beta"]',
+    { "items/sample.md": itemText(openMeta({ milestone: [] })) },
+  ],
+  [
+    "milestone-string-on-open-item",
+    "schema",
+    'milestone must be a list, e.g. ["beta"]; `roadmap update` rewrites it',
+    { "roadmap.toml": MILESTONES, "items/sample.md": itemText(openMeta({ milestone: "beta" })) },
+  ],
+  [
+    "milestone-twice",
+    "depends",
+    "milestone names a milestone more than once",
+    { "roadmap.toml": MILESTONES, "items/sample.md": itemText(openMeta({ milestone: ["beta", "beta"] })) },
+  ],
+  [
+    "milestone-undeclared-among-several",
+    "depends",
+    "is due for milestone 'gamma', which roadmap.toml does not declare",
+    { "roadmap.toml": MILESTONES, "items/sample.md": itemText(openMeta({ milestone: ["beta", "gamma"] })) },
   ],
   [
     "milestone-undeclared",
     "depends",
     "is due for milestone 'gamma', which roadmap.toml does not declare",
-    { "roadmap.toml": MILESTONES, "items/sample.md": itemText(openMeta({ milestone: "gamma" })) },
+    { "roadmap.toml": MILESTONES, "items/sample.md": itemText(openMeta({ milestone: ["gamma"] })) },
   ],
   [
     "depends-unknown-milestone",
@@ -327,7 +351,7 @@ const CASES: Case[] = [
     {
       "roadmap.toml": MILESTONES,
       "items/sample.md": itemText(openMeta({ depends_on: ["beta"] })),
-      "items/due.md": itemText(openMeta({ id: "due", rank: 2, milestone: "beta" })),
+      "items/due.md": itemText(openMeta({ id: "due", rank: 2, milestone: ["beta"] })),
     },
   ],
   [
@@ -338,7 +362,7 @@ const CASES: Case[] = [
     {
       "roadmap.toml": MILESTONES,
       "items/sample.md": itemText(openMeta({ depends_on: ["beta"] })),
-      "items/due.md": itemText(openMeta({ id: "due", bucket: "next", milestone: "alpha" })),
+      "items/due.md": itemText(openMeta({ id: "due", bucket: "next", milestone: ["alpha"] })),
     },
   ],
   [
@@ -347,14 +371,37 @@ const CASES: Case[] = [
     "is due for 'alpha' (2026-11-01) but waits on 'alpha' (2026-11-01)",
     {
       "roadmap.toml": MILESTONES,
-      "items/sample.md": itemText(openMeta({ milestone: "alpha", depends_on: ["alpha"] })),
+      "items/sample.md": itemText(openMeta({ milestone: ["alpha"], depends_on: ["alpha"] })),
+    },
+  ],
+  [
+    // Of several milestones, the earliest one binds.
+    "milestones-wait-on-one-after-the-earliest",
+    "depends",
+    "is due for 'alpha' (2026-11-01) but waits on 'beta' (2026-12-01)",
+    {
+      "roadmap.toml": MILESTONES,
+      "items/sample.md": itemText(openMeta({ milestone: ["beta", "alpha"], depends_on: ["beta"] })),
+    },
+  ],
+  [
+    "milestones-due-ranked-below-a-waiter-on-the-later-one",
+    "depends",
+    "but 'due' ('next', rank 1) is due by then and must come first",
+    {
+      "roadmap.toml": MILESTONES,
+      "items/sample.md": itemText(openMeta({ depends_on: ["beta"] })),
+      "items/due.md": itemText(openMeta({ id: "due", bucket: "next", milestone: ["alpha", "beta"] })),
     },
   ],
   [
     "milestone-waits-on-a-later-one",
     "depends",
     "is due for 'alpha' (2026-11-01) but waits on 'beta' (2026-12-01)",
-    { "roadmap.toml": MILESTONES, "items/sample.md": itemText(openMeta({ milestone: "alpha", depends_on: ["beta"] })) },
+    {
+      "roadmap.toml": MILESTONES,
+      "items/sample.md": itemText(openMeta({ milestone: ["alpha"], depends_on: ["beta"] })),
+    },
   ],
   [
     "milestone-dependency-due-later",
@@ -362,8 +409,8 @@ const CASES: Case[] = [
     "is due for 'alpha' (2026-11-01) but depends on 'first', which is due later, for 'beta' (2026-12-01)",
     {
       "roadmap.toml": MILESTONES,
-      "items/sample.md": itemText(openMeta({ rank: 2, milestone: "alpha", depends_on: ["first"] })),
-      "items/first.md": itemText(openMeta({ id: "first", milestone: "beta" })),
+      "items/sample.md": itemText(openMeta({ rank: 2, milestone: ["alpha"], depends_on: ["first"] })),
+      "items/first.md": itemText(openMeta({ id: "first", milestone: ["beta"] })),
     },
   ],
   [
@@ -372,7 +419,7 @@ const CASES: Case[] = [
     "is due for 'alpha', which was reached on 2026-10-30; re-target the item, or remove `reached`",
     {
       "roadmap.toml": '[milestones]\nalpha = { title = "Alpha", date = 2026-11-01, reached = 2026-10-30 }\n',
-      "items/sample.md": itemText(openMeta({ milestone: "alpha" })),
+      "items/sample.md": itemText(openMeta({ milestone: ["alpha"] })),
     },
   ],
   [
@@ -584,11 +631,11 @@ test("milestones order the items due for them ahead of the items waiting on them
   // blocked_on of their own. An archived item may name a milestone that is gone.
   const rm = makeRoadmap(tempDir(), {
     "roadmap.toml": MILESTONES,
-    "items/early.md": itemText(openMeta({ id: "early", milestone: "alpha" })),
-    "items/due.md": itemText(openMeta({ id: "due", rank: 2, milestone: "beta", depends_on: ["alpha"] })),
+    "items/early.md": itemText(openMeta({ id: "early", milestone: ["alpha"] })),
+    "items/due.md": itemText(openMeta({ id: "due", rank: 2, milestone: ["beta"], depends_on: ["alpha"] })),
     "items/after.md": itemText(openMeta({ id: "after", bucket: "next", depends_on: ["alpha", "early"] })),
     "items/undecided.md": itemText(
-      openMeta({ id: "undecided", bucket: "later", milestone: "beta", blocked_on: "a call" }),
+      openMeta({ id: "undecided", bucket: "later", milestone: ["beta"], blocked_on: "a call" }),
     ),
     "items/waiting.md": itemText(openMeta({ id: "waiting", bucket: "later", rank: 2, depends_on: ["beta"] })),
     "archive/old.md": itemText(closedMeta({ id: "old", milestone: "retired", depends_on: ["retired"] })),
@@ -606,7 +653,7 @@ test("a reached milestone is satisfied, like a shipped item", () => {
   const files = {
     "roadmap.toml": reached,
     "items/waits.md": itemText(openMeta({ id: "waits", depends_on: ["alpha"] })),
-    "items/due.md": itemText(openMeta({ id: "due", rank: 2, milestone: "beta", depends_on: ["alpha"] })),
+    "items/due.md": itemText(openMeta({ id: "due", rank: 2, milestone: ["beta"], depends_on: ["alpha"] })),
     "items/early.md": itemText(openMeta({ id: "early", bucket: "later", blocked_on: "a call" })),
     "archive/old.md": itemText(closedMeta({ id: "old", milestone: "alpha" })),
   };
@@ -616,7 +663,7 @@ test("a reached milestone is satisfied, like a shipped item", () => {
   const unmarked = makeRoadmap(tempDir(), {
     ...files,
     "roadmap.toml": reached.replace(", reached = 2026-10-30", ""),
-    "items/late.md": itemText(openMeta({ id: "late", bucket: "next", milestone: "alpha" })),
+    "items/late.md": itemText(openMeta({ id: "late", bucket: "next", milestone: ["alpha"] })),
   });
   contains(strings(check(unmarked)).join("\n"), "depends on milestone 'alpha' (2026-11-01), but 'late'");
 });

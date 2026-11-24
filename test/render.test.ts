@@ -264,7 +264,7 @@ const MILESTONES =
 test("the index names the milestones an item is due for and waits on", () => {
   const rm = makeRoadmap(tempDir(), {
     "roadmap.toml": MILESTONES,
-    "items/a.md": itemText(openMeta({ id: "a", title: "A", milestone: "beta" })),
+    "items/a.md": itemText(openMeta({ id: "a", title: "A", milestone: ["beta"] })),
     "items/b.md": itemText(openMeta({ id: "b", title: "B", bucket: "next", depends_on: ["beta", "a"] })),
   });
   const [items, archived] = load(rm);
@@ -276,12 +276,31 @@ test("the index names the milestones an item is due for and waits on", () => {
   assert.deepEqual(strings(check(rm)), []);
 });
 
+test("an item due for several milestones is drawn and listed for each, earliest first", () => {
+  const rm = makeRoadmap(tempDir(), {
+    "roadmap.toml": `${MILESTONES}alpha = { title = "Alpha", date = 2026-11-01 }\n`,
+    "items/a.md": itemText(openMeta({ id: "a", title: "A", milestone: ["beta", "alpha"] })),
+    "archive/z.md": itemText(closedMeta({ id: "z", title: "Z", milestone: ["beta", "alpha"] })),
+  });
+  const [items, archived] = load(rm);
+
+  contains(renderIndex(items, archived, rm.milestones), "**Due for:** Alpha (2026-11-01), Public beta (2026-12-01)");
+  const graph = renderGraph(items, rm.milestones);
+  contains(graph, "  i_a --> m_alpha");
+  contains(graph, "  i_a --> m_beta");
+  const done = renderDone(archived, items, rm.milestones);
+  contains(done, "- **Public beta** — 2026-12-01: 1 shipped");
+  contains(done, "- **Alpha** — 2026-11-01: 1 shipped");
+  contains(done, "— for Alpha (2026-11-01), Public beta (2026-12-01)");
+  assert.deepEqual(strings(check(rm)), []);
+});
+
 test("a reached milestone is history in the index and draws nothing in the graph", () => {
   const rm = makeRoadmap(tempDir(), {
     "roadmap.toml":
       '[milestones]\nbeta = { title = "Public beta", date = 2026-12-01 }\n' +
       'alpha = { title = "Alpha", date = 2026-11-01, reached = 2026-11-02 }\n',
-    "items/a.md": itemText(openMeta({ id: "a", title: "A", milestone: "beta", depends_on: ["alpha"] })),
+    "items/a.md": itemText(openMeta({ id: "a", title: "A", milestone: ["beta"], depends_on: ["alpha"] })),
     "items/b.md": itemText(openMeta({ id: "b", title: "B", bucket: "next", depends_on: ["alpha"] })),
   });
   const [items, archived] = load(rm);
@@ -299,7 +318,7 @@ test("a reached milestone is history in the index and draws nothing in the graph
 test("the graph draws the milestones open items name as hexagons", () => {
   const rm = makeRoadmap(tempDir(), {
     "roadmap.toml": MILESTONES,
-    "items/a.md": itemText(openMeta({ id: "a", title: "A", milestone: "beta" })),
+    "items/a.md": itemText(openMeta({ id: "a", title: "A", milestone: ["beta"] })),
     "items/b.md": itemText(openMeta({ id: "b", title: "B", bucket: "next", depends_on: ["beta"] })),
   });
   const [items] = load(rm);

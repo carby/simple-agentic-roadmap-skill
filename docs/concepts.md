@@ -39,8 +39,8 @@ What the roadmap is, and what it isn't.
 
 An item can list the items that must come first (`depends_on`), and `check`
 keeps them in order. Milestones are named dates declared in `roadmap.toml` (see
-[Configuration](configuration.md)): an item can be due for one (`milestone`) or
-wait on one (`depends_on`), and `check` keeps those in order too, without ever
+[Configuration](configuration.md)): an item can be due for some (`milestone`) or
+wait on some (`depends_on`), and `check` keeps those in order too, without ever
 comparing against today's date. Once a milestone is met, you mark it
 `reached`, and it counts as done, like a shipped item.
 

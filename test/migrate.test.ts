@@ -185,6 +185,7 @@ test("a 2.1 roadmap.toml learns about reached, once, and keeps its milestones", 
   const fresh = read("roadmap/roadmap.toml");
   const old = fresh
     .replace(/^# Once one is met.*\n# shipped item.*\n/m, "")
+    .replace(/^# `milestone = \["beta"\]` \(or several\),/m, '# `milestone = "beta"`,')
     .replace(/^# alpha = .*\n/m, "")
     .replace(/^\[milestones\]$/m, '[milestones]\nbeta = { title = "B", date = 2026-12-01 }');
   writeFileSync("roadmap/roadmap.toml", old);
@@ -192,12 +193,50 @@ test("a 2.1 roadmap.toml learns about reached, once, and keeps its milestones", 
   const [planned] = planMigrations(openRoadmap("roadmap"), MIGRATIONS);
   assert.deepEqual(
     planned?.migrations.map((m) => m.id),
-    ["milestone-reached"],
+    ["milestone-reached", "milestone-list"],
   );
   writeFileSync("roadmap/roadmap.toml", planned?.text ?? "");
 
+  assert.equal(
+    read("roadmap/roadmap.toml"),
+    fresh
+      .replace(/^\[milestones\]$/m, '[milestones]\nbeta = { title = "B", date = 2026-12-01 }')
+      .replace(/^# alpha = .*\n/m, ""),
+  );
   contains(read("roadmap/roadmap.toml"), "add `reached = <date>`");
   contains(read("roadmap/roadmap.toml"), 'beta = { title = "B", date = 2026-12-01 }');
+  assert.deepEqual(planMigrations(openRoadmap("roadmap"), MIGRATIONS), []);
+});
+
+test("an open item's milestone becomes a list, once, and the archive is left alone", (t) => {
+  output = capture(t);
+  main(["init"]);
+  const toml = read("roadmap/roadmap.toml").replace(
+    /^\[milestones\]$/m,
+    '[milestones]\nbeta = { title = "B", date = 2026-12-01 }',
+  );
+  writeFileSync("roadmap/roadmap.toml", toml);
+  const item = (id: string, extra: string) =>
+    `+++\nid = "${id}"\ntitle = "T"\nbucket = "now"\nrank = 1\nfiled = 2026-11-01\n${extra}+++\n\nWhy.\n`;
+  writeFileSync(
+    "roadmap/items/due.md",
+    item("due", 'milestone = "beta"   # due then\n[refs]\nfiles = ["README.md"]\n'),
+  );
+  writeFileSync("roadmap/items/body.md", item("body", "").replace("Why.", 'milestone = "beta"'));
+  const archived =
+    '+++\nid = "old"\ntitle = "O"\nfiled = 2026-10-01\nclosed = 2026-10-02\noutcome = "shipped"\nmilestone = "beta"\n+++\n\nDone.\n';
+  writeFileSync("roadmap/archive/old.md", archived);
+
+  const planned = planMigrations(openRoadmap("roadmap"), MIGRATIONS);
+  assert.deepEqual(
+    planned.map((p) => [p.path, p.migrations.map((m) => m.id)]),
+    [[join("roadmap", "items", "due.md"), ["milestone-list"]]],
+  );
+  for (const p of planned) writeFileSync(p.path, p.text);
+
+  contains(read("roadmap/items/due.md"), 'milestone = ["beta"]   # due then\n[refs]\nfiles = ["README.md"]\n');
+  contains(read("roadmap/items/body.md"), 'milestone = "beta"');
+  assert.equal(read("roadmap/archive/old.md"), archived);
   assert.deepEqual(planMigrations(openRoadmap("roadmap"), MIGRATIONS), []);
 });
 

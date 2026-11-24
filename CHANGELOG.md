@@ -7,6 +7,26 @@ notes** say what you have to do after `update`. Where a release changes the
 rules `check` enforces, it says so there, because a stricter rule can turn a
 passing `check` red.
 
+## Unreleased
+
+- **An item can be due for several milestones** — `milestone` is now a list,
+  `milestone = ["beta", "v3"]`, and `new --milestone` is repeatable. The
+  earliest one binds: the item comes before every item waiting on any of
+  them, and can't wait on a milestone at or after the earliest. The index,
+  the chart, `list` and done.md name every milestone, earliest first, and
+  done.md counts the item under each. `review` lists it under each passed,
+  unreached one.
+- `update` rewrites `milestone = "beta"` into `milestone = ["beta"]` in open
+  items, and updates the template's milestone lines in README.md and
+  roadmap.toml. Archived items keep the string as history, and stay valid.
+- **Rules:** `[schema]` rejects a string `milestone` on an open item, and an
+  empty list. `[depends]` rejects a milestone named twice, and checks every
+  milestone in the list for being declared and not reached. Releases before
+  2.3.0 reject a list with `[schema]`: upgrade everyone, CI and the merge
+  driver included, before running `update`.
+- **Upgrade notes:** run `update`. Until you do, `check` fails on every open
+  item that names a milestone.
+
 ## 2.2.0 — 2026-11-14
 
 - **Mark a milestone reached** — a milestone takes an optional `reached`

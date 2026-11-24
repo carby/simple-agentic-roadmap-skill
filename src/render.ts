@@ -18,7 +18,7 @@ import {
 } from "./model.ts";
 import { exists, name } from "./pathlib.ts";
 import { cmp, len, readText, str, truthy } from "./py.ts";
-import { byIdOf, dependsOn, due, isBucket, pending } from "./rules.ts";
+import { byIdOf, dependsOn, dueIds, dueFor as dueOf, isBucket, pending } from "./rules.ts";
 
 /** The README's index block, between its markers. There is one line per item, and
  * every one is read back out of the item files. `archived` is only consulted
@@ -76,10 +76,7 @@ export function renderGraph(items: Item[], milestones: Map<string, Milestone> = 
       .filter((d) => ids.has(d) && d !== i.id)
       .map((d) => `  ${node(d)} --> ${node(i.id)}`),
   );
-  const dueFor = queued.flatMap((i): [Item, Milestone][] => {
-    const m = due(i, milestones);
-    return m ? [[i, m]] : [];
-  });
+  const dueFor = queued.flatMap((i) => dueOf(i, milestones).map((m): [Item, Milestone] => [i, m]));
   const byId = byIdOf(items);
   const waits = queued.flatMap((i) => pending(i, byId, milestones).map((m): [Item, Milestone] => [i, m]));
   if (!(arrows.length || dueFor.length || waits.length)) return [];
@@ -147,8 +144,8 @@ function note(item: Item, byId: Map<string, Item>, milestones: Map<string, Miles
   const { blocked_on: blocked, gate } = item.meta;
   if (truthy(blocked)) text = `<br>  **Blocked on:** ${str(blocked)}`;
   else if (truthy(gate)) text = `<br>  **Gate:** ${str(gate)}`;
-  const mid = item.meta.milestone;
-  if (typeof mid === "string") text += `<br>  **Due for:** ${String(milestones.get(mid) ?? mid)}`;
+  const mids = dueIds(item);
+  if (mids.length) text += `<br>  **Due for:** ${dueNames(mids, milestones)}`;
   const deps = dependsOn(item);
   if (deps.length) text += `<br>  **Depends on:** ${deps.map((d) => dependency(d, byId, milestones)).join(", ")}`;
   const oldId = item.meta.supersedes;
@@ -168,6 +165,18 @@ function dependency(depId: string, byId: Map<string, Item>, milestones: Map<stri
   }
   if (dep.archived) return `[${dep.title}](archive/${name(dep.path)}) (${str(dep.meta.outcome)})`;
   return `[${dep.title}](items/${name(dep.path)})`;
+}
+
+/** The milestones an item is due for, by name: the declared ones in date
+ * order, then any roadmap.toml doesn't declare, as bare ids. */
+function dueNames(mids: string[], milestones: Map<string, Milestone>): string {
+  const unique = [...new Set(mids)];
+  const declared = unique
+    .filter((mid) => milestones.has(mid))
+    .map((mid) => milestones.get(mid) as Milestone)
+    .sort((a, b) => cmp([a.date.ordinal, a.id], [b.date.ordinal, b.id]))
+    .map(String);
+  return [...declared, ...unique.filter((mid) => !milestones.has(mid))].join(", ");
 }
 
 /** done.md's block: one line per closed item, newest first, grouped by the
@@ -223,8 +232,8 @@ export function renderDone(
         const linked = by.map((o) => `[${o.title}](${o.archived ? "archive" : "items"}/${name(o.path)})`);
         superseded = ` — superseded by ${linked.join(", ")}`;
       }
-      const mid = item.meta.milestone;
-      const dueFor = typeof mid === "string" ? ` — for ${String(milestones.get(mid) ?? mid)}` : "";
+      const mids = dueIds(item);
+      const dueFor = mids.length ? ` — for ${dueNames(mids, milestones)}` : "";
       lines.push(
         `- **${str(item.meta.outcome)}** [${item.title}](archive/${name(item.path)})` +
           ` — closed ${str(item.meta.closed)}${shippedAs}${dueFor}${superseded}`,
@@ -241,8 +250,7 @@ export function renderDone(
 function doneMilestones(archived: Item[], milestones: Map<string, Milestone>): Map<string, Item[]> {
   const named = new Map<string, Item[]>();
   for (const item of archived) {
-    const mid = item.meta.milestone;
-    if (typeof mid === "string") named.set(mid, [...(named.get(mid) ?? []), item]);
+    for (const mid of new Set(dueIds(item))) named.set(mid, [...(named.get(mid) ?? []), item]);
   }
   const keys = [...named.keys()];
   const declared = keys

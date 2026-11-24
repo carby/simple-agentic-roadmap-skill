@@ -17,7 +17,7 @@
 # adrs    = "docs/adr/{}.md"
 
 # Milestones: named points in time. An item is due for one with
-# `milestone = "beta"`, or waits on one with `depends_on = ["beta"]`.
+# `milestone = ["beta"]` (or several), or waits on one with `depends_on = ["beta"]`.
 # Once one is met, add `reached = <date>`: it then counts as done, like a
 # shipped item, and stays in depends_on as history.
 [milestones]
