@@ -1,6 +1,6 @@
 # Obsidian: only docs/.obsidian/app.json is shared
-docs/.obsidian/*
-!docs/.obsidian/app.json
+cli/docs/.obsidian/*
+!cli/docs/.obsidian/app.json
 
 # Node
 node_modules/

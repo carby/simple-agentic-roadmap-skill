@@ -3,16 +3,23 @@
 This file is for working on the skill itself. To *use* the skill in your
 repo, see the [README](README.md).
 
-The skill's own plans are in [`roadmap/`](../roadmap/), kept with the skill
-itself. The same rule applies here as everywhere: the maintainer is the
+The repo is a monorepo: the CLI and the skill are in `cli/`, a GUI is coming
+in `gui/`, and `action.yml` and the roadmap stay at the root. Run the npm
+commands below in `cli/`.
+
+The skill's own plans are in [`roadmap/`](../roadmap/), at the repo root. The same rule applies here as everywhere: the maintainer is the
 product owner. Pitch an idea in an issue before filing it as an item.
-`npm run dogfood` symlinks `.claude/skills/roadmap` to this working copy, so
+`npm run dogfood` symlinks the root's `.claude/skills/roadmap` to this working copy, so
 an agent session in this repo runs `/roadmap` with the rules as you are editing
 them. `.claude/skills/` is gitignored, so run it once per clone.
 `.gitattributes` merges `roadmap/README.md` and `done.md` with the skill's own
-merge driver; turn it on in your clone with
-`git config merge.roadmap.driver "node bin/roadmap.js merge-driver %O %A %B %P"`
-(after `npm run build`).
+merge driver. Git runs it from the repo root, so turn it on in your clone with
+a command that finds the CLI on either side of the move into `cli/`, and run
+`npm run build` first:
+
+```bash
+git config merge.roadmap.driver 'sh -c '\''f=cli/bin/roadmap.js; [ -f "$f" ] || f=bin/roadmap.js; exec node "$f" merge-driver "$@"'\'' -- %O %A %B %P'
+```
 
 ## Running the tests
 
@@ -95,11 +102,15 @@ Releases use two kinds of tag:
   `v1` stays on the last 1.x release.
 
 The tags serve the GitHub Action (`uses: carby/simple-agentic-roadmap-skill@v2`).
+They are the CLI's alone: the GUI's releases use `gui-vX.Y.Z` tags, which
+release.yml ignores. Create those with `gh release create --latest=false`, and
+leave them off the Marketplace, so `releases/latest` keeps serving the CLI's
+`roadmap.zip`.
 The skill and the CLI are installed from npm, where the repo's lockfile pins
 the exact version.
 
 ```bash
-# 1. Bump the version: `npm version 2.0.1 --no-git-tag-version` for
+# 1. In cli/, bump the version: `npm version 2.0.1 --no-git-tag-version` for
 #    package.json and its lockfile, and VERSION in src/model.ts (a test fails
 #    if those two differ).
 #    Rename CHANGELOG.md's "Unreleased" heading to "2.0.1 — <date>" (a test
