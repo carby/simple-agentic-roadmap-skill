@@ -26,6 +26,11 @@ passing `check` red.
   driver included, before running `update`.
 - **Upgrade notes:** run `update`. Until you do, `check` fails on every open
   item that names a milestone.
+- **A global `roadmap` no longer hands off to a copy above the repo** — the
+  search for a package.json that pins the package now stops at the git root.
+  Before, in a repo with no package.json at its root (a monorepo whose
+  package.json sits in a subfolder), it kept walking up and could run a copy
+  pinned in your home directory instead.
 - This repo is now a monorepo: the CLI and the skill moved into `cli/`, and a
   GUI is coming in `gui/`. Nothing changes for users: the package, the skill
   zip and `uses: carby/simple-agentic-roadmap-skill@v2` work as before.

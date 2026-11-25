@@ -1,6 +1,6 @@
 // A global `roadmap` hands off to the copy the repo's package.json pins, and
-// to nothing else: not without a pin, not to a copy above the repo, not to
-// itself, and never twice.
+// to nothing else: not without a pin, not to a copy above the repo or its git
+// root, not to itself, and never twice.
 
 import assert from "node:assert/strict";
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -51,6 +51,18 @@ test("no hand-off to a copy above the nearest package.json", () => {
   mkdirSync(inner);
   writeFileSync(join(inner, "package.json"), JSON.stringify({ name: "app" }));
   assert.equal(localInstall(inner), null);
+  excludes(run(["--version"], inner).stdout, "local copy");
+});
+
+test("no hand-off to a copy above the git root", () => {
+  // A monorepo whose package.json sits in a subfolder, inside a home directory
+  // that pins the package: running at the repo's root must not find the home's.
+  const outer = repo();
+  const inner = join(outer, "monorepo");
+  mkdirSync(join(inner, ".git"), { recursive: true });
+  mkdirSync(join(inner, "docs"));
+  assert.equal(localInstall(inner), null);
+  assert.equal(localInstall(join(inner, "docs")), null);
   excludes(run(["--version"], inner).stdout, "local copy");
 });
 
