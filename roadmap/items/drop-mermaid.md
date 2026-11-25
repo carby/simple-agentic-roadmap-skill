@@ -2,10 +2,9 @@
 id = "drop-mermaid"
 title = "Drop the Mermaid chart from the index"
 bucket = "next"
-rank = 3
+rank = 11
 filed = 2026-11-12
-gate = "the GUI's read-only view has shipped"
-depends_on = ["gui-read-interface"]
+depends_on = ["gui-read-interface", "gui-preview"]
 
 [refs]
 files = ["src/render.ts"]
@@ -24,3 +23,5 @@ Done looks like:
 The GUI ships from another repo, which `depends_on` can't name, so the gate holds this item until the GUI's read-only view has shipped.
 
 **2026-11-23:** the GUI is now built in this repo, in gui/, with one roadmap for both (see [decisions.md](../decisions.md), 2026-11-23). The gate no longer says "from its own repo". Once [gui-breakdown](gui-breakdown.md) files the GUI's read-only view as an item, the gate becomes a `depends_on` on it.
+
+**2026-11-25:** [gui-breakdown](gui-breakdown.md) filed the GUI's read-only view as the items due for the gui-preview milestone, so the gate is replaced by `depends_on` gui-preview: the chart goes once the read-only GUI has shipped.

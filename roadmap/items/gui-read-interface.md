@@ -2,7 +2,7 @@
 id = "gui-read-interface"
 title = "A versioned JSON read interface a GUI can drive"
 bucket = "now"
-rank = 14
+rank = 15
 filed = 2026-11-12
 depends_on = ["gui-breakdown"]
 
@@ -37,3 +37,10 @@ The shape: one snapshot command (`list --json --all` or a dedicated `export --js
 This item also fixes a bug found on the way: `list --dir nope` (with or without `--json`) prints an empty result and exits 0, so a roadmap directory that doesn't exist reads as an empty roadmap. It should fail, and in JSON say so with `"ok": false`.
 
 **2026-11-12:** the snapshot should also carry each open item's readiness, as the CLI computes it: `ready`, or what it waits on (open items, or milestones it depends on), with Later items marked as such. Otherwise the GUI has to re-implement a rule the CLI already applies (`render.ts` marks ready items in the chart today), and the GUI and the index could disagree. This matters more once [drop-mermaid](drop-mermaid.md) removes the chart that uses the rule now.
+
+**2026-11-25:** [gui-breakdown](gui-breakdown.md) refined this item. Besides what the notes above list, the snapshot carries:
+- each milestone's `reached` date, so the GUI can show a reached milestone as satisfied and a passed, unreached one as late;
+- each item's `milestone` as a list, since an item can be due for several milestones (#40);
+- each item file's last-change date from git, for the GUI's "changed N d ago", because the GUI never runs git itself. A file git doesn't track yet has none.
+
+The write commands' JSON results and `check --json` are filed as [json-write-results](json-write-results.md). The CLI moves into cli/ first ([monorepo-move](monorepo-move.md)), which updates this item's `refs`.

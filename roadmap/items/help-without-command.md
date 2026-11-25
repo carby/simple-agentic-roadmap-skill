@@ -2,7 +2,7 @@
 id = "help-without-command"
 title = "Bare roadmap prints its help, not an error"
 bucket = "next"
-rank = 4
+rank = 7
 filed = 2026-11-24
 +++
 

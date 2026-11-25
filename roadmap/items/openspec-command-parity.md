@@ -2,7 +2,7 @@
 id = "openspec-command-parity"
 title = "Survey OpenSpec's CLI commands for ones the roadmap lacks"
 bucket = "next"
-rank = 1
+rank = 5
 filed = 2026-10-23
 depends_on = ["npm-installer"]
 +++

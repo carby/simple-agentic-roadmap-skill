@@ -2,7 +2,7 @@
 id = "gui-breakdown"
 title = "Break the gitk-style GUI into implementation items"
 bucket = "now"
-rank = 1
+rank = 2
 filed = 2026-11-12
 +++
 
