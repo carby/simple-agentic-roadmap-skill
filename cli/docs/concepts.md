@@ -45,7 +45,7 @@ comparing against today's date. Once a milestone is met, you mark it
 `reached`, and it counts as done, like a shipped item.
 
 There are deliberately **no** epics, estimates or Gantt scheduling. Those may
-come later (see the skill's own [`roadmap/`](../roadmap/)), but for now the
+come later (see the skill's own [`roadmap/`](../../roadmap/)), but for now the
 roadmap stays simple enough to read in one sitting and edit by hand.
 
 ---

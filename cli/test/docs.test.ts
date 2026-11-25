@@ -20,9 +20,10 @@ import {
   RULES,
   VERSION,
 } from "../src/model.ts";
-import { contains, excludes, REPO } from "./helpers.ts";
+import { contains, excludes, REPO, ROOT } from "./helpers.ts";
 
 const read = (path: string) => readFileSync(join(REPO, path), "utf8");
+const readRoot = (path: string) => readFileSync(join(ROOT, path), "utf8");
 const literal = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const matches = (re: RegExp, text: string) => [...text.matchAll(re)].map((m) => m[1] as string);
 
@@ -115,7 +116,11 @@ test("the template decisions log is what decide writes", () => {
 });
 
 test("the dogfood roadmap is clean", () => {
-  assert.deepEqual(check(openRoadmap(join(REPO, "roadmap"))).map(String), []);
+  assert.deepEqual(check(openRoadmap(join(ROOT, "roadmap"))).map(String), []);
+});
+
+test("the package's LICENSE is the repo's", () => {
+  assert.equal(read("LICENSE"), readRoot("LICENSE"));
 });
 
 test("package.json and the CLI agree on the version", () => {
@@ -143,7 +148,7 @@ test("every command the docs and CONTRIBUTING name exists", () => {
 });
 
 test("every Action input the docs use exists", () => {
-  const action = read("action.yml");
+  const action = readRoot("action.yml");
   const inputs = new Set(matches(/^ {2}([a-z-]+):$/gm, action.split("runs:")[0] as string));
   const used = new Set<string>();
   for (const block of matches(/uses: \S*roadmap-skill@\S+\n\s+with:\n((?:\s{10,}\S.*\n)+)/g, USER_DOCS)) {
@@ -178,12 +183,9 @@ test("no doc or template runs a bare npx roadmap", () => {
   // a non-interactive shell installs and runs it when this one is missing.
   const sources: Record<string, string> = {
     ...PAGES,
-    ...Object.fromEntries(
-      [...AGENT_DOCS, "CONTRIBUTING.md", "CLAUDE.md", "action.yml", "assets/template/decisions.md"].map((n) => [
-        n,
-        read(n),
-      ]),
-    ),
+    ...Object.fromEntries([...AGENT_DOCS, "CONTRIBUTING.md", "assets/template/decisions.md"].map((n) => [n, read(n)])),
+    "CLAUDE.md": readRoot("CLAUDE.md"),
+    "action.yml": readRoot("action.yml"),
   };
   for (const [name, text] of Object.entries(sources)) {
     assert.deepEqual(text.match(/npx roadmap\b/g) ?? [], [], `${name} has a bare \`npx roadmap\``);

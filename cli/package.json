@@ -16,9 +16,10 @@
   "author": "Tommy Derngren",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/carby/simple-agentic-roadmap-skill.git"
+    "url": "git+https://github.com/carby/simple-agentic-roadmap-skill.git",
+    "directory": "cli"
   },
-  "homepage": "https://github.com/carby/simple-agentic-roadmap-skill#readme",
+  "homepage": "https://github.com/carby/simple-agentic-roadmap-skill/tree/master/cli#readme",
   "bugs": {
     "url": "https://github.com/carby/simple-agentic-roadmap-skill/issues"
   },

@@ -7,11 +7,19 @@ on:
 permissions:
   contents: read
 
+# The CLI and its package live in cli/. Only the CLI's `v` tags release from
+# here: a GUI release (`gui-v*`) neither publishes to npm nor gets roadmap.zip.
+# Keep this file's name: npm's trusted publisher is tied to release.yml.
+defaults:
+  run:
+    working-directory: cli
+
 jobs:
   # The Claude app installs a skill from an uploaded zip: one folder with
   # SKILL.md at its top. Only what the agent reads or runs goes in it, and the
   # CLI goes in bundled into one file, since the app has no npm.
   skill-zip:
+    if: startsWith(github.event.release.tag_name, 'v')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -21,6 +29,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: cli/package-lock.json
       - run: npm ci
       - run: npm run bundle
       - name: Build roadmap.zip
@@ -37,6 +46,7 @@ jobs:
   # through OIDC and adds provenance itself. It needs npm 11.5 or later. A
   # version already on npm (the first one is published by hand) is skipped.
   npm-publish:
+    if: startsWith(github.event.release.tag_name, 'v')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -48,6 +58,7 @@ jobs:
           node-version: 22
           registry-url: https://registry.npmjs.org
           cache: npm
+          cache-dependency-path: cli/package-lock.json
       - run: npm install -g npm@11
       - run: npm ci
       - name: Publish, unless this version is on npm already

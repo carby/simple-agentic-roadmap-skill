@@ -3,7 +3,7 @@
 This file is for working on the skill itself. To *use* the skill in your
 repo, see the [README](README.md).
 
-The skill's own plans are in [`roadmap/`](roadmap/), kept with the skill
+The skill's own plans are in [`roadmap/`](../roadmap/), kept with the skill
 itself. The same rule applies here as everywhere: the maintainer is the
 product owner. Pitch an idea in an issue before filing it as an item.
 `npm run dogfood` symlinks `.claude/skills/roadmap` to this working copy, so
