@@ -11,7 +11,7 @@ depends_on = ["monorepo-move", "gui-read-interface"]
 The first GUI item planned in [gui-breakdown](../archive/gui-breakdown.md): the Rust and egui program in gui/, before it draws any view. Everything after it builds on this frame.
 
 It covers:
-- the crate, its CI build, and the GUI's own tag prefix, as [monorepo-move](monorepo-move.md) sets up;
+- the crate, its CI build, and the GUI's own tag prefix, as [monorepo-move](../archive/monorepo-move.md) sets up;
 - launched from inside a repo, like gitk, it finds `roadmap/` and reads it through the snapshot from [gui-read-interface](gui-read-interface.md);
 - a CLI without the JSON schema gets a banner and an empty window, never a guess;
 - a CLI that fails or isn't found shows its output word for word;
