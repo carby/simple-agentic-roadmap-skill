@@ -42,16 +42,27 @@ work is done. **Close it in the same branch as the code**, so it moves to
 ```mermaid
 flowchart LR
   subgraph b_now ["Now"]
-    i_gui_breakdown["1 · Break the gitk-style GUI into…"]
-    i_gui_read_interface["14 · A versioned JSON read interface a GUI…"]
-    i_agent_behaviour_evals["15 · Evals for how an agent uses the skill…"]
+    i_monorepo_move["1 · Move the CLI into cli/ so the repo can…"]
+    i_gui_breakdown["2 · Break the gitk-style GUI into…"]
+    i_gui_read_interface["15 · A versioned JSON read interface a GUI…"]
+    i_agent_behaviour_evals["16 · Evals for how an agent uses the skill…"]
+    i_gui_scaffold["17 · The GUI's frame in gui/: open a repo's…"]
+    i_gui_queue["18 · The GUI's Queue tab: rows, lanes…"]
   end
   subgraph b_next ["Next"]
-    i_openspec_command_parity["1 · Survey OpenSpec's CLI commands for…"]
-    i_explore_command["2 · An explore command that turns a fuzzy…"]
-    i_drop_mermaid["3 · Drop the Mermaid chart from the index"]
-    i_help_without_command["4 · Bare roadmap prints its help, not an…"]
-    i_handoff_override["5 · Say when a global roadmap hands off to…"]
+    i_gui_dependency_graph["1 · The GUI's left-to-right dependency…"]
+    i_gui_item_page["2 · The GUI's item page, with history and…"]
+    i_gui_milestones["3 · The GUI's Milestones tab and milestone…"]
+    i_gui_release["4 · Release the GUI as prebuilt binaries…"]
+    i_openspec_command_parity["5 · Survey OpenSpec's CLI commands for…"]
+    i_explore_command["6 · An explore command that turns a fuzzy…"]
+    i_help_without_command["7 · Bare roadmap prints its help, not an…"]
+    i_handoff_override["8 · Say when a global roadmap hands off to…"]
+    i_json_write_results["9 · JSON results from the write commands…"]
+    i_close_body["10 · close requires --body and appends the…"]
+    i_drop_mermaid["11 · Drop the Mermaid chart from the index"]
+    i_gui_editing["12 · Edit from the GUI: context menu…"]
+    i_gui_check_panel["13 · Show check problems in the GUI"]
   end
   subgraph b_later ["Later"]
     i_epics["3 · Epics: parent items that group others"]
@@ -60,26 +71,59 @@ flowchart LR
   end
   b_now ~~~ b_next ~~~ b_later
   i_gui_breakdown --> i_gui_read_interface
+  i_monorepo_move --> i_gui_scaffold
+  i_gui_read_interface --> i_gui_scaffold
+  i_gui_scaffold --> i_gui_queue
+  i_gui_scaffold --> i_gui_dependency_graph
+  i_gui_queue --> i_gui_item_page
+  i_gui_dependency_graph --> i_gui_item_page
+  i_gui_dependency_graph --> i_gui_milestones
+  i_gui_scaffold --> i_gui_release
+  i_gui_read_interface --> i_json_write_results
   i_gui_read_interface --> i_drop_mermaid
+  i_json_write_results --> i_gui_editing
+  i_close_body --> i_gui_editing
+  i_gui_item_page --> i_gui_editing
+  i_json_write_results --> i_gui_check_panel
+  i_gui_item_page --> i_gui_check_panel
+  m_gui_preview{{"GUI preview: the read-only view (2026-12-31)"}}
+  i_gui_scaffold --> m_gui_preview
+  i_gui_queue --> m_gui_preview
+  i_gui_dependency_graph --> m_gui_preview
+  i_gui_item_page --> m_gui_preview
+  i_gui_milestones --> m_gui_preview
+  i_gui_release --> m_gui_preview
+  m_gui_preview --> i_drop_mermaid
   classDef ready stroke-width: 3px
-  class i_gui_breakdown,i_agent_behaviour_evals,i_openspec_command_parity,i_explore_command,i_help_without_command,i_handoff_override ready
+  class i_monorepo_move,i_gui_breakdown,i_agent_behaviour_evals,i_openspec_command_parity,i_explore_command,i_help_without_command,i_handoff_override,i_close_body ready
   classDef later stroke-dasharray: 5 5
   class i_epics,i_standalone_binary,i_reach_command later
 ```
 
-### Now (3)
+### Now (6)
 
-1. [Break the gitk-style GUI into implementation items](items/gui-breakdown.md) — filed 2026-11-12
-14. [A versioned JSON read interface a GUI can drive](items/gui-read-interface.md) — filed 2026-11-12<br>  **Depends on:** [Break the gitk-style GUI into implementation items](items/gui-breakdown.md)
-15. [Evals for how an agent uses the skill, not just for the script](items/agent-behaviour-evals.md) — filed 2026-09-25
+1. [Move the CLI into cli/ so the repo can hold the GUI in gui/](items/monorepo-move.md) — filed 2026-11-25
+2. [Break the gitk-style GUI into implementation items](items/gui-breakdown.md) — filed 2026-11-12
+15. [A versioned JSON read interface a GUI can drive](items/gui-read-interface.md) — filed 2026-11-12<br>  **Depends on:** [Break the gitk-style GUI into implementation items](items/gui-breakdown.md)
+16. [Evals for how an agent uses the skill, not just for the script](items/agent-behaviour-evals.md) — filed 2026-09-25
+17. [The GUI's frame in gui/: open a repo's roadmap through the CLI](items/gui-scaffold.md) — filed 2026-11-25<br>  **Due for:** GUI preview: the read-only view (2026-12-31)<br>  **Depends on:** [Move the CLI into cli/ so the repo can hold the GUI in gui/](items/monorepo-move.md), [A versioned JSON read interface a GUI can drive](items/gui-read-interface.md)
+18. [The GUI's Queue tab: rows, lanes, milestone chips and the preview strip](items/gui-queue.md) — filed 2026-11-25<br>  **Due for:** GUI preview: the read-only view (2026-12-31)<br>  **Depends on:** [The GUI's frame in gui/: open a repo's roadmap through the CLI](items/gui-scaffold.md)
 
-### Next (5)
+### Next (13)
 
-1. [Survey OpenSpec's CLI commands for ones the roadmap lacks](items/openspec-command-parity.md) — filed 2026-10-23<br>  **Depends on:** [Install and upgrade the skill through an npm package, like OpenSpec](archive/npm-installer.md) (shipped)
-2. [An explore command that turns a fuzzy problem into roadmap items](items/explore-command.md) — filed 2026-10-23
-3. [Drop the Mermaid chart from the index](items/drop-mermaid.md) — filed 2026-11-12<br>  **Gate:** the GUI's read-only view has shipped<br>  **Depends on:** [A versioned JSON read interface a GUI can drive](items/gui-read-interface.md)
-4. [Bare roadmap prints its help, not an error](items/help-without-command.md) — filed 2026-11-24
-5. [Say when a global roadmap hands off to the pinned copy, and allow skipping it](items/handoff-override.md) — filed 2026-11-24
+1. [The GUI's left-to-right dependency graph, shared by both detail pages](items/gui-dependency-graph.md) — filed 2026-11-25<br>  **Due for:** GUI preview: the read-only view (2026-12-31)<br>  **Depends on:** [The GUI's frame in gui/: open a repo's roadmap through the CLI](items/gui-scaffold.md)
+2. [The GUI's item page, with history and navigation](items/gui-item-page.md) — filed 2026-11-25<br>  **Due for:** GUI preview: the read-only view (2026-12-31)<br>  **Depends on:** [The GUI's Queue tab: rows, lanes, milestone chips and the preview strip](items/gui-queue.md), [The GUI's left-to-right dependency graph, shared by both detail pages](items/gui-dependency-graph.md)
+3. [The GUI's Milestones tab and milestone page](items/gui-milestones.md) — filed 2026-11-25<br>  **Due for:** GUI preview: the read-only view (2026-12-31)<br>  **Depends on:** [The GUI's left-to-right dependency graph, shared by both detail pages](items/gui-dependency-graph.md)
+4. [Release the GUI as prebuilt binaries per platform](items/gui-release.md) — filed 2026-11-25<br>  **Due for:** GUI preview: the read-only view (2026-12-31)<br>  **Depends on:** [The GUI's frame in gui/: open a repo's roadmap through the CLI](items/gui-scaffold.md)
+5. [Survey OpenSpec's CLI commands for ones the roadmap lacks](items/openspec-command-parity.md) — filed 2026-10-23<br>  **Depends on:** [Install and upgrade the skill through an npm package, like OpenSpec](archive/npm-installer.md) (shipped)
+6. [An explore command that turns a fuzzy problem into roadmap items](items/explore-command.md) — filed 2026-10-23
+7. [Bare roadmap prints its help, not an error](items/help-without-command.md) — filed 2026-11-24
+8. [Say when a global roadmap hands off to the pinned copy, and allow skipping it](items/handoff-override.md) — filed 2026-11-24
+9. [JSON results from the write commands, and check --json](items/json-write-results.md) — filed 2026-11-25<br>  **Depends on:** [A versioned JSON read interface a GUI can drive](items/gui-read-interface.md)
+10. [close requires --body and appends the outcome and reasoning itself](items/close-body.md) — filed 2026-11-25
+11. [Drop the Mermaid chart from the index](items/drop-mermaid.md) — filed 2026-11-12<br>  **Depends on:** [A versioned JSON read interface a GUI can drive](items/gui-read-interface.md), GUI preview: the read-only view (2026-12-31)
+12. [Edit from the GUI: context menu, dialogs and refusals](items/gui-editing.md) — filed 2026-11-25<br>  **Depends on:** [JSON results from the write commands, and check --json](items/json-write-results.md), [close requires --body and appends the outcome and reasoning itself](items/close-body.md), [The GUI's item page, with history and navigation](items/gui-item-page.md)
+13. [Show check problems in the GUI](items/gui-check-panel.md) — filed 2026-11-25<br>  **Depends on:** [JSON results from the write commands, and check --json](items/json-write-results.md), [The GUI's item page, with history and navigation](items/gui-item-page.md)
 
 ### Later (3)
 

@@ -2,7 +2,7 @@
 id = "explore-command"
 title = "An explore command that turns a fuzzy problem into roadmap items"
 bucket = "next"
-rank = 2
+rank = 6
 filed = 2026-10-23
 +++
 

@@ -10,3 +10,6 @@
 # specs   = "openspec/specs/{}"
 # changes = ["openspec/changes/{}", "openspec/changes/archive/*-{}"]
 # adrs    = "docs/adr/{}.md"
+
+[milestones]
+gui-preview = { title = "GUI preview: the read-only view", date = 2026-12-31 }
