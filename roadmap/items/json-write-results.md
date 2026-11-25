@@ -7,7 +7,7 @@ filed = 2026-11-25
 depends_on = ["gui-read-interface"]
 +++
 
-The GUI planned in [gui-breakdown](gui-breakdown.md) edits through the CLI's write commands and shows check problems per row. [gui-read-interface](gui-read-interface.md) gives it a snapshot to read, but leaves the write commands and `check` out, as its 2026-11-12 note says. This item is that part.
+The GUI planned in [gui-breakdown](../archive/gui-breakdown.md) edits through the CLI's write commands and shows check problems per row. [gui-read-interface](gui-read-interface.md) gives it a snapshot to read, but leaves the write commands and `check` out, as its 2026-11-12 note says. This item is that part.
 
 It needs:
 - **JSON results from the write commands** (`new`, `move`, `split`, `close`, `decide`): what changed, and which other items shifted rank. A refusal carries its rule tag and the ids it names, so the GUI can show the CLI's message word for word and link to the item that blocks the edit.

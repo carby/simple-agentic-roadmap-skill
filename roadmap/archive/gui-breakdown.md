@@ -1,9 +1,10 @@
 +++
 id = "gui-breakdown"
 title = "Break the gitk-style GUI into implementation items"
-bucket = "now"
-rank = 2
 filed = 2026-11-12
+closed = 2026-11-25
+outcome = "shipped"
+shipped_as = "#41"
 +++
 
 A graphical client for the roadmap, modelled on gitk, is planned as a separate program in its own repo that drives the CLI (see [decisions.md](../decisions.md), 2026-11-12). It is too large to build in one go, so this item breaks it down before anything is built.
@@ -17,7 +18,7 @@ What the GUI is meant to do, as agreed so far:
 
 Done looks like:
 - The GUI repo exists, with a roadmap of its own (`roadmap init`) holding the GUI's implementation items, read-only view first and editing after, each small enough to ship on its own.
-- This roadmap holds the CLI-side items the GUI needs, starting with [gui-read-interface](gui-read-interface.md), refined or split to match.
+- This roadmap holds the CLI-side items the GUI needs, starting with [gui-read-interface](../items/gui-read-interface.md), refined or split to match.
 - Each item's bucket was agreed with the product owner. Items, not task lists: per-task detail goes in an OpenSpec change, as the 2026-10-23 decision says.
 
 **2026-11-12:** UX sketches of the GUI exist as a private design canvas the product owner holds. They raised one question that changes the CLI, now decided: `close` gains a `--body` flag, and the breakdown should file it as a CLI-side item in this roadmap.
@@ -40,7 +41,7 @@ The GUI's close dialog then passes the reasoning through `--body`, and doesn't w
 - Closed items due for the milestone stay on the graph: shipped ones as done, declined ones greyed out and not counted as progress.
 - A progress line ("2 of 4 due items closed: 1 shipped, 1 declined"), the open items in the order they can land, and the closed ones with their outcome and `shipped_as`.
 
-It reads only what [gui-read-interface](gui-read-interface.md) already lists: milestones, open and archived items with their `milestone` field, and dependencies in both directions. Archived items name their milestone, as done.md's Milestones list already uses.
+It reads only what [gui-read-interface](../items/gui-read-interface.md) already lists: milestones, open and archived items with their `milestone` field, and dependencies in both directions. Archived items name their milestone, as done.md's Milestones list already uses.
 
 **2026-11-12:** a second UX review of the sketches. Its fixes to the sketches are made on the canvas. These parts belong in the GUI repo's items:
 - **States read the same everywhere.** A filled dot means ready, a hollow one waiting, and a dashed one in Later, in the queue, the detail pane, the milestone view and the milestone detail. `blocked_on` gets its own colour and a ⊘, because amber is kept for milestones.
@@ -65,13 +66,13 @@ It reads only what [gui-read-interface](gui-read-interface.md) already lists: mi
   - the strip scrolls sideways past a few lanes;
   - timeline labels that collide stack;
   - the milestone cards become a list.
-- **What the GUI needs from the CLI beyond [gui-read-interface](gui-read-interface.md):** JSON results from the write commands, with refusals carrying their rule tag, and `check --json`. Editing (the refused move) and the problems display (check results per row) depend on them, so the breakdown should file them as their own CLI-side item, ahead of the GUI's editing items.
+- **What the GUI needs from the CLI beyond [gui-read-interface](../items/gui-read-interface.md):** JSON results from the write commands, with refusals carrying their rule tag, and `check --json`. Editing (the refused move) and the problems display (check results per row) depend on them, so the breakdown should file them as their own CLI-side item, ahead of the GUI's editing items.
 
 **2026-11-23:** the main window, reworked for items with several dependencies and several milestones. This replaces the strip with a lane per milestone, which grew a column with every milestone declared:
 - **Milestones in the queue are one fixed-width column of chips.** A filled ◆ marks the one milestone an item is due for (`milestone` holds a single id), and a hollow ◇ each milestone its `depends_on` names. They're sorted by date, and "+n" stands in past two, so the column never widens. The milestone view and the milestone detail stay the place for the overview.
 - **The gutter stays the plain gitk graph.** Selecting an item highlights its row and nothing else, so a crowded chain never tangles the queue.
 - **The selected item's dependencies are drawn in the detail pane** as a small left-to-right graph: what it depends on (items and milestones) → the item → what needs it (items, and the milestone it is due for). It shows direct links only, with "+n further up/down" to expand a level in place. Clicking a node selects it and redraws the graph around it, with a breadcrumb and Alt+← back. It uses the same visual language as the milestone detail.
-- **Reached milestones**, since [milestone-reached](../archive/milestone-reached.md) shipped in 2.2.0, show as satisfied, like a shipped item: a ✓ chip that doesn't make an item wait. A milestone whose date has passed without being reached shows as late. The GUI may compare the date with today's, which the generated index never does. The snapshot in [gui-read-interface](gui-read-interface.md) has to carry `reached`.
+- **Reached milestones**, since [milestone-reached](../archive/milestone-reached.md) shipped in 2.2.0, show as satisfied, like a shipped item: a ✓ chip that doesn't make an item wait. A milestone whose date has passed without being reached shows as late. The GUI may compare the date with today's, which the generated index never does. The snapshot in [gui-read-interface](../items/gui-read-interface.md) has to carry `reached`.
 
 **2026-11-23:** a UX review of the main window found that a long item couldn't be read: at 1280×800 the queue, the graph and the frontmatter left 3–4 lines for the text, and a bigger window made lines longer rather than adding more. The sketches are fixed. For the GUI repo's items:
 - **The detail pane scrolls as one document.** A header with the id, title, state and dependency counts stays pinned. The dependency graph sizes to its rows (at most three a side, then "+n more") and can be collapsed, and the choice is remembered.
@@ -192,3 +193,5 @@ The move into cli/ is the first item to file, ahead of any GUI code. It has to k
   - moving between graph cards with the arrow keys needs its own key handling, plus AccessKit nodes in reading order, since egui doesn't move focus by arrow keys;
   - egui_commonmark renders paragraphs as separate labels, so a text selection can't span them: accept that, or offer "Copy text";
   - the strip's two-colour line with an ellipsis needs a hand-built `LayoutJob`.
+
+**2026-11-25:** the breakdown is filed, in this roadmap rather than a GUI repo's, per the 2026-11-23 decision. The read-only view is due for the new gui-preview milestone (2026-12-31): [gui-scaffold](../items/gui-scaffold.md), [gui-queue](../items/gui-queue.md), [gui-dependency-graph](../items/gui-dependency-graph.md), [gui-item-page](../items/gui-item-page.md), [gui-milestones](../items/gui-milestones.md) and [gui-release](../items/gui-release.md). Editing comes after it: [gui-editing](../items/gui-editing.md) and [gui-check-panel](../items/gui-check-panel.md). On the CLI side, [monorepo-move](../items/monorepo-move.md) goes first, [gui-read-interface](../items/gui-read-interface.md) is refined to carry `reached`, milestone lists and file dates, and [json-write-results](../items/json-write-results.md) and [close-body](../items/close-body.md) are filed ahead of editing. [drop-mermaid](../items/drop-mermaid.md) now waits on gui-preview instead of a gate. The notes above predate #40: an item can be due for several milestones, so the queue's ◆ chips and the snapshot carry a list. Each bucket was agreed with the product owner.

@@ -6,7 +6,7 @@ rank = 10
 filed = 2026-11-25
 +++
 
-Decided in [gui-breakdown](gui-breakdown.md) (2026-11-12): `close` gains a `--body` flag, and it is required. Today an agent has to edit an item's prose by hand before closing it, because the archive is append-only and the reasoning can't be added afterwards. Nothing makes it do so, and the GUI's close dialog would have to write the prose itself.
+Decided in [gui-breakdown](../archive/gui-breakdown.md) (2026-11-12): `close` gains a `--body` flag, and it is required. Today an agent has to edit an item's prose by hand before closing it, because the archive is append-only and the reasoning can't be added afterwards. Nothing makes it do so, and the GUI's close dialog would have to write the prose itself.
 
 What changes:
 - `close` appends the text to the item's prose as a dated paragraph before archiving it: `**<date>: shipped in <shipped_as>.** <text>`, or `**<date>: declined.** <text>`. The CLI writes the date and outcome, so they can't disagree with the frontmatter.

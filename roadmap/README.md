@@ -43,7 +43,6 @@ work is done. **Close it in the same branch as the code**, so it moves to
 flowchart LR
   subgraph b_now ["Now"]
     i_monorepo_move["1 · Move the CLI into cli/ so the repo can…"]
-    i_gui_breakdown["2 · Break the gitk-style GUI into…"]
     i_gui_read_interface["15 · A versioned JSON read interface a GUI…"]
     i_agent_behaviour_evals["16 · Evals for how an agent uses the skill…"]
     i_gui_scaffold["17 · The GUI's frame in gui/: open a repo's…"]
@@ -70,7 +69,6 @@ flowchart LR
     i_reach_command["6 · A reach command that marks a milestone…"]
   end
   b_now ~~~ b_next ~~~ b_later
-  i_gui_breakdown --> i_gui_read_interface
   i_monorepo_move --> i_gui_scaffold
   i_gui_read_interface --> i_gui_scaffold
   i_gui_scaffold --> i_gui_queue
@@ -95,16 +93,15 @@ flowchart LR
   i_gui_release --> m_gui_preview
   m_gui_preview --> i_drop_mermaid
   classDef ready stroke-width: 3px
-  class i_monorepo_move,i_gui_breakdown,i_agent_behaviour_evals,i_openspec_command_parity,i_explore_command,i_help_without_command,i_handoff_override,i_close_body ready
+  class i_monorepo_move,i_gui_read_interface,i_agent_behaviour_evals,i_openspec_command_parity,i_explore_command,i_help_without_command,i_handoff_override,i_close_body ready
   classDef later stroke-dasharray: 5 5
   class i_epics,i_standalone_binary,i_reach_command later
 ```
 
-### Now (6)
+### Now (5)
 
 1. [Move the CLI into cli/ so the repo can hold the GUI in gui/](items/monorepo-move.md) — filed 2026-11-25
-2. [Break the gitk-style GUI into implementation items](items/gui-breakdown.md) — filed 2026-11-12
-15. [A versioned JSON read interface a GUI can drive](items/gui-read-interface.md) — filed 2026-11-12<br>  **Depends on:** [Break the gitk-style GUI into implementation items](items/gui-breakdown.md)
+15. [A versioned JSON read interface a GUI can drive](items/gui-read-interface.md) — filed 2026-11-12<br>  **Depends on:** [Break the gitk-style GUI into implementation items](archive/gui-breakdown.md) (shipped)
 16. [Evals for how an agent uses the skill, not just for the script](items/agent-behaviour-evals.md) — filed 2026-09-25
 17. [The GUI's frame in gui/: open a repo's roadmap through the CLI](items/gui-scaffold.md) — filed 2026-11-25<br>  **Due for:** GUI preview: the read-only view (2026-12-31)<br>  **Depends on:** [Move the CLI into cli/ so the repo can hold the GUI in gui/](items/monorepo-move.md), [A versioned JSON read interface a GUI can drive](items/gui-read-interface.md)
 18. [The GUI's Queue tab: rows, lanes, milestone chips and the preview strip](items/gui-queue.md) — filed 2026-11-25<br>  **Due for:** GUI preview: the read-only view (2026-12-31)<br>  **Depends on:** [The GUI's frame in gui/: open a repo's roadmap through the CLI](items/gui-scaffold.md)

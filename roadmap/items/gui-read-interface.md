@@ -10,7 +10,7 @@ depends_on = ["gui-breakdown"]
 files = ["src/commands.ts"]
 +++
 
-A GUI that drives the CLI as a subprocess, as [gui-breakdown](gui-breakdown.md) plans, has to read everything it shows through the CLI. Today `roadmap list --json` covers only the open items, and only their frontmatter.
+A GUI that drives the CLI as a subprocess, as [gui-breakdown](../archive/gui-breakdown.md) plans, has to read everything it shows through the CLI. Today `roadmap list --json` covers only the open items, and only their frontmatter.
 
 The GUI needs, from one command or a few:
 - the open and the archived items, with their frontmatter and prose,
@@ -24,7 +24,7 @@ Done looks like: the output is documented, carries a schema version, and is cove
 
 **2026-11-12:** the files stay Markdown, and the CLI emits JSON. Storing items as JSON was considered and rejected: prose would become single-line escaped strings, unreadable on GitHub and conflicting on every concurrent edit to a paragraph; `check --base`'s line-by-line append-only rule would stop making sense; and every install would need a migration. The GUI never parses Markdown anyway, because it reads only through the CLI.
 
-The shape: one snapshot command (`list --json --all` or a dedicated `export --json`) that returns everything in a single consistent read, rather than `--json` on each read command, since a GUI reloads all at once and separate calls could see the files change between them. Machine-readable results from the write commands (what changed, what shifted, and refusals with their rule tag) and `check --json` are outside this item; [gui-breakdown](gui-breakdown.md) should split them into their own item, which GUI editing depends on and the read-only view doesn't.
+The shape: one snapshot command (`list --json --all` or a dedicated `export --json`) that returns everything in a single consistent read, rather than `--json` on each read command, since a GUI reloads all at once and separate calls could see the files change between them. Machine-readable results from the write commands (what changed, what shifted, and refusals with their rule tag) and `check --json` are outside this item; [gui-breakdown](../archive/gui-breakdown.md) should split them into their own item, which GUI editing depends on and the read-only view doesn't.
 
 **2026-11-12:** the contract for `--json`, which today's `list --json` doesn't keep:
 1. With `--json`, stdout holds exactly one JSON document whatever happens: success, refusal, usage error or missing roadmap. Each carries `schema` and `ok`, and a failure carries `rule` and `message`.
@@ -38,7 +38,7 @@ This item also fixes a bug found on the way: `list --dir nope` (with or without 
 
 **2026-11-12:** the snapshot should also carry each open item's readiness, as the CLI computes it: `ready`, or what it waits on (open items, or milestones it depends on), with Later items marked as such. Otherwise the GUI has to re-implement a rule the CLI already applies (`render.ts` marks ready items in the chart today), and the GUI and the index could disagree. This matters more once [drop-mermaid](drop-mermaid.md) removes the chart that uses the rule now.
 
-**2026-11-25:** [gui-breakdown](gui-breakdown.md) refined this item. Besides what the notes above list, the snapshot carries:
+**2026-11-25:** [gui-breakdown](../archive/gui-breakdown.md) refined this item. Besides what the notes above list, the snapshot carries:
 - each milestone's `reached` date, so the GUI can show a reached milestone as satisfied and a passed, unreached one as late;
 - each item's `milestone` as a list, since an item can be due for several milestones (#40);
 - each item file's last-change date from git, for the GUI's "changed N d ago", because the GUI never runs git itself. A file git doesn't track yet has none.

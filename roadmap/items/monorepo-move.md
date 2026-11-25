@@ -6,7 +6,7 @@ rank = 1
 filed = 2026-11-25
 +++
 
-The repo becomes a monorepo (see [decisions.md](../decisions.md), 2026-11-23): the current codebase moves down into cli/, the GUI goes in gui/, and one roadmap/ stays at the top. This is the first item planned in [gui-breakdown](gui-breakdown.md), ahead of any GUI code, because every GUI item builds in gui/ and the CLI's paths change under every open branch.
+The repo becomes a monorepo (see [decisions.md](../decisions.md), 2026-11-23): the current codebase moves down into cli/, the GUI goes in gui/, and one roadmap/ stays at the top. This is the first item planned in [gui-breakdown](../archive/gui-breakdown.md), ahead of any GUI code, because every GUI item builds in gui/ and the CLI's paths change under every open branch.
 
 The move has to keep working everything the root layout supports today:
 - **The GitHub Action.** Users reach `action.yml` as `uses: <owner>/<repo>@v2` at the root. Either a root `action.yml` stays and runs the CLI from cli/, or the move ships as a major version. Deciding which is part of this item.
