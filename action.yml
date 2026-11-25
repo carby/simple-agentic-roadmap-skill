@@ -43,6 +43,6 @@ runs:
         ROADMAP_PACKAGE: ${{ inputs.package }}
         ACTION_DIR: ${{ github.action_path }}
       run: |
-        spec="$(node "$ACTION_DIR/scripts/action-spec.mjs" . "$ACTION_DIR" "$ROADMAP_PACKAGE" "$ROADMAP_DIR")"
+        spec="$(node "$ACTION_DIR/cli/scripts/action-spec.mjs" . "$ACTION_DIR/cli" "$ROADMAP_PACKAGE" "$ROADMAP_DIR")"
         echo "Running $spec"
         npx --yes --package="$spec" -- roadmap check --dir "$ROADMAP_DIR" ${ROADMAP_BASE:+--base "$ROADMAP_BASE"}

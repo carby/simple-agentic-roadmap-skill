@@ -7,7 +7,7 @@ filed = 2026-11-12
 depends_on = ["gui-breakdown"]
 
 [refs]
-files = ["src/commands.ts"]
+files = ["cli/src/commands.ts"]
 +++
 
 A GUI that drives the CLI as a subprocess, as [gui-breakdown](../archive/gui-breakdown.md) plans, has to read everything it shows through the CLI. Today `roadmap list --json` covers only the open items, and only their frontmatter.

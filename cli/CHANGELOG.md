@@ -26,6 +26,9 @@ passing `check` red.
   driver included, before running `update`.
 - **Upgrade notes:** run `update`. Until you do, `check` fails on every open
   item that names a milestone.
+- This repo is now a monorepo: the CLI and the skill moved into `cli/`, and a
+  GUI is coming in `gui/`. Nothing changes for users: the package, the skill
+  zip and `uses: carby/simple-agentic-roadmap-skill@v2` work as before.
 
 ## 2.2.0 — 2026-11-14
 

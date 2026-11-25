@@ -14,6 +14,8 @@ import { Day } from "../src/py.ts";
 import { writeGenerated } from "../src/render.ts";
 
 export const REPO = resolve(import.meta.dirname, "..");
+/** The monorepo around the CLI: the action, CLAUDE.md and the dogfood roadmap. */
+export const ROOT = resolve(REPO, "..");
 export const BIN = join(REPO, "bin", "roadmap.js");
 export const FIXTURES = join(REPO, "test", "fixtures");
 

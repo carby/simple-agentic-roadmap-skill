@@ -7,6 +7,12 @@ on:
 permissions:
   contents: read
 
+# The CLI and its package live in cli/; the action and the roadmap stay at the
+# root. `working-directory` applies to run steps only, never to `uses:` steps.
+defaults:
+  run:
+    working-directory: cli
+
 jobs:
   # This repo's own test suite: the CLI, the template, SKILL.md and the docs.
   # The test files are TypeScript, which Node runs only from 22.18, so they
@@ -33,6 +39,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: cli/package-lock.json
       - run: npm ci
       - run: npx biome ci .
       - run: npx tsc --noEmit
@@ -41,7 +48,7 @@ jobs:
         run: |
           npm run bundle
           "${ROADMAP_TEST_NODE:-node}" --version
-          "${ROADMAP_TEST_NODE:-node}" build/roadmap.mjs check
+          "${ROADMAP_TEST_NODE:-node}" build/roadmap.mjs check --dir ../roadmap
           "${ROADMAP_TEST_NODE:-node}" build/roadmap.mjs check --dir test/fixtures/valid/roadmap
 
   # The client-side check, run the way a consuming repo runs it: through the
@@ -58,6 +65,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: cli/package-lock.json
       - run: npm ci
       - name: Pack this commit
         id: pack
@@ -65,7 +73,7 @@ jobs:
       - name: Fixture roadmap via the action
         uses: ./
         with:
-          dir: test/fixtures/valid/roadmap
+          dir: cli/test/fixtures/valid/roadmap
           package: ${{ steps.pack.outputs.tgz }}
       - name: Pick the base for the append-only check
         id: base

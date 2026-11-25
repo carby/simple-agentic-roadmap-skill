@@ -7,7 +7,7 @@ filed = 2026-11-12
 depends_on = ["gui-read-interface", "gui-preview"]
 
 [refs]
-files = ["src/render.ts"]
+files = ["cli/src/render.ts"]
 +++
 
 The README index draws a Mermaid flowchart of the open items and their dependencies. Once the GUI planned in [gui-breakdown](../archive/gui-breakdown.md) shows the dependency chain both up and down, the chart has a better replacement, and the index can be plain text only.
