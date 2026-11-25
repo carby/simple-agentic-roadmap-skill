@@ -10,13 +10,14 @@ import { PACKAGE_NAME, PACKAGE_ROOT, pinsPackage } from "./package.ts";
 export const NO_HANDOFF = "ROADMAP_NO_HANDOFF";
 
 /** The bin of the copy the repo around `cwd` pins, if it isn't this one.
- * Only the nearest package.json counts: a copy installed above the repo, such
- * as a stray one in `~/node_modules`, is never used. */
+ * Only the nearest package.json counts, and the search stops at the git root:
+ * a copy installed above the repo, such as a stray one in `~/node_modules`, is
+ * never used, even in a repo whose package.json sits in a subfolder. */
 export function localInstall(cwd = process.cwd(), self = PACKAGE_ROOT): string | null {
   let dir = resolve(cwd);
   while (!existsSync(join(dir, "package.json"))) {
     const up = dirname(dir);
-    if (up === dir) return null;
+    if (up === dir || existsSync(join(dir, ".git"))) return null;
     dir = up;
   }
   if (!pinsPackage(dir)) return null;
