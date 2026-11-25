@@ -43,4 +43,4 @@ This item also fixes a bug found on the way: `list --dir nope` (with or without 
 - each item's `milestone` as a list, since an item can be due for several milestones (#40);
 - each item file's last-change date from git, for the GUI's "changed N d ago", because the GUI never runs git itself. A file git doesn't track yet has none.
 
-The write commands' JSON results and `check --json` are filed as [json-write-results](json-write-results.md). The CLI moves into cli/ first ([monorepo-move](monorepo-move.md)), which updates this item's `refs`.
+The write commands' JSON results and `check --json` are filed as [json-write-results](json-write-results.md). The CLI moves into cli/ first ([monorepo-move](../archive/monorepo-move.md)), which updates this item's `refs`.
