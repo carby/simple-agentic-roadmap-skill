@@ -77,9 +77,9 @@ More in [Slash commands](docs/slash-commands.md).
 | `SKILL.md`, `references/conventions.md` | the agent: when to use the roadmap, the workflows, the rules |
 | `src/`, `bin/roadmap.js` | the `roadmap` CLI: `init`, `update`, `new`, `move`, `close`, `index`, `check` (Node 22+) |
 | `assets/template/` | what `init` writes into your repo |
-| `action.yml` | a GitHub Action that runs `check` |
+| `action.yml`, at the repo root | a GitHub Action that runs `check` |
 | `docs/` | the documentation, as an Obsidian vault |
-| `test/`, `roadmap/`, `CONTRIBUTING.md` | for working on the skill: its test suite, its own roadmap, and how to develop and release |
+| `test/`, `CONTRIBUTING.md`, and `roadmap/` at the repo root | for working on the skill: its test suite, its own roadmap, and how to develop and release |
 
 Originally extracted from the roadmap of the snakestream project.
 
