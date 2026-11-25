@@ -8,7 +8,7 @@ milestone = ["gui-preview"]
 depends_on = ["gui-dependency-graph"]
 +++
 
-The Milestones tab (Ctrl+2) and the milestone page, as the notes in [gui-breakdown](gui-breakdown.md) settle them.
+The Milestones tab (Ctrl+2) and the milestone page, as the notes in [gui-breakdown](../archive/gui-breakdown.md) settle them.
 
 - The tab shows every declared milestone in date order, as cards that become a list past a few, with a ✓ for a reached one and "late N d" for a passed one.
 - Enter on a card, or a milestone chip in the queue or a graph, opens the milestone's page.

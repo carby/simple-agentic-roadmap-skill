@@ -8,7 +8,7 @@ milestone = ["gui-preview"]
 depends_on = ["monorepo-move", "gui-read-interface"]
 +++
 
-The first GUI item planned in [gui-breakdown](gui-breakdown.md): the Rust and egui program in gui/, before it draws any view. Everything after it builds on this frame.
+The first GUI item planned in [gui-breakdown](../archive/gui-breakdown.md): the Rust and egui program in gui/, before it draws any view. Everything after it builds on this frame.
 
 It covers:
 - the crate, its CI build, and the GUI's own tag prefix, as [monorepo-move](monorepo-move.md) sets up;

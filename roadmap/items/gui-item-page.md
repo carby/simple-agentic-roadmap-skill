@@ -8,7 +8,7 @@ milestone = ["gui-preview"]
 depends_on = ["gui-queue", "gui-dependency-graph"]
 +++
 
-The item page, opened with Enter or a double-click on a queue row, as the notes in [gui-breakdown](gui-breakdown.md) settle it. It mirrors the milestone page.
+The item page, opened with Enter or a double-click on a queue row, as the notes in [gui-breakdown](../archive/gui-breakdown.md) settle it. It mirrors the milestone page.
 
 - A toolbar breadcrumb: its root plus the last three crumbs; jumping to one drops the forward history.
 - A pinned header: glyph, id, title, a status line, and one summary line ("2 open dependencies, 1 needed first"). The page scrolls as one document under it.

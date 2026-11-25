@@ -8,7 +8,7 @@ milestone = ["gui-preview"]
 depends_on = ["gui-scaffold"]
 +++
 
-The left-to-right graph that both detail pages draw ([gui-item-page](gui-item-page.md) and [gui-milestones](gui-milestones.md)), built once as a shared widget in the one visual language [gui-breakdown](gui-breakdown.md) settles.
+The left-to-right graph that both detail pages draw ([gui-item-page](gui-item-page.md) and [gui-milestones](gui-milestones.md)), built once as a shared widget in the one visual language [gui-breakdown](../archive/gui-breakdown.md) settles.
 
 - 180×64 cards on a 240px pitch, and a centre node that spans the rows and never moves.
 - An item reached by several paths sits at its longest-path level, so edges always run left to right.

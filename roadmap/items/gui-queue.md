@@ -8,7 +8,7 @@ milestone = ["gui-preview"]
 depends_on = ["gui-scaffold"]
 +++
 
-The Queue tab (Ctrl+1), the GUI's overview, as the notes in [gui-breakdown](gui-breakdown.md) settle it. The queue fills the window.
+The Queue tab (Ctrl+1), the GUI's overview, as the notes in [gui-breakdown](../archive/gui-breakdown.md) settle it. The queue fills the window.
 
 - Items are rows in queue order, with bucket separators that collapse.
 - The gutter is the plain gitk graph of dependency lanes; it caps its width and bundles lanes past the cap. Selecting an item highlights its row and nothing else.

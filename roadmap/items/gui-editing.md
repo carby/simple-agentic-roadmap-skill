@@ -7,7 +7,7 @@ filed = 2026-11-25
 depends_on = ["json-write-results", "close-body", "gui-item-page"]
 +++
 
-Editing from the GUI, after the read-only view, as the notes in [gui-breakdown](gui-breakdown.md) settle it. Every edit runs a CLI command and then reloads; the GUI never writes a file itself.
+Editing from the GUI, after the read-only view, as the notes in [gui-breakdown](../archive/gui-breakdown.md) settle it. Every edit runs a CLI command and then reloads; the GUI never writes a file itself.
 
 - **The context menu** (right-click, Shift+F10 or the Menu key) on a queue row or an item page shows every entry's command: move, rank above, split, close, "Open item page" (Enter), and on an item page "Show in queue" (L) and "Open milestone". Copy id is Ctrl+Shift+C, so Ctrl+C copies selected text.
 - **Dialogs** show the command they will run. Later asks for its `blocked_on` question. Rank above picks from a list that greys out the items it can't go above. Split asks for the new id and title.
