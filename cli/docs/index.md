@@ -33,6 +33,11 @@ short version.
 - [Rule tags](rule-tags.md): reading a failure line
 - [Configuration](configuration.md): `roadmap.toml`, refs and milestones
 
+## Scripting it
+
+- [JSON output](json.md): `export`, `list --json`, and the contract every
+  `--json` keeps
+
 ## Elsewhere in the repo
 
 - [CONTRIBUTING](../CONTRIBUTING.md): working on the skill itself

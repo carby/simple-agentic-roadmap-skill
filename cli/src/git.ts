@@ -147,12 +147,13 @@ export function opcodes(a: string[], b: string[]): Opcode[] {
  * log`, and a note when git can't say, in which case only the frontmatter
  * dates count. It is the author date: a rebase or a rebase-merge resets the
  * committer date, but the change is as old as it was. */
-export function lastCommits(rm: Roadmap): [Map<string, Day>, string] {
+export function lastCommits(rm: Roadmap, dirs: string[] = [rm.itemsDir]): [Map<string, Day>, string] {
   let top: string;
   let log: string;
   try {
     top = git(rm.dir, "rev-parse", "--show-toplevel").trim();
-    log = git(top, "log", "--format=%x00%as", "--name-only", "--", resolve(rm.itemsDir));
+    const paths = dirs.map((d) => resolve(d));
+    log = git(top, "-c", "core.quotepath=off", "log", "--format=%x00%as", "--name-only", "--", ...paths);
   } catch (exc) {
     if (!(exc instanceof UsageError)) throw exc;
     return [new Map(), "Not in a git repository, so only filed and updated dates count as touches."];
@@ -171,4 +172,26 @@ export function lastCommits(rm: Roadmap): [Map<string, Day>, string] {
 
 export function committedDate(committed: Map<string, Day>, item: Item): Day | undefined {
   return committed.get(resolve(item.path));
+}
+
+/** The branch checked out and whether the working tree is clean, from one
+ * `git status`, which also answers on a branch with no commits yet. The
+ * branch is null on a detached HEAD; the whole answer is null outside git. */
+export function gitStatus(rm: Roadmap): { branch: string | null; clean: boolean } | null {
+  let status: string;
+  try {
+    status = git(rm.dir, "status", "--porcelain=v2", "--branch");
+  } catch (exc) {
+    if (!(exc instanceof UsageError)) throw exc;
+    return null;
+  }
+  let branch: string | null = null;
+  let clean = true;
+  for (const line of splitlines(status)) {
+    if (line.startsWith("# branch.head ")) {
+      const head = line.slice("# branch.head ".length);
+      branch = head === "(detached)" ? null : head;
+    } else if (line && !line.startsWith("#")) clean = false;
+  }
+  return { branch, clean };
 }

@@ -45,8 +45,10 @@ test("list filters by bucket", () => {
 });
 
 test("list --json holds the frontmatter and path of open items only", () => {
-  const items = JSON.parse(run(["list", "--json"], valid()).stdout);
+  const doc = JSON.parse(run(["list", "--json"], valid()).stdout);
+  const items = doc.items;
 
+  assert.deepEqual([doc.schema, doc.ok, doc.warnings], [1, true, []]);
   assert.deepEqual(
     items.map((i: { id: string }) => i.id),
     ["cache-tokens", "split-app", "rotate-keys"],

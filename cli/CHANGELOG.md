@@ -9,6 +9,22 @@ passing `check` red.
 
 ## Unreleased
 
+- **`export`** prints the whole roadmap as one JSON document, for the GUI
+  and for scripts. It holds the open items in queue order and the archived
+  ones, each with its frontmatter and prose. It also has the milestones,
+  the dependencies both ways, each open item's readiness as the index's
+  chart computes it, each file's last commit date, and git's branch and
+  state. See [JSON output](docs/json.md).
+- **Every `--json` keeps one contract**: stdout holds exactly one document,
+  even on a bad argument, with `schema`, `ok` and `warnings`. A failure
+  adds `rule` and `message`, and the exit code agrees with `ok`. The
+  version-pin warning goes into `warnings` rather than stderr.
+- **`list --json` prints `{schema, ok, warnings, items}`** instead of a bare
+  array.
+- **`list --dir` with no roadmap there fails** with exit 2. It used to print
+  an empty roadmap and exit 0.
+- **Upgrade notes:** a script that reads `list --json` now reads its `items`.
+
 - **An item can be due for several milestones** — `milestone` is now a list,
   `milestone = ["beta", "v3"]`, and `new --milestone` is repeatable. The
   earliest one binds: the item comes before every item waiting on any of

@@ -115,7 +115,8 @@ link the two attempts.
 | Regenerate the indexes after a hand edit | `roadmap index` |
 | Resolve a merge of two roadmap branches | For a conflict in a generated block, take either side and run `index`. For `[rank]` (both branches filed into the same bucket), run `index --renumber`. A `merge-driver` can take the generated blocks automatically; see references/conventions.md. |
 | Split an item that turned out to be two pieces of work | `roadmap split <id> <new-id> --title "..." [--body "..."]`. The new item copies the bucket, gate, blocked_on, depends_on, milestone and refs, and lands directly below the original. The original keeps one part, so narrow its prose. |
-| Read the queue without README.md, or script against it | `roadmap list [--bucket now] [--json]` |
+| Read the queue without README.md, or script against it | `roadmap list [--bucket now] [--json]`. `--json` prints one document, `{schema, ok, warnings, items}` |
+| Read the whole roadmap at once: open and archived items with their prose, milestones, edges both ways, readiness, git dates | `roadmap export`, one JSON document. Its fields are documented in docs/json.md in the CLI's repository |
 | Verify | `roadmap check` |
 | Mark a milestone met, once the user says it is | Add `reached = <date>` to it in roadmap.toml, e.g. `beta = { title = "Public beta", date = 2026-12-01, reached = 2026-12-03 }`, then run `index` and `check`. It is now satisfied, like a shipped item. **Leave it in the `depends_on` of the items that wait on it**: that is history, never something to clean up. |
 | Spot upkeep: passed milestones, stale Now/Next items | `roadmap review [--days 60]`. It uses today's date and git history, so it is never for CI, and it always exits 0. |
