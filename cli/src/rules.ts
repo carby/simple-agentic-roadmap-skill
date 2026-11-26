@@ -229,6 +229,25 @@ export function mustFollow(
   return dependsOn(item).includes(other.id) || dueBefore(item, byId, milestones).some((o) => o.id === other.id);
 }
 
+/** Whether an open item can be picked up, and if not, what holds it:
+ * `ready` when it is not in Later and waits on no open item and no unreached
+ * milestone; `later` for Later; `waiting` otherwise; null for an item whose
+ * bucket is invalid, which `bucket` reports. The index's chart marks ready
+ * items with this, and `export` reports it, so the two always agree. The
+ * items a milestone orders first (`dueBefore`) don't count: they only exist
+ * when a milestone is pending, which already makes the item wait. */
+export type Waits = { state: "ready" | "waiting" | "later" | null; items: string[]; milestones: string[] };
+
+export function waitsOf(item: Item, byId: Map<string, Item>, milestones: Map<string, Milestone>): Waits {
+  const items = [...new Set(dependsOn(item).filter((d) => byId.has(d) && !byId.get(d)?.archived))];
+  const held = [...new Set(pending(item, byId, milestones).map((m) => m.id))];
+  let state: Waits["state"] = null;
+  if (isBucket(item.bucket)) {
+    state = item.bucket === "later" ? "later" : items.length || held.length ? "waiting" : "ready";
+  }
+  return { state, items, milestones: held };
+}
+
 export function waitsOnLater(item: Item, byId: Map<string, Item>, milestones: Map<string, Milestone>): boolean {
   const before = [...dependsOn(item).map((d) => byId.get(d)), ...dueBefore(item, byId, milestones)];
   return before.some((other) => other && !other.archived && other.bucket === "later");
