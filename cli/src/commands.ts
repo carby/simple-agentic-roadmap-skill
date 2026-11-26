@@ -5,6 +5,7 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, unlinkSync, writeFileSync } from "node:fs";
 import { editFrontmatter, itemText } from "./edit.ts";
 import { appendOnlyProblems, committedDate, lastCommits } from "./git.ts";
+import { emit, JsonFailure, snapshot } from "./json.ts";
 import {
   BUCKETS,
   DECISIONS_INTRO,
@@ -28,7 +29,7 @@ import {
   UsageError,
 } from "./model.ts";
 import { exists, join, name, parent, stem } from "./pathlib.ts";
-import { cmp, Day, isDict, jsonDumps, readText, repr, str, truthy } from "./py.ts";
+import { cmp, Day, isDict, readText, repr, str, truthy } from "./py.ts";
 import { blockSpan, generatedProblems, splice, writeGenerated } from "./render.ts";
 import {
   awaited,
@@ -341,13 +342,18 @@ export function cmdSplit(rm: Roadmap, args: Args): number {
  * roadmap's state without parsing README.md. The item file is the detail view. */
 export function cmdList(rm: Roadmap, args: Args): number {
   const [items, , problems] = load(rm);
+  if (args.json && problems.length) {
+    throw new JsonFailure("frontmatter", `${problems.length} file(s) won't parse`, 1, {
+      problems: problems.map((p) => ({ path: p.path, rule: p.rule, message: p.message, line: p.line })),
+    });
+  }
   const code = report(problems);
   if (code) return code;
   const shown = items
     .filter((i) => !args.bucket || i.bucket === args.bucket)
     .sort((a, b) => cmp(positionKey(a, 9), positionKey(b, 9)));
   if (args.json) {
-    out(jsonDumps(shown.map((i) => ({ path: i.path, ...i.meta }))));
+    emit(args.ctx, { items: shown.map((i) => ({ path: i.path, ...i.meta })) });
     return 0;
   }
   for (const item of shown) {
@@ -365,6 +371,12 @@ export function cmdList(rm: Roadmap, args: Args): number {
     if (deps.length) out(`    depends on: ${deps.join(", ")}`);
   }
   if (!shown.length) out("No open items.");
+  return 0;
+}
+
+/** The whole roadmap as one JSON document: see json.ts and docs/json.md. */
+export function cmdExport(rm: Roadmap, args: Args): number {
+  emit(args.ctx, snapshot(rm, args.ctx));
   return 0;
 }
 

@@ -7,6 +7,7 @@ import {
   cmdCheck,
   cmdClose,
   cmdDecide,
+  cmdExport,
   cmdIndex,
   cmdList,
   cmdMergeDriver,
@@ -18,8 +19,10 @@ import {
   out,
 } from "./commands.ts";
 import { cmdInit, cmdUpdate, TOOLS } from "./install.ts";
-import { BUCKETS, OUTCOMES, openRoadmap, type Roadmap, UsageError, VERSION } from "./model.ts";
+import { emitFailure, JsonContext, JsonFailure } from "./json.ts";
+import { BUCKETS, ConfigError, OUTCOMES, openRoadmap, type Roadmap, UsageError, VERSION } from "./model.ts";
 import { PACKAGE_NAME } from "./package.ts";
+import { isDir, join } from "./pathlib.ts";
 import { Day, repr } from "./py.ts";
 
 const PROG = "roadmap";
@@ -195,13 +198,23 @@ export const COMMANDS: Record<string, Command> = {
     ],
   },
   list: {
-    help: "print the open items in queue order (--json for scripts)",
+    help: "print the open items in queue order (--json for scripts; see docs/json.md)",
     run: (rm, args) => cmdList(rm as Roadmap, args),
     options: [
       DIR,
       { flag: "--bucket", dest: "bucket", choices: BUCKETS },
-      { flag: "--json", dest: "json", kind: "flag", help: "the full frontmatter and path of each item, as JSON" },
+      {
+        flag: "--json",
+        dest: "json",
+        kind: "flag",
+        help: "the frontmatter and path of each item, as one JSON document",
+      },
     ],
+  },
+  export: {
+    help: "print the whole roadmap as one JSON document, for a GUI or a script (see docs/json.md)",
+    run: (rm, args) => cmdExport(rm as Roadmap, args),
+    options: [DIR, { flag: "--json", dest: "json", kind: "flag", help: "accepted; export always prints JSON" }],
   },
   move: {
     help: "move an item to another bucket or rank: by default above its dependents there, else at the bottom",
@@ -271,7 +284,12 @@ function usage(command?: string): string {
   return `usage: ${PROG} ${command} ${parts.join(" ")}`;
 }
 
+/** Set while a JSON-mode run parses its arguments, so a usage error becomes
+ * a JSON document rather than text on stderr. */
+let jsonParse: JsonContext | null = null;
+
 function fail(message: string, command?: string): never {
+  if (jsonParse) throw new JsonFailure("usage", message, 2);
   err(usage(command));
   err(`${command === undefined ? PROG : `${PROG} ${command}`}: error: ${message}`);
   throw new Exit(2);
@@ -427,7 +445,44 @@ export function pinWarning(pin: string): string {
   );
 }
 
+/** Whether to answer with one JSON document: for `export`, or when any
+ * argument before `--` is `--json` or a prefix of it, decided before the
+ * arguments are parsed so that a bad argument still gets a JSON answer. */
+export function jsonMode(argv: string[]): boolean {
+  const end = argv.indexOf("--");
+  return (
+    argv[0] === "export" ||
+    (end === -1 ? argv : argv.slice(0, end)).some((arg) => {
+      const flag = arg.split("=")[0] as string;
+      return flag.length > 2 && "--json".startsWith(flag);
+    })
+  );
+}
+
+/** The commands that only read an existing roadmap, and so refuse a --dir
+ * that holds none rather than read it as empty. */
+const READERS = new Set(["list", "export"]);
+
 export function main(argv: string[]): number {
+  if (!jsonMode(argv)) return run(argv, null);
+  const ctx = new JsonContext();
+  jsonParse = ctx;
+  try {
+    return run(argv, ctx);
+  } catch (exc) {
+    if (exc instanceof JsonFailure) return emitFailure(ctx, exc);
+    if (exc instanceof ConfigError) {
+      return emitFailure(ctx, new JsonFailure("config", exc.message.replace(/ \[config\]$/, ""), 2));
+    }
+    if (exc instanceof UsageError) return emitFailure(ctx, new JsonFailure("usage", exc.message, 2));
+    err(exc instanceof Error ? (exc.stack ?? exc.message) : String(exc));
+    return emitFailure(ctx, new JsonFailure("crash", exc instanceof Error ? exc.message : String(exc), 1));
+  } finally {
+    jsonParse = null;
+  }
+}
+
+function run(argv: string[], ctx: JsonContext | null): number {
   let args: Args;
   try {
     args = parseArgs(argv);
@@ -435,14 +490,23 @@ export function main(argv: string[]): number {
     if (exc instanceof Exit) return exc.code;
     throw exc;
   }
+  args.ctx = ctx;
   const spec = COMMANDS[args.command] as Command;
   try {
+    if (READERS.has(args.command) && !isDir(join(args.dir, "items"))) {
+      const message = `no roadmap at ${args.dir} (it has no items/ directory); run \`roadmap init\` to set one up`;
+      if (ctx) throw new JsonFailure("no-roadmap", message, 2);
+      throw new UsageError(message);
+    }
     const rm = "dir" in args ? openRoadmap(args.dir) : null;
     // `update` moves the pin itself, so it says so there rather than here.
-    if (rm?.pin && rm.pin !== VERSION && args.command !== "update") err(pinWarning(rm.pin));
+    if (rm?.pin && rm.pin !== VERSION && args.command !== "update") {
+      if (ctx) ctx.warnings.push(pinWarning(rm.pin));
+      else err(pinWarning(rm.pin));
+    }
     return spec.run(rm, args);
   } catch (exc) {
-    if (exc instanceof UsageError) {
+    if (exc instanceof UsageError && !ctx) {
       err(`error: ${exc.message}`);
       return 2;
     }

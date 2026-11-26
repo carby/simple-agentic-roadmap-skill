@@ -69,6 +69,7 @@ More in [Slash commands](docs/slash-commands.md).
 | [CI](docs/ci.md) | GitHub Actions, GitLab CI, pre-commit |
 | [Rule tags](docs/rule-tags.md) | reading a `check` failure |
 | [Configuration](docs/configuration.md) | `roadmap.toml`: refs and milestones |
+| [JSON output](docs/json.md) | `export` and `list --json` for a GUI or a script |
 
 ## What's in here
 

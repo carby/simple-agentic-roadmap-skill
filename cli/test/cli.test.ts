@@ -130,6 +130,7 @@ test("the CLI has exactly these commands", () => {
       "check",
       "close",
       "decide",
+      "export",
       "index",
       "init",
       "list",
