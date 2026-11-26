@@ -79,7 +79,6 @@ flowchart LR
   i_gui_item_page --> i_gui_editing
   i_json_write_results --> i_gui_check_panel
   i_gui_item_page --> i_gui_check_panel
-  i_gui_read_interface --> i_check_missing_dir
   m_gui_preview{{"GUI preview: the read-only view (2026-12-31)"}}
   i_gui_scaffold --> m_gui_preview
   i_gui_queue --> m_gui_preview
@@ -89,7 +88,7 @@ flowchart LR
   i_gui_release --> m_gui_preview
   m_gui_preview --> i_drop_mermaid
   classDef ready stroke-width: 3px
-  class i_agent_behaviour_evals,i_gui_scaffold,i_openspec_command_parity,i_explore_command,i_help_without_command,i_handoff_override,i_json_write_results,i_close_body ready
+  class i_agent_behaviour_evals,i_gui_scaffold,i_openspec_command_parity,i_explore_command,i_help_without_command,i_handoff_override,i_json_write_results,i_close_body,i_check_missing_dir ready
   classDef later stroke-dasharray: 5 5
   class i_epics,i_standalone_binary,i_reach_command later
 ```
@@ -115,7 +114,7 @@ flowchart LR
 11. [Drop the Mermaid chart from the index](items/drop-mermaid.md) — filed 2026-11-12<br>  **Depends on:** [A versioned JSON read interface a GUI can drive](archive/gui-read-interface.md) (shipped), GUI preview: the read-only view (2026-12-31)
 12. [Edit from the GUI: context menu, dialogs and refusals](items/gui-editing.md) — filed 2026-11-25<br>  **Depends on:** [JSON results from the write commands, and check --json](items/json-write-results.md), [close requires --body and appends the outcome and reasoning itself](items/close-body.md), [The GUI's item page, with history and navigation](items/gui-item-page.md)
 13. [Show check problems in the GUI](items/gui-check-panel.md) — filed 2026-11-25<br>  **Depends on:** [JSON results from the write commands, and check --json](items/json-write-results.md), [The GUI's item page, with history and navigation](items/gui-item-page.md)
-14. [check fails on a --dir that holds no roadmap](items/check-missing-dir.md) — filed 2026-11-26<br>  **Depends on:** [A versioned JSON read interface a GUI can drive](items/gui-read-interface.md)
+14. [check fails on a --dir that holds no roadmap](items/check-missing-dir.md) — filed 2026-11-26<br>  **Depends on:** [A versioned JSON read interface a GUI can drive](archive/gui-read-interface.md) (shipped)
 
 ### Later (3)
 
