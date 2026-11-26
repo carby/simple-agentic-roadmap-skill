@@ -18,7 +18,7 @@ import {
 } from "./model.ts";
 import { exists, name } from "./pathlib.ts";
 import { cmp, len, readText, str, truthy } from "./py.ts";
-import { byIdOf, dependsOn, dueIds, dueFor as dueOf, isBucket, pending } from "./rules.ts";
+import { byIdOf, dependsOn, dueIds, dueFor as dueOf, isBucket, pending, waitsOf } from "./rules.ts";
 
 /** The README's index block, between its markers. There is one line per item, and
  * every one is read back out of the item files. `archived` is only consulted
@@ -97,11 +97,7 @@ export function renderGraph(items: Item[], milestones: Map<string, Milestone> = 
   }
   lines.push(...dueFor.map(([i, m]) => `  ${node(i.id)} --> ${node(m.id, "m_")}`));
   lines.push(...waits.map(([i, m]) => `  ${node(m.id, "m_")} --> ${node(i.id)}`));
-  const waiting = new Set(
-    queued.filter((i) => dependsOn(i).some((d) => byId.get(d) && !byId.get(d)?.archived)).map((i) => i.id),
-  );
-  for (const [i] of waits) waiting.add(i.id);
-  const ready = queued.filter((i) => i.bucket !== "later" && !waiting.has(i.id)).map((i) => node(i.id));
+  const ready = queued.filter((i) => waitsOf(i, byId, milestones).state === "ready").map((i) => node(i.id));
   if (ready.length) lines.push("  classDef ready stroke-width: 3px", `  class ${ready.join(",")} ready`);
   const later = queued.filter((i) => i.bucket === "later").map((i) => node(i.id));
   if (later.length) lines.push("  classDef later stroke-dasharray: 5 5", `  class ${later.join(",")} later`);
