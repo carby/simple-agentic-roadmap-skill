@@ -61,6 +61,7 @@ flowchart LR
     i_drop_mermaid["11 · Drop the Mermaid chart from the index"]
     i_gui_editing["12 · Edit from the GUI: context menu…"]
     i_gui_check_panel["13 · Show check problems in the GUI"]
+    i_check_missing_dir["14 · check fails on a --dir that holds no…"]
   end
   subgraph b_later ["Later"]
     i_epics["3 · Epics: parent items that group others"]
@@ -82,6 +83,7 @@ flowchart LR
   i_gui_item_page --> i_gui_editing
   i_json_write_results --> i_gui_check_panel
   i_gui_item_page --> i_gui_check_panel
+  i_gui_read_interface --> i_check_missing_dir
   m_gui_preview{{"GUI preview: the read-only view (2026-12-31)"}}
   i_gui_scaffold --> m_gui_preview
   i_gui_queue --> m_gui_preview
@@ -103,7 +105,7 @@ flowchart LR
 17. [The GUI's frame in gui/: open a repo's roadmap through the CLI](items/gui-scaffold.md) — filed 2026-11-25<br>  **Due for:** GUI preview: the read-only view (2026-12-31)<br>  **Depends on:** [Move the CLI into cli/ so the repo can hold the GUI in gui/](archive/monorepo-move.md) (shipped), [A versioned JSON read interface a GUI can drive](items/gui-read-interface.md)
 18. [The GUI's Queue tab: rows, lanes, milestone chips and the preview strip](items/gui-queue.md) — filed 2026-11-25<br>  **Due for:** GUI preview: the read-only view (2026-12-31)<br>  **Depends on:** [The GUI's frame in gui/: open a repo's roadmap through the CLI](items/gui-scaffold.md)
 
-### Next (13)
+### Next (14)
 
 1. [The GUI's left-to-right dependency graph, shared by both detail pages](items/gui-dependency-graph.md) — filed 2026-11-25<br>  **Due for:** GUI preview: the read-only view (2026-12-31)<br>  **Depends on:** [The GUI's frame in gui/: open a repo's roadmap through the CLI](items/gui-scaffold.md)
 2. [The GUI's item page, with history and navigation](items/gui-item-page.md) — filed 2026-11-25<br>  **Due for:** GUI preview: the read-only view (2026-12-31)<br>  **Depends on:** [The GUI's Queue tab: rows, lanes, milestone chips and the preview strip](items/gui-queue.md), [The GUI's left-to-right dependency graph, shared by both detail pages](items/gui-dependency-graph.md)
@@ -118,6 +120,7 @@ flowchart LR
 11. [Drop the Mermaid chart from the index](items/drop-mermaid.md) — filed 2026-11-12<br>  **Depends on:** [A versioned JSON read interface a GUI can drive](items/gui-read-interface.md), GUI preview: the read-only view (2026-12-31)
 12. [Edit from the GUI: context menu, dialogs and refusals](items/gui-editing.md) — filed 2026-11-25<br>  **Depends on:** [JSON results from the write commands, and check --json](items/json-write-results.md), [close requires --body and appends the outcome and reasoning itself](items/close-body.md), [The GUI's item page, with history and navigation](items/gui-item-page.md)
 13. [Show check problems in the GUI](items/gui-check-panel.md) — filed 2026-11-25<br>  **Depends on:** [JSON results from the write commands, and check --json](items/json-write-results.md), [The GUI's item page, with history and navigation](items/gui-item-page.md)
+14. [check fails on a --dir that holds no roadmap](items/check-missing-dir.md) — filed 2026-11-26<br>  **Depends on:** [A versioned JSON read interface a GUI can drive](items/gui-read-interface.md)
 
 ### Later (3)
 
