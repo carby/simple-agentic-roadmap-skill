@@ -17,6 +17,6 @@ The Milestones tab (Ctrl+2) and the milestone page, as the notes in [gui-breakdo
 - A progress bar, and the one counting phrase used everywhere: "N due open, N needed first · N closed".
 - "Still to land: n", in the order things can land, and the closed ones with their outcome and `shipped_as`.
 
-It reads only what the snapshot from [gui-read-interface](gui-read-interface.md) carries.
+It reads only what the snapshot from [gui-read-interface](../archive/gui-read-interface.md) carries.
 
 Done when the tab and the page draw this roadmap's milestones, including gui-preview, with every case above.
