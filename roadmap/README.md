@@ -42,7 +42,6 @@ work is done. **Close it in the same branch as the code**, so it moves to
 ```mermaid
 flowchart LR
   subgraph b_now ["Now"]
-    i_gui_read_interface["15 · A versioned JSON read interface a GUI…"]
     i_agent_behaviour_evals["16 · Evals for how an agent uses the skill…"]
     i_gui_scaffold["17 · The GUI's frame in gui/: open a repo's…"]
     i_gui_queue["18 · The GUI's Queue tab: rows, lanes…"]
@@ -68,15 +67,12 @@ flowchart LR
     i_reach_command["6 · A reach command that marks a milestone…"]
   end
   b_now ~~~ b_next ~~~ b_later
-  i_gui_read_interface --> i_gui_scaffold
   i_gui_scaffold --> i_gui_queue
   i_gui_scaffold --> i_gui_dependency_graph
   i_gui_queue --> i_gui_item_page
   i_gui_dependency_graph --> i_gui_item_page
   i_gui_dependency_graph --> i_gui_milestones
   i_gui_scaffold --> i_gui_release
-  i_gui_read_interface --> i_json_write_results
-  i_gui_read_interface --> i_drop_mermaid
   i_json_write_results --> i_gui_editing
   i_close_body --> i_gui_editing
   i_gui_item_page --> i_gui_editing
@@ -91,16 +87,15 @@ flowchart LR
   i_gui_release --> m_gui_preview
   m_gui_preview --> i_drop_mermaid
   classDef ready stroke-width: 3px
-  class i_gui_read_interface,i_agent_behaviour_evals,i_openspec_command_parity,i_explore_command,i_help_without_command,i_handoff_override,i_close_body ready
+  class i_agent_behaviour_evals,i_gui_scaffold,i_openspec_command_parity,i_explore_command,i_help_without_command,i_handoff_override,i_json_write_results,i_close_body ready
   classDef later stroke-dasharray: 5 5
   class i_epics,i_standalone_binary,i_reach_command later
 ```
 
-### Now (4)
+### Now (3)
 
-15. [A versioned JSON read interface a GUI can drive](items/gui-read-interface.md) — filed 2026-11-12<br>  **Depends on:** [Break the gitk-style GUI into implementation items](archive/gui-breakdown.md) (shipped)
 16. [Evals for how an agent uses the skill, not just for the script](items/agent-behaviour-evals.md) — filed 2026-09-25
-17. [The GUI's frame in gui/: open a repo's roadmap through the CLI](items/gui-scaffold.md) — filed 2026-11-25<br>  **Due for:** GUI preview: the read-only view (2026-12-31)<br>  **Depends on:** [Move the CLI into cli/ so the repo can hold the GUI in gui/](archive/monorepo-move.md) (shipped), [A versioned JSON read interface a GUI can drive](items/gui-read-interface.md)
+17. [The GUI's frame in gui/: open a repo's roadmap through the CLI](items/gui-scaffold.md) — filed 2026-11-25<br>  **Due for:** GUI preview: the read-only view (2026-12-31)<br>  **Depends on:** [Move the CLI into cli/ so the repo can hold the GUI in gui/](archive/monorepo-move.md) (shipped), [A versioned JSON read interface a GUI can drive](archive/gui-read-interface.md) (shipped)
 18. [The GUI's Queue tab: rows, lanes, milestone chips and the preview strip](items/gui-queue.md) — filed 2026-11-25<br>  **Due for:** GUI preview: the read-only view (2026-12-31)<br>  **Depends on:** [The GUI's frame in gui/: open a repo's roadmap through the CLI](items/gui-scaffold.md)
 
 ### Next (13)
@@ -113,9 +108,9 @@ flowchart LR
 6. [An explore command that turns a fuzzy problem into roadmap items](items/explore-command.md) — filed 2026-10-23
 7. [Bare roadmap prints its help, not an error](items/help-without-command.md) — filed 2026-11-24
 8. [Say when a global roadmap hands off to the pinned copy, and allow skipping it](items/handoff-override.md) — filed 2026-11-24
-9. [JSON results from the write commands, and check --json](items/json-write-results.md) — filed 2026-11-25<br>  **Depends on:** [A versioned JSON read interface a GUI can drive](items/gui-read-interface.md)
+9. [JSON results from the write commands, and check --json](items/json-write-results.md) — filed 2026-11-25<br>  **Depends on:** [A versioned JSON read interface a GUI can drive](archive/gui-read-interface.md) (shipped)
 10. [close requires --body and appends the outcome and reasoning itself](items/close-body.md) — filed 2026-11-25
-11. [Drop the Mermaid chart from the index](items/drop-mermaid.md) — filed 2026-11-12<br>  **Depends on:** [A versioned JSON read interface a GUI can drive](items/gui-read-interface.md), GUI preview: the read-only view (2026-12-31)
+11. [Drop the Mermaid chart from the index](items/drop-mermaid.md) — filed 2026-11-12<br>  **Depends on:** [A versioned JSON read interface a GUI can drive](archive/gui-read-interface.md) (shipped), GUI preview: the read-only view (2026-12-31)
 12. [Edit from the GUI: context menu, dialogs and refusals](items/gui-editing.md) — filed 2026-11-25<br>  **Depends on:** [JSON results from the write commands, and check --json](items/json-write-results.md), [close requires --body and appends the outcome and reasoning itself](items/close-body.md), [The GUI's item page, with history and navigation](items/gui-item-page.md)
 13. [Show check problems in the GUI](items/gui-check-panel.md) — filed 2026-11-25<br>  **Depends on:** [JSON results from the write commands, and check --json](items/json-write-results.md), [The GUI's item page, with history and navigation](items/gui-item-page.md)
 
