@@ -14,18 +14,18 @@ defaults:
     working-directory: cli
 
 jobs:
-  # This repo's own test suite: the CLI, the template, SKILL.md and the docs.
+  # The CLI in cli/: its test suite, the template, SKILL.md and the docs.
   # The test files are TypeScript, which Node runs only from 22.18, so they
   # always run on the newest 22. On `floor`, every test that runs the CLI as a
   # subprocess runs it on Node 22.0.0 instead, the oldest that package.json's
   # engines allows, and so does the bundled CLI.
-  node:
+  cli:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         runtime: [latest, floor]
-    name: node (${{ matrix.runtime }})
+    name: cli (${{ matrix.runtime }})
     steps:
       - uses: actions/checkout@v7
       - if: matrix.runtime == 'floor'
