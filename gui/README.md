@@ -41,11 +41,12 @@ cargo run -- [PATH] [--cli "<command>"]
 
 ### Builds from CI
 
-To try a commit without Rust, take its binary from CI. Every CI run builds
-the GUI in release mode and keeps it for 14 days, as an artifact on the
-run's page (Actions › the run › Artifacts, which needs a GitHub login):
-`roadmap-gui-linux-x86_64`, `roadmap-gui-macos-arm64` (Apple Silicon) and
-`roadmap-gui-windows-x86_64`.
+To try the GUI without Rust, take a binary from CI. After each merge to
+master, once the tests pass, CI builds the GUI in release mode and keeps it
+as an artifact on the run's page (Actions › the run on master › Artifacts,
+which needs a GitHub login): `roadmap-gui-linux-x86_64`,
+`roadmap-gui-macos-arm64` (Apple Silicon) and `roadmap-gui-windows-x86_64`.
+Branches and pull requests get no binaries.
 
 - The artifact is a zip, which drops the execute bit: on Linux and macOS,
   run `chmod +x roadmap-gui` first.
@@ -54,8 +55,6 @@ run's page (Actions › the run › Artifacts, which needs a GitHub login):
   Open.
 - CI checks only that each binary runs `--version`, not that its window
   opens.
-- A pull request's artifacts are built from that pull request's code. Take
-  builds from runs on master.
 
 These are development builds. Releases come with the roadmap's
 `gui-release` item.
@@ -90,8 +89,8 @@ cargo test                                                  # skips the real-CLI
 ROADMAP_CLI="node $PWD/../cli/bin/roadmap.js" cargo test    # as CI runs it
 ```
 
-CI runs all of them on Linux. It also runs them on macOS and Windows, in the
-release build, with no real CLI. On Windows the tests that run a CLI are left
+Run these before you push. CI runs all of them on Linux, on every push and
+pull request. It also runs the tests on macOS and Windows, with no real CLI. On Windows the tests that run a CLI are left
 out, because their fake CLIs are shell scripts, so nothing there tests
 running the CLI.
 
