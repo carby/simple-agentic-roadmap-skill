@@ -147,7 +147,7 @@ pub fn run(cli: &Cli, args: &[&str], cwd: &Path, timeout: Duration) -> Result<Ra
         use std::os::unix::process::CommandExt;
         cmd.process_group(0);
     }
-    let mut child = cmd.spawn().map_err(|e| Problem::Missing {
+    let mut child = spawn(&mut cmd).map_err(|e| Problem::Missing {
         tried: vec![format!("{command}: {e}")],
     })?;
     let out = reader(child.stdout.take());
@@ -170,6 +170,25 @@ pub fn run(cli: &Cli, args: &[&str], cwd: &Path, timeout: Duration) -> Result<Ra
         stderr: err.recv_timeout(grace).unwrap_or_default(),
         timed_out,
     })
+}
+
+/// Spawn, retrying briefly on ETXTBSY ("Text file busy"). Linux refuses to
+/// exec a file while any process holds it open for writing, which happens
+/// for a moment when the CLI was just written: by npm reinstalling it, or by
+/// a test writing a fake CLI while another thread forks a child that
+/// inherits the write handle until its own exec.
+fn spawn(cmd: &mut Command) -> std::io::Result<std::process::Child> {
+    const ETXTBSY: i32 = 26;
+    let mut attempts = 0;
+    loop {
+        match cmd.spawn() {
+            Err(e) if e.raw_os_error() == Some(ETXTBSY) && attempts < 20 => {
+                attempts += 1;
+                thread::sleep(Duration::from_millis(25));
+            }
+            result => return result,
+        }
+    }
 }
 
 fn reader(pipe: Option<impl Read + Send + 'static>) -> mpsc::Receiver<String> {
