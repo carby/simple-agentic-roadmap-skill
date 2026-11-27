@@ -1,7 +1,7 @@
 //! Watching the roadmap's files, only to say they changed. The GUI never
 //! redraws from disk on its own: the person presses F5.
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use notify::{EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 
@@ -18,16 +18,17 @@ pub fn relevant(path: &Path) -> bool {
     name == "roadmap.toml" || name.ends_with(".md")
 }
 
-/// Watch `dir` recursively and call `changed` for each relevant change.
-/// Drop the watcher to stop.
-pub fn watch(dir: &Path, changed: impl Fn() + Send + 'static) -> notify::Result<RecommendedWatcher> {
+/// Watch `dir` recursively and call `changed` with the relevant paths of
+/// each change, as notify reports them. Drop the watcher to stop.
+pub fn watch(dir: &Path, changed: impl Fn(Vec<PathBuf>) + Send + 'static) -> notify::Result<RecommendedWatcher> {
     let mut watcher = notify::recommended_watcher(move |event: notify::Result<notify::Event>| {
         let Ok(event) = event else { return };
         if matches!(event.kind, EventKind::Access(_)) {
             return;
         }
-        if event.paths.iter().any(|p| relevant(p)) {
-            changed();
+        let paths: Vec<PathBuf> = event.paths.into_iter().filter(|p| relevant(p)).collect();
+        if !paths.is_empty() {
+            changed(paths);
         }
     })?;
     watcher.watch(dir, RecursiveMode::Recursive)?;
@@ -62,14 +63,15 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         std::fs::create_dir(tmp.path().join("items")).unwrap();
         let (tx, rx) = mpsc::channel();
-        let _watcher = watch(tmp.path(), move || {
-            let _ = tx.send(());
+        let _watcher = watch(tmp.path(), move |paths| {
+            let _ = tx.send(paths);
         })
         .unwrap();
 
         std::fs::write(tmp.path().join("items/.a.md.swp"), "x").unwrap();
         assert!(rx.recv_timeout(Duration::from_millis(500)).is_err());
         std::fs::write(tmp.path().join("items/a.md"), "x").unwrap();
-        assert!(rx.recv_timeout(Duration::from_secs(5)).is_ok());
+        let paths = rx.recv_timeout(Duration::from_secs(5)).unwrap();
+        assert!(paths.iter().all(|p| p.ends_with("items/a.md")), "{paths:?}");
     }
 }

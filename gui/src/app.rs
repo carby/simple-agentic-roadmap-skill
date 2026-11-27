@@ -9,6 +9,7 @@ use eframe::egui;
 
 use crate::cli::{self, Env, Problem};
 use crate::locate::find_roadmap;
+use crate::queue;
 use crate::state::{Effect, Msg, State};
 use crate::ui::{self, Action, UiState};
 use crate::watch;
@@ -28,8 +29,13 @@ pub struct App {
 
 impl App {
     pub fn new(ctx: &egui::Context, start: PathBuf, env: Env) -> App {
+        // Light only for now, as the sketches are; every colour is in
+        // `ui::palette`, so a dark one can follow.
+        ctx.set_theme(egui::Theme::Light);
+        ctx.set_fonts(ui::fonts());
         let (tx, rx) = channel();
-        let (state, effects) = State::new(find_roadmap(&start));
+        let (mut state, effects) = State::new(find_roadmap(&start));
+        state.today = today();
         let mut app = App {
             state,
             view: UiState::default(),
@@ -70,8 +76,9 @@ impl App {
                 }
                 Effect::Watch(dir) => {
                     let (tx, ctx) = (self.tx.clone(), self.ctx.clone());
-                    self.watcher = watch::watch(&dir, move || {
-                        let _ = tx.send(Msg::FileChanged);
+                    let watched = dir.clone();
+                    self.watcher = watch::watch(&dir, move |paths| {
+                        let _ = tx.send(Msg::FileChanged(queue::changed_paths(&watched, &paths)));
                         ctx.request_repaint();
                     })
                     .ok();
@@ -86,6 +93,10 @@ impl App {
     }
 }
 
+fn today() -> jiff::civil::Date {
+    jiff::ZonedDateTime::now().date()
+}
+
 /// How the status bar names the CLI it runs.
 fn label(env: &Env) -> String {
     match cli::resolve(env) {
@@ -96,6 +107,7 @@ fn label(env: &Env) -> String {
 
 impl eframe::App for App {
     fn logic(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        self.state.today = today();
         while let Ok(msg) = self.rx.try_recv() {
             if let Msg::Open { requested, found: None } = msg {
                 // From Browse…: locate it here, so the worker stays dumb.

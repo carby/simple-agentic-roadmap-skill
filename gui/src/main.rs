@@ -4,7 +4,9 @@
 
 mod app;
 mod cli;
+mod lanes;
 mod locate;
+mod queue;
 mod snapshot;
 mod state;
 mod ui;
