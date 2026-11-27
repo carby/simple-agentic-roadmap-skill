@@ -39,6 +39,27 @@ cargo run -- [PATH] [--cli "<command>"]
 | F5 | Reload: run `export` again |
 | File › Open folder… | Open another repo or roadmap folder |
 
+### Builds from CI
+
+To try a commit without Rust, take its binary from CI. Every CI run builds
+the GUI in release mode and keeps it for 14 days, as an artifact on the
+run's page (Actions › the run › Artifacts, which needs a GitHub login):
+`roadmap-gui-linux-x86_64`, `roadmap-gui-macos-arm64` (Apple Silicon) and
+`roadmap-gui-windows-x86_64`.
+
+- The artifact is a zip, which drops the execute bit: on Linux and macOS,
+  run `chmod +x roadmap-gui` first.
+- The macOS binary is unsigned. Run
+  `xattr -d com.apple.quarantine roadmap-gui`, or right-click it and choose
+  Open.
+- CI checks only that each binary runs `--version`, not that its window
+  opens.
+- A pull request's artifacts are built from that pull request's code. Take
+  builds from runs on master.
+
+These are development builds. Releases come with the roadmap's
+`gui-release` item.
+
 ## What it does, and doesn't
 
 - **It reloads only when you ask.** It watches the roadmap's files, and when
@@ -68,6 +89,11 @@ cargo fmt --check && cargo clippy --all-targets -- -D warnings
 cargo test                                                  # skips the real-CLI test
 ROADMAP_CLI="node $PWD/../cli/bin/roadmap.js" cargo test    # as CI runs it
 ```
+
+CI runs all of them on Linux. It also runs them on macOS and Windows, in the
+release build, with no real CLI. On Windows the tests that run a CLI are left
+out, because their fake CLIs are shell scripts, so nothing there tests
+running the CLI.
 
 The tests need no window. They cover:
 - finding the roadmap;

@@ -14,6 +14,21 @@ CI's `gui` job builds the GUI only as a Linux debug build, and throws it away. N
 
 - On every push and pull request, CI builds the GUI in release mode on Linux, macOS and Windows, with the toolchain `gui/rust-toolchain.toml` pins and `--locked`.
 - Each build is uploaded as a workflow artifact, named for its platform, so a commit's or PR's binaries can be downloaded from its run.
-- Format, lint and the tests keep running on Linux as now. Whether they also run on the other two platforms is decided while doing this, and recorded here.
+- Format, lint and the tests with the real CLI keep running on Linux, in the `gui` job, whose name the master ruleset requires. A separate `gui-build` job runs once per platform.
 
-Done when a green run on master carries three downloadable binaries, one per platform, each of which starts. [gui-release](gui-release.md) then builds on this job: it adds the tag trigger, attaches the binaries to a release, and writes the install docs.
+Done when a green run on master carries three downloadable binaries, one per platform, each of which runs `--version`. [gui-release](gui-release.md) then builds on this job: it adds the tag trigger, attaches the binaries to a release, and writes the install docs.
+
+Decided while doing this:
+
+- **The tests run on all three platforms,** in the release profile so that each platform compiles its dependencies once. Without `ROADMAP_CLI`, the real-CLI test skips itself there. On Windows, `cli.rs`'s tests are gated out because their fake CLIs are shell scripts, so on Windows nothing tests spawning the CLI, the timeout or resolving the CLI.
+- **macOS is Apple Silicon only** (`macos-latest`). A build for Intel Macs, or a universal binary, is left to gui-release.
+- **CI checks `--version`, not the window.** `--version` returns before eframe starts, so it proves only that the binary loads. Whether the window opens on macOS and Windows is still checked by hand.
+- **The Rust cache is saved from master only,** so three platforms' release builds don't push master's caches out of the quota. Artifacts are kept for 14 days.
+
+Left for gui-release, all on Windows unless noted:
+
+- `roadmap` on PATH is `roadmap.cmd`, and nothing tests resolving it.
+- `kill_group` kills only the direct child, so on a timeout a node process under `npx` survives.
+- The GUI opens a console window beside its own, because no `windows_subsystem` is set. Setting one would hide the output of `--help` and `--version`.
+- The MSVC build needs the VC++ redistributable unless it is built with `+crt-static`.
+- On Linux, the binary needs a glibc as new as ubuntu-latest's.
