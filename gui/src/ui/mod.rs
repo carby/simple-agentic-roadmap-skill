@@ -1,12 +1,33 @@
 //! Drawing, and nothing else: every decision is in `state`, and every
 //! click comes back as an `Action` for the app to carry out.
 
+mod gutter;
+pub mod palette;
+mod queue;
+
 use std::path::Path;
 
 use eframe::egui::{self, Align2, Color32, RichText, ScrollArea, TextStyle};
 
 use crate::cli::{Problem, RawOutput};
 use crate::state::{Load, Msg, State, View};
+
+/// egui's default fonts, with the monospace font (Hack) as the last fallback
+/// for proportional text too: Ubuntu Light lacks the arrows, ◆ ◇ and ⊘
+/// that the strip writes in proportional text. Choosing fonts is the
+/// roadmap's gui-font item; this only fills the gaps.
+pub fn fonts() -> egui::FontDefinitions {
+    let mut fonts = egui::FontDefinitions::default();
+    let mono = fonts.families[&egui::FontFamily::Monospace].first().cloned();
+    if let Some(mono) = mono {
+        fonts
+            .families
+            .entry(egui::FontFamily::Proportional)
+            .or_default()
+            .push(mono);
+    }
+    fonts
+}
 
 /// What the person asked for this frame. A handful a frame at most, so a
 /// large `Msg` inline costs nothing worth boxing for.
@@ -20,10 +41,22 @@ pub enum Action {
     Quit,
 }
 
-/// What only the drawing needs to remember: the Open folder dialog's text.
+/// What only the drawing needs to remember.
 #[derive(Default)]
 pub struct UiState {
+    /// The Open folder dialog's text, while it shows.
     pub open_path: Option<String>,
+    /// Give the find field focus next frame.
+    pub find_focus: bool,
+    /// Scroll the selection into view next frame.
+    pub reveal: bool,
+    /// The queue's scroll offset and height, as of the last frame.
+    pub offset: f32,
+    pub viewport: f32,
+    /// Rows a page key moves.
+    pub page_rows: i64,
+    /// The row the milestone picker has highlighted.
+    pub picker: usize,
 }
 
 pub struct Context<'a> {
@@ -36,6 +69,8 @@ pub fn draw(ui: &mut egui::Ui, state: &State, view: &mut UiState, cx: &Context) 
     if ui.input(|i| i.key_pressed(egui::Key::F5)) {
         actions.push(Action::Msg(Msg::Reload));
     }
+    queue::keys(ui.ctx(), state, view, &mut actions);
+    let q = state.queue();
 
     egui::Panel::top("menu").show(ui, |ui| {
         egui::MenuBar::new().ui(ui, |ui| {
@@ -48,6 +83,28 @@ pub fn draw(ui: &mut egui::Ui, state: &State, view: &mut UiState, cx: &Context) 
                 }
             });
             ui.menu_button("View", |ui| {
+                if ui.add(egui::Button::new("Queue").shortcut_text("Ctrl+1")).clicked() {
+                    actions.push(Action::Msg(Msg::Show(View::Queue)));
+                }
+                if ui.add(egui::Button::new("Find").shortcut_text("/")).clicked() {
+                    view.find_focus = true;
+                    actions.push(Action::Msg(Msg::Find(Some(state.options.find.clone()))));
+                }
+                if ui
+                    .add(egui::Button::new("Filter to a milestone").shortcut_text("F"))
+                    .clicked()
+                {
+                    actions.push(Action::Msg(Msg::FilterSelected));
+                }
+                let archived = if state.options.show_archived {
+                    "Hide archived"
+                } else {
+                    "Show archived"
+                };
+                if ui.button(archived).clicked() {
+                    actions.push(Action::Msg(Msg::ToggleArchived));
+                }
+                ui.separator();
                 if ui.add(egui::Button::new("Reload").shortcut_text("F5")).clicked() {
                     actions.push(Action::Msg(Msg::Reload));
                 }
@@ -56,6 +113,20 @@ pub fn draw(ui: &mut egui::Ui, state: &State, view: &mut UiState, cx: &Context) 
     });
 
     egui::Panel::bottom("status").show(ui, |ui| status_bar(ui, state, cx));
+    let queue_shows = state.roadmap.is_some() && state.snapshot.is_some();
+    if queue_shows {
+        egui::Panel::bottom("strip")
+            .frame(
+                egui::Frame::new()
+                    .fill(palette::STRIP)
+                    .inner_margin(egui::Margin::symmetric(6, 2)),
+            )
+            .show(ui, |ui| queue::strip(ui, state, &q));
+        egui::Panel::top("toolbar").show(ui, |ui| queue::toolbar(ui, state, &q, view, &mut actions));
+        if q.filter.is_some() {
+            egui::Panel::top("filter").show(ui, |ui| queue::filter_bar(ui, &q, &mut actions));
+        }
+    }
 
     if let Some(path) = &state.not_a_roadmap {
         banner(ui, "not-a-roadmap", &format!("No roadmap in {}", path.display()), None);
@@ -65,17 +136,19 @@ pub fn draw(ui: &mut egui::Ui, state: &State, view: &mut UiState, cx: &Context) 
         banner(ui, "problem", &headline, Some(&detail));
     }
 
-    egui::CentralPanel::default().show(ui, |ui| {
-        if state.roadmap.is_none() {
-            no_roadmap(ui, cx.start, &mut actions);
-        } else if state.snapshot.is_some() {
-            match state.view {
-                View::List => list(ui, state, &mut actions),
+    egui::CentralPanel::default()
+        .frame(egui::Frame::new().fill(palette::PAPER))
+        .show(ui, |ui| {
+            if state.roadmap.is_none() {
+                no_roadmap(ui, cx.start, &mut actions);
+            } else if state.snapshot.is_some() {
+                match state.view {
+                    View::Queue => queue::table(ui, state, &q, view, &mut actions),
+                }
+            } else if state.load != Load::Idle {
+                ui.weak("Loading…");
             }
-        } else if state.load != Load::Idle {
-            ui.weak("Loading…");
-        }
-    });
+        });
 
     if state.changed {
         egui::Area::new(egui::Id::unique("changed"))
@@ -94,6 +167,7 @@ pub fn draw(ui: &mut egui::Ui, state: &State, view: &mut UiState, cx: &Context) 
             });
     }
 
+    queue::picker(ui.ctx(), state, view, &mut actions);
     if let Some(text) = &mut view.open_path {
         open_dialog(ui.ctx(), text, &mut actions);
     }
@@ -190,30 +264,6 @@ fn no_roadmap(ui: &mut egui::Ui, start: &Path, actions: &mut Vec<Action>) {
     });
 }
 
-fn list(ui: &mut egui::Ui, state: &State, actions: &mut Vec<Action>) {
-    let rows = state.rows();
-    let archived = state.snapshot.as_ref().map_or(0, |s| s.archived.len());
-    ScrollArea::vertical().auto_shrink(false).show(ui, |ui| {
-        egui::Grid::new("items").striped(true).num_columns(4).show(ui, |ui| {
-            for row in &rows {
-                let selected = state.selected.as_deref() == Some(row.id.as_str());
-                ui.monospace(&row.position);
-                if ui
-                    .selectable_label(selected, RichText::new(&row.id).monospace())
-                    .clicked()
-                {
-                    actions.push(Action::Msg(Msg::Select(Some(row.id.clone()))));
-                }
-                ui.label(&row.title);
-                ui.weak(&row.state);
-                ui.end_row();
-            }
-        });
-        ui.add_space(8.0);
-        ui.weak(format!("Archived · {archived}"));
-    });
-}
-
 fn open_dialog(ctx: &egui::Context, text: &mut String, actions: &mut Vec<Action>) {
     egui::Window::new("Open folder")
         .collapsible(false)
@@ -290,6 +340,37 @@ fn output(raw: &RawOutput) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Every character outside ASCII that the queue's code draws as text is
+    /// in egui's default fonts, monospace and proportional, so none shows as
+    /// a box. Comments are skipped; the painted ▸ ▾ triangles aren't text.
+    #[test]
+    fn every_glyph_drawn_is_in_the_default_fonts() {
+        let ctx = egui::Context::default();
+        ctx.set_fonts(fonts());
+        let mut output = ctx.run_pass(egui::RawInput::default(), |_| {});
+        output.textures_delta.clear();
+        let sources = [
+            include_str!("../queue.rs"),
+            include_str!("queue.rs"),
+            include_str!("mod.rs"),
+            include_str!("../state.rs"),
+        ];
+        let mut missing = std::collections::BTreeSet::new();
+        for source in sources {
+            for line in source.lines().filter(|l| !l.trim_start().starts_with("//")) {
+                let code = line.split(" // ").next().unwrap_or(line);
+                for c in code.chars().filter(|c| !c.is_ascii()) {
+                    for font in [egui::FontId::monospace(11.0), egui::FontId::proportional(12.0)] {
+                        if !ctx.fonts_mut(|f| f.has_glyph(&font, c)) {
+                            missing.insert(format!("{c} (U+{:04X}) in {:?}", c as u32, font.family));
+                        }
+                    }
+                }
+            }
+        }
+        assert!(missing.is_empty(), "not in the default fonts: {missing:?}");
+    }
 
     #[test]
     fn a_problem_keeps_the_clis_words() {

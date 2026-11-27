@@ -108,23 +108,18 @@ impl Item {
         self.field("bucket").and_then(Value::as_str).unwrap_or("")
     }
 
+    /// A string field, when it is one and isn't blank (dates are strings in
+    /// the export).
+    pub fn text(&self, key: &str) -> Option<&str> {
+        self.field(key).and_then(Value::as_str).filter(|s| !s.trim().is_empty())
+    }
+
     /// The rank as written, which may be malformed (`check` reports that).
     pub fn rank(&self) -> String {
         match self.field("rank") {
             Some(Value::Number(n)) => n.to_string(),
             Some(Value::String(s)) => s.clone(),
             _ => "?".into(),
-        }
-    }
-}
-
-impl State {
-    pub fn word(self) -> &'static str {
-        match self {
-            State::Ready => "ready",
-            State::Waiting => "waiting",
-            State::Later => "later",
-            State::Unknown => "?",
         }
     }
 }

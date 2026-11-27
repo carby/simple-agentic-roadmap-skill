@@ -1,0 +1,9 @@
+# A roadmap with every state the Queue tab draws, for the GUI's tests and
+# manual checks. Dates far ahead stay in the future; "overdue" stays late.
+
+[milestones]
+shipped-preview = { title = "A preview that was reached", date = 2026-06-01, reached = 2026-06-02 }
+overdue = { title = "A date that passed unreached", date = 2026-02-01 }
+beta = { title = "Beta", date = 2099-03-01 }
+v2 = { title = "Version 2", date = 2099-06-01 }
+v3 = { title = "Version 3", date = 2099-09-01 }
