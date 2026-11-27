@@ -396,11 +396,14 @@ mod tests {
     #[test]
     fn export_runs_from_the_roadmaps_parent_and_parses_the_snapshot() {
         let tmp = tempfile::tempdir().unwrap();
-        let dir = tmp.path().join("roadmap");
+        // `pwd` resolves symlinks, and macOS's temp folder is one
+        // (/var -> /private/var), so compare against the resolved path.
+        let root = tmp.path().canonicalize().unwrap();
+        let dir = root.join("roadmap");
         fs::create_dir(&dir).unwrap();
         let script = r#"echo "{\"schema\": 1, \"ok\": true, \"warnings\": [], \"dir\": \"$(pwd)|$*\"}""#;
-        let snapshot = export(&cli(fake(tmp.path(), "fake-cli", script)), &dir, TIMEOUT).unwrap();
-        let parent = tmp.path().display().to_string();
+        let snapshot = export(&cli(fake(&root, "fake-cli", script)), &dir, TIMEOUT).unwrap();
+        let parent = root.display().to_string();
         assert_eq!(snapshot.dir, format!("{parent}|export --dir {}", dir.display()));
     }
 }
