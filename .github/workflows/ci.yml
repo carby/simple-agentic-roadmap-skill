@@ -51,6 +51,36 @@ jobs:
           "${ROADMAP_TEST_NODE:-node}" build/roadmap.mjs check --dir ../roadmap
           "${ROADMAP_TEST_NODE:-node}" build/roadmap.mjs check --dir test/fixtures/valid/roadmap
 
+  # The GUI in gui/: format, lint, build and test with the toolchain that
+  # rust-toolchain.toml pins. The tests run the real CLI, built from this
+  # commit, to check that its export still parses.
+  gui:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: gui
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install the pinned Rust toolchain
+        run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: gui
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: cli/package-lock.json
+      - name: Build the CLI the tests run
+        working-directory: cli
+        run: npm ci && npm run build
+      - run: cargo fmt --check
+      - run: cargo clippy --locked --all-targets -- -D warnings
+      - run: cargo build --locked
+      - run: cargo test --locked
+        env:
+          ROADMAP_CLI: node ${{ github.workspace }}/cli/bin/roadmap.js
+
   # The client-side check, run the way a consuming repo runs it: through the
   # action, against a fixture and against this repo's own roadmap. The
   # package isn't published from here, so the action gets this commit's
