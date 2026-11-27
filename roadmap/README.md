@@ -46,7 +46,6 @@ flowchart LR
     i_gui_queue["18 · The GUI's Queue tab: rows, lanes…"]
   end
   subgraph b_next ["Next"]
-    i_gui_ci_builds["1 · CI builds the GUI on Linux, macOS and…"]
     i_gui_dependency_graph["2 · The GUI's left-to-right dependency…"]
     i_gui_item_page["3 · The GUI's item page, with history and…"]
     i_gui_milestones["4 · The GUI's Milestones tab and milestone…"]
@@ -72,7 +71,6 @@ flowchart LR
   i_gui_queue --> i_gui_item_page
   i_gui_dependency_graph --> i_gui_item_page
   i_gui_dependency_graph --> i_gui_milestones
-  i_gui_ci_builds --> i_gui_release
   i_json_write_results --> i_gui_editing
   i_close_body --> i_gui_editing
   i_gui_item_page --> i_gui_editing
@@ -80,14 +78,13 @@ flowchart LR
   i_gui_item_page --> i_gui_check_panel
   m_gui_preview{{"GUI preview: the read-only view (2026-12-31)"}}
   i_gui_queue --> m_gui_preview
-  i_gui_ci_builds --> m_gui_preview
   i_gui_dependency_graph --> m_gui_preview
   i_gui_item_page --> m_gui_preview
   i_gui_milestones --> m_gui_preview
   i_gui_release --> m_gui_preview
   m_gui_preview --> i_drop_mermaid
   classDef ready stroke-width: 3px
-  class i_agent_behaviour_evals,i_gui_queue,i_gui_ci_builds,i_gui_dependency_graph,i_openspec_command_parity,i_explore_command,i_help_without_command,i_handoff_override,i_json_write_results,i_close_body,i_check_missing_dir,i_gui_font ready
+  class i_agent_behaviour_evals,i_gui_queue,i_gui_dependency_graph,i_gui_release,i_openspec_command_parity,i_explore_command,i_help_without_command,i_handoff_override,i_json_write_results,i_close_body,i_check_missing_dir,i_gui_font ready
   classDef later stroke-dasharray: 5 5
   class i_epics,i_standalone_binary,i_reach_command later
 ```
@@ -97,13 +94,12 @@ flowchart LR
 16. [Evals for how an agent uses the skill, not just for the script](items/agent-behaviour-evals.md) — filed 2026-09-25
 18. [The GUI's Queue tab: rows, lanes, milestone chips and the preview strip](items/gui-queue.md) — filed 2026-11-25<br>  **Due for:** GUI preview: the read-only view (2026-12-31)<br>  **Depends on:** [The GUI's frame in gui/: open a repo's roadmap through the CLI](archive/gui-scaffold.md) (shipped)
 
-### Next (16)
+### Next (15)
 
-1. [CI builds the GUI on Linux, macOS and Windows and keeps the binaries](items/gui-ci-builds.md) — filed 2026-11-27<br>  **Due for:** GUI preview: the read-only view (2026-12-31)
 2. [The GUI's left-to-right dependency graph, shared by both detail pages](items/gui-dependency-graph.md) — filed 2026-11-25<br>  **Due for:** GUI preview: the read-only view (2026-12-31)<br>  **Depends on:** [The GUI's frame in gui/: open a repo's roadmap through the CLI](archive/gui-scaffold.md) (shipped)
 3. [The GUI's item page, with history and navigation](items/gui-item-page.md) — filed 2026-11-25<br>  **Due for:** GUI preview: the read-only view (2026-12-31)<br>  **Depends on:** [The GUI's Queue tab: rows, lanes, milestone chips and the preview strip](items/gui-queue.md), [The GUI's left-to-right dependency graph, shared by both detail pages](items/gui-dependency-graph.md)
 4. [The GUI's Milestones tab and milestone page](items/gui-milestones.md) — filed 2026-11-25<br>  **Due for:** GUI preview: the read-only view (2026-12-31)<br>  **Depends on:** [The GUI's left-to-right dependency graph, shared by both detail pages](items/gui-dependency-graph.md)
-5. [Release the GUI as prebuilt binaries per platform](items/gui-release.md) — filed 2026-11-25<br>  **Due for:** GUI preview: the read-only view (2026-12-31)<br>  **Depends on:** [The GUI's frame in gui/: open a repo's roadmap through the CLI](archive/gui-scaffold.md) (shipped), [CI builds the GUI on Linux, macOS and Windows and keeps the binaries](items/gui-ci-builds.md)
+5. [Release the GUI as prebuilt binaries per platform](items/gui-release.md) — filed 2026-11-25<br>  **Due for:** GUI preview: the read-only view (2026-12-31)<br>  **Depends on:** [The GUI's frame in gui/: open a repo's roadmap through the CLI](archive/gui-scaffold.md) (shipped), [CI builds the GUI on Linux, macOS and Windows and keeps the binaries](archive/gui-ci-builds.md) (shipped)
 6. [Survey OpenSpec's CLI commands for ones the roadmap lacks](items/openspec-command-parity.md) — filed 2026-10-23<br>  **Depends on:** [Install and upgrade the skill through an npm package, like OpenSpec](archive/npm-installer.md) (shipped)
 7. [An explore command that turns a fuzzy problem into roadmap items](items/explore-command.md) — filed 2026-10-23
 8. [Bare roadmap prints its help, not an error](items/help-without-command.md) — filed 2026-11-24

@@ -10,7 +10,7 @@ depends_on = ["gui-scaffold", "gui-ci-builds"]
 
 The GUI ships as prebuilt binaries per platform, as [gui-breakdown](../archive/gui-breakdown.md) leans, from its own release pipeline in this repo (see [decisions.md](../decisions.md), 2026-11-23).
 
-- A release on the GUI's tag prefix, set up by [monorepo-move](../archive/monorepo-move.md), attaches binaries for macOS, Linux and Windows, never moving the CLI's `v` tags. The builds themselves come from [gui-ci-builds](gui-ci-builds.md): this item adds the tag trigger and the release, not the cross-platform build.
+- A release on the GUI's tag prefix, set up by [monorepo-move](../archive/monorepo-move.md), attaches binaries for macOS, Linux and Windows, never moving the CLI's `v` tags. The builds themselves come from [gui-ci-builds](../archive/gui-ci-builds.md): this item adds the tag trigger and the release, not the cross-platform build.
 - Install docs say how to get the binary, and that it needs the CLI installed, since it drives the CLI as a subprocess.
 
 Done when a tagged GUI release attaches the binaries and the docs are published. This release is what reaches the gui-preview milestone.
