@@ -43,7 +43,6 @@ work is done. **Close it in the same branch as the code**, so it moves to
 flowchart LR
   subgraph b_now ["Now"]
     i_agent_behaviour_evals["16 · Evals for how an agent uses the skill…"]
-    i_gui_scaffold["17 · The GUI's frame in gui/: open a repo's…"]
     i_gui_queue["18 · The GUI's Queue tab: rows, lanes…"]
   end
   subgraph b_next ["Next"]
@@ -69,20 +68,15 @@ flowchart LR
     i_reach_command["6 · A reach command that marks a milestone…"]
   end
   b_now ~~~ b_next ~~~ b_later
-  i_gui_scaffold --> i_gui_queue
-  i_gui_scaffold --> i_gui_dependency_graph
   i_gui_queue --> i_gui_item_page
   i_gui_dependency_graph --> i_gui_item_page
   i_gui_dependency_graph --> i_gui_milestones
-  i_gui_scaffold --> i_gui_release
   i_json_write_results --> i_gui_editing
   i_close_body --> i_gui_editing
   i_gui_item_page --> i_gui_editing
   i_json_write_results --> i_gui_check_panel
   i_gui_item_page --> i_gui_check_panel
-  i_gui_scaffold --> i_gui_font
   m_gui_preview{{"GUI preview: the read-only view (2026-12-31)"}}
-  i_gui_scaffold --> m_gui_preview
   i_gui_queue --> m_gui_preview
   i_gui_dependency_graph --> m_gui_preview
   i_gui_item_page --> m_gui_preview
@@ -90,23 +84,22 @@ flowchart LR
   i_gui_release --> m_gui_preview
   m_gui_preview --> i_drop_mermaid
   classDef ready stroke-width: 3px
-  class i_agent_behaviour_evals,i_gui_scaffold,i_openspec_command_parity,i_explore_command,i_help_without_command,i_handoff_override,i_json_write_results,i_close_body,i_check_missing_dir ready
+  class i_agent_behaviour_evals,i_gui_queue,i_gui_dependency_graph,i_gui_release,i_openspec_command_parity,i_explore_command,i_help_without_command,i_handoff_override,i_json_write_results,i_close_body,i_check_missing_dir,i_gui_font ready
   classDef later stroke-dasharray: 5 5
   class i_epics,i_standalone_binary,i_reach_command later
 ```
 
-### Now (3)
+### Now (2)
 
 16. [Evals for how an agent uses the skill, not just for the script](items/agent-behaviour-evals.md) — filed 2026-09-25
-17. [The GUI's frame in gui/: open a repo's roadmap through the CLI](items/gui-scaffold.md) — filed 2026-11-25<br>  **Due for:** GUI preview: the read-only view (2026-12-31)<br>  **Depends on:** [Move the CLI into cli/ so the repo can hold the GUI in gui/](archive/monorepo-move.md) (shipped), [A versioned JSON read interface a GUI can drive](archive/gui-read-interface.md) (shipped)
-18. [The GUI's Queue tab: rows, lanes, milestone chips and the preview strip](items/gui-queue.md) — filed 2026-11-25<br>  **Due for:** GUI preview: the read-only view (2026-12-31)<br>  **Depends on:** [The GUI's frame in gui/: open a repo's roadmap through the CLI](items/gui-scaffold.md)
+18. [The GUI's Queue tab: rows, lanes, milestone chips and the preview strip](items/gui-queue.md) — filed 2026-11-25<br>  **Due for:** GUI preview: the read-only view (2026-12-31)<br>  **Depends on:** [The GUI's frame in gui/: open a repo's roadmap through the CLI](archive/gui-scaffold.md) (shipped)
 
 ### Next (15)
 
-1. [The GUI's left-to-right dependency graph, shared by both detail pages](items/gui-dependency-graph.md) — filed 2026-11-25<br>  **Due for:** GUI preview: the read-only view (2026-12-31)<br>  **Depends on:** [The GUI's frame in gui/: open a repo's roadmap through the CLI](items/gui-scaffold.md)
+1. [The GUI's left-to-right dependency graph, shared by both detail pages](items/gui-dependency-graph.md) — filed 2026-11-25<br>  **Due for:** GUI preview: the read-only view (2026-12-31)<br>  **Depends on:** [The GUI's frame in gui/: open a repo's roadmap through the CLI](archive/gui-scaffold.md) (shipped)
 2. [The GUI's item page, with history and navigation](items/gui-item-page.md) — filed 2026-11-25<br>  **Due for:** GUI preview: the read-only view (2026-12-31)<br>  **Depends on:** [The GUI's Queue tab: rows, lanes, milestone chips and the preview strip](items/gui-queue.md), [The GUI's left-to-right dependency graph, shared by both detail pages](items/gui-dependency-graph.md)
 3. [The GUI's Milestones tab and milestone page](items/gui-milestones.md) — filed 2026-11-25<br>  **Due for:** GUI preview: the read-only view (2026-12-31)<br>  **Depends on:** [The GUI's left-to-right dependency graph, shared by both detail pages](items/gui-dependency-graph.md)
-4. [Release the GUI as prebuilt binaries per platform](items/gui-release.md) — filed 2026-11-25<br>  **Due for:** GUI preview: the read-only view (2026-12-31)<br>  **Depends on:** [The GUI's frame in gui/: open a repo's roadmap through the CLI](items/gui-scaffold.md)
+4. [Release the GUI as prebuilt binaries per platform](items/gui-release.md) — filed 2026-11-25<br>  **Due for:** GUI preview: the read-only view (2026-12-31)<br>  **Depends on:** [The GUI's frame in gui/: open a repo's roadmap through the CLI](archive/gui-scaffold.md) (shipped)
 5. [Survey OpenSpec's CLI commands for ones the roadmap lacks](items/openspec-command-parity.md) — filed 2026-10-23<br>  **Depends on:** [Install and upgrade the skill through an npm package, like OpenSpec](archive/npm-installer.md) (shipped)
 6. [An explore command that turns a fuzzy problem into roadmap items](items/explore-command.md) — filed 2026-10-23
 7. [Bare roadmap prints its help, not an error](items/help-without-command.md) — filed 2026-11-24
@@ -117,7 +110,7 @@ flowchart LR
 12. [Edit from the GUI: context menu, dialogs and refusals](items/gui-editing.md) — filed 2026-11-25<br>  **Depends on:** [JSON results from the write commands, and check --json](items/json-write-results.md), [close requires --body and appends the outcome and reasoning itself](items/close-body.md), [The GUI's item page, with history and navigation](items/gui-item-page.md)
 13. [Show check problems in the GUI](items/gui-check-panel.md) — filed 2026-11-25<br>  **Depends on:** [JSON results from the write commands, and check --json](items/json-write-results.md), [The GUI's item page, with history and navigation](items/gui-item-page.md)
 14. [check fails on a --dir that holds no roadmap](items/check-missing-dir.md) — filed 2026-11-26<br>  **Depends on:** [A versioned JSON read interface a GUI can drive](archive/gui-read-interface.md) (shipped)
-15. [Choose the GUI's font and text size](items/gui-font.md) — filed 2026-11-26<br>  **Depends on:** [The GUI's frame in gui/: open a repo's roadmap through the CLI](items/gui-scaffold.md)
+15. [Choose the GUI's font and text size](items/gui-font.md) — filed 2026-11-26<br>  **Depends on:** [The GUI's frame in gui/: open a repo's roadmap through the CLI](archive/gui-scaffold.md) (shipped)
 
 ### Later (3)
 

@@ -1,11 +1,12 @@
 +++
 id = "gui-scaffold"
 title = "The GUI's frame in gui/: open a repo's roadmap through the CLI"
-bucket = "now"
-rank = 17
 filed = 2026-11-25
 milestone = ["gui-preview"]
 depends_on = ["monorepo-move", "gui-read-interface"]
+closed = 2026-11-27
+outcome = "shipped"
+shipped_as = "#44"
 +++
 
 The first GUI item planned in [gui-breakdown](../archive/gui-breakdown.md): the Rust and egui program in gui/, before it draws any view. Everything after it builds on this frame.
@@ -29,4 +30,4 @@ Done when the binary builds in CI, opens a repo's roadmap and shows the snapshot
 - **State:** the state lives in a pure state machine (gui/src/state.rs) that the later views extend. It keeps the snapshot through a reload, drops stale loads, and holds the selection by id. Its only effect that runs the CLI is `export`.
 - **Finding the roadmap:** the first `roadmap/` walking up from the start folder, stopping at a `.git` directory or file. Open folder… takes a typed path, plus Browse… where an xdg portal answers. WSLg may have none.
 - **Testing:** the frame is unit-tested without a window: the locator, the CLI runner against fake CLIs, the state machine, the watcher, and the snapshot structs against the CLI's recorded schema. In CI, an export through the real CLI is tested too. gui/README.md lists six manual checks of the drawing.
-- **Windows and macOS** are left to [gui-release](gui-release.md), with the known issues: `.cmd` quoting, `CREATE_NO_WINDOW`, and shell-words being POSIX-only.
+- **Windows and macOS** are left to [gui-release](../items/gui-release.md), with the known issues: `.cmd` quoting, `CREATE_NO_WINDOW`, and shell-words being POSIX-only.
