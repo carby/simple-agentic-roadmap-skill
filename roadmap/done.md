@@ -12,10 +12,11 @@ append-only. See [`README.md`](README.md).
 
 ### Milestones (1)
 
-- **GUI preview: the read-only view** — 2026-12-31: 1 shipped
+- **GUI preview: the read-only view** — 2026-12-31: 2 shipped
 
-### 2026-11 (16)
+### 2026-11 (17)
 
+- **shipped** [CI builds the GUI on Linux, macOS and Windows and keeps the binaries](archive/gui-ci-builds.md) — closed 2026-11-27 as `#46` — for GUI preview: the read-only view (2026-12-31)
 - **shipped** [The GUI's frame in gui/: open a repo's roadmap through the CLI](archive/gui-scaffold.md) — closed 2026-11-27 as `#44` — for GUI preview: the read-only view (2026-12-31)
 - **shipped** [A versioned JSON read interface a GUI can drive](archive/gui-read-interface.md) — closed 2026-11-26 as `#43`
 - **shipped** [Break the gitk-style GUI into implementation items](archive/gui-breakdown.md) — closed 2026-11-25 as `#41`
