@@ -81,28 +81,17 @@ jobs:
         env:
           ROADMAP_CLI: node ${{ github.workspace }}/cli/bin/roadmap.js
 
-  # The GUI's release build on each platform, kept as a workflow artifact so
-  # a commit's GUI can be tried without Rust. The tests run in the release
-  # profile, reusing the build's dependencies. Without ROADMAP_CLI the
-  # real-CLI test skips itself: the gui job covers it. On Windows the tests
-  # that spawn a CLI are gated out (they use shell scripts), so only the
-  # platform-neutral ones run there. The cache is saved from master only,
-  # so three platforms' release builds don't evict it from branches.
-  gui-build:
+  # The gate on the other platforms: the GUI's tests on macOS and Windows,
+  # building only what they need. The gui job covers Linux. Without
+  # ROADMAP_CLI the real-CLI test skips itself. On Windows the tests that
+  # spawn a CLI are gated out (their fake CLIs are shell scripts), so only
+  # the platform-neutral ones run there. The cache is saved from master only.
+  gui-platforms:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: ubuntu-latest
-            name: linux-x86_64
-            exe: roadmap-gui
-          - os: macos-latest
-            name: macos-arm64
-            exe: roadmap-gui
-          - os: windows-latest
-            name: windows-x86_64
-            exe: roadmap-gui.exe
-    name: gui-build (${{ matrix.name }})
+        os: [macos-latest, windows-latest]
+    name: gui-platforms (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     defaults:
@@ -117,8 +106,42 @@ jobs:
         with:
           workspaces: gui
           save-if: ${{ github.ref == 'refs/heads/master' }}
+      - run: cargo test --locked
+
+  # Delivery: once the gate is green on master, the GUI's release build for
+  # each platform, kept as a workflow artifact so it can be tried without
+  # Rust. Branches and pull requests get no binaries.
+  gui-delivery:
+    needs: [gui, gui-platforms]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            name: linux-x86_64
+            exe: roadmap-gui
+          - os: macos-latest
+            name: macos-arm64
+            exe: roadmap-gui
+          - os: windows-latest
+            name: windows-x86_64
+            exe: roadmap-gui.exe
+    name: gui-delivery (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: gui
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install the pinned Rust toolchain
+        run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: gui
       - run: cargo build --release --locked
-      - run: cargo test --release --locked
       - name: The binary runs
         run: target/release/${{ matrix.exe }} --version
       - uses: actions/upload-artifact@v7
@@ -126,7 +149,6 @@ jobs:
           name: roadmap-gui-${{ matrix.name }}
           path: gui/target/release/${{ matrix.exe }}
           if-no-files-found: error
-          retention-days: 14
 
   # The client-side check, run the way a consuming repo runs it: through the
   # action, against a fixture and against this repo's own roadmap. The
