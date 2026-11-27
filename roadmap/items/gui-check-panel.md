@@ -2,7 +2,7 @@
 id = "gui-check-panel"
 title = "Show check problems in the GUI"
 bucket = "next"
-rank = 13
+rank = 14
 filed = 2026-11-25
 depends_on = ["json-write-results", "gui-item-page"]
 +++

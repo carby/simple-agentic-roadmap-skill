@@ -2,7 +2,7 @@
 id = "check-missing-dir"
 title = "check fails on a --dir that holds no roadmap"
 bucket = "next"
-rank = 14
+rank = 15
 filed = 2026-11-26
 depends_on = ["gui-read-interface"]
 

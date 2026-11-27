@@ -2,7 +2,7 @@
 id = "gui-font"
 title = "Choose the GUI's font and text size"
 bucket = "next"
-rank = 15
+rank = 16
 filed = 2026-11-26
 depends_on = ["gui-scaffold"]
 

@@ -2,7 +2,7 @@
 id = "gui-editing"
 title = "Edit from the GUI: context menu, dialogs and refusals"
 bucket = "next"
-rank = 12
+rank = 13
 filed = 2026-11-25
 depends_on = ["json-write-results", "close-body", "gui-item-page"]
 +++

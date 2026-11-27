@@ -2,7 +2,7 @@
 id = "gui-milestones"
 title = "The GUI's Milestones tab and milestone page"
 bucket = "next"
-rank = 3
+rank = 4
 filed = 2026-11-25
 milestone = ["gui-preview"]
 depends_on = ["gui-dependency-graph"]

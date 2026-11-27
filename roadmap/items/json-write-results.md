@@ -2,7 +2,7 @@
 id = "json-write-results"
 title = "JSON results from the write commands, and check --json"
 bucket = "next"
-rank = 9
+rank = 10
 filed = 2026-11-25
 depends_on = ["gui-read-interface"]
 +++

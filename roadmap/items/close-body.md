@@ -2,7 +2,7 @@
 id = "close-body"
 title = "close requires --body and appends the outcome and reasoning itself"
 bucket = "next"
-rank = 10
+rank = 11
 filed = 2026-11-25
 +++
 

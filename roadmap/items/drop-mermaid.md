@@ -2,7 +2,7 @@
 id = "drop-mermaid"
 title = "Drop the Mermaid chart from the index"
 bucket = "next"
-rank = 11
+rank = 12
 filed = 2026-11-12
 depends_on = ["gui-read-interface", "gui-preview"]
 

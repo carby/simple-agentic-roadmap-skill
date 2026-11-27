@@ -2,7 +2,7 @@
 id = "handoff-override"
 title = "Say when a global roadmap hands off to the pinned copy, and allow skipping it"
 bucket = "next"
-rank = 8
+rank = 9
 filed = 2026-11-24
 +++
 

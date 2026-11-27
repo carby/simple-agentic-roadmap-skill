@@ -2,7 +2,7 @@
 id = "gui-dependency-graph"
 title = "The GUI's left-to-right dependency graph, shared by both detail pages"
 bucket = "next"
-rank = 1
+rank = 2
 filed = 2026-11-25
 milestone = ["gui-preview"]
 depends_on = ["gui-scaffold"]
